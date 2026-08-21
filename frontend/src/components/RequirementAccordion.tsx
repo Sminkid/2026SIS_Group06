@@ -1,0 +1,107 @@
+import { useEffect, useId, useState } from "react";
+import { fetchComponentDetail } from "../api/components";
+import type { ComponentSelections } from "../hooks/useComponentSelections";
+import type { ComponentDetailResponse, RequirementGroup, RequirementItem } from "../types/handbook";
+import { AsyncState } from "./AsyncState";
+
+const formatType = (type: string) => type.toLowerCase().replaceAll("_", " ");
+
+const RequirementRow = ({ item }: { item: RequirementItem }) => {
+  if (item.subject) return <div className="requirement-row requirement-row--subject">
+    <span className="requirement-row__code">{item.subject.code}</span><span className="requirement-row__name">{item.subject.name}</span>
+    <span className="requirement-row__cp">{item.subject.creditPoints ?? item.creditPoints ?? "—"} CP</span>
+  </div>;
+  if (item.component) return <div className="requirement-row requirement-row--component">
+    <span className="type-badge">{formatType(item.component.type)}</span><span className="requirement-row__code">{item.component.code}</span>
+    <span className="requirement-row__name">{item.component.name}</span><span className="requirement-row__cp">{item.component.creditPoints ?? item.creditPoints ?? "—"} CP</span>
+  </div>;
+  return <div className="requirement-row requirement-row--other">
+    <span className="type-badge">{item.itemType.toLowerCase()}</span>{item.rawCode && <span className="requirement-row__code">{item.rawCode}</span>}
+    <span className="requirement-row__name">{item.rawName ?? "Requirement details unavailable"}</span>
+    {item.creditPoints !== null && <span className="requirement-row__cp">{item.creditPoints} CP</span>}
+  </div>;
+};
+
+interface SelectionContext {
+  universityCode: string;
+  handbookYear: number;
+  selections: ComponentSelections;
+  onSelectComponent: (groupId: string, componentCode: string) => void;
+}
+
+interface Props extends SelectionContext { group: RequirementGroup; depth?: number; }
+
+const SelectedComponentRequirements = ({ componentCode, context }: { componentCode: string; context: SelectionContext }) => {
+  const [detail, setDetail] = useState<ComponentDetailResponse | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setStatus("loading"); setDetail(null);
+    void fetchComponentDetail(componentCode, context.universityCode, context.handbookYear, controller.signal)
+      .then((result) => { setDetail(result); setStatus("ready"); })
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
+      });
+    return () => controller.abort();
+  }, [componentCode, context.handbookYear, context.universityCode, reloadKey]);
+
+  if (status === "loading") return <AsyncState kind="loading" label="Loading selected component requirements" />;
+  if (status === "error") return <AsyncState kind="error" label="We couldn't load this component's requirements." onRetry={() => setReloadKey((key) => key + 1)} />;
+  if (!detail) return null;
+
+  return <section className="selected-component" aria-label={`Selected ${formatType(detail.component.type)}`}>
+    <div className="selected-component__header">
+      <div><p className="selected-component__label">Selected {formatType(detail.component.type)}</p><h4>{detail.component.code} · {detail.component.name}</h4></div>
+      {detail.component.creditPoints !== null && <span>{detail.component.creditPoints} CP</span>}
+    </div>
+    {detail.requirements.length === 0 ? <p className="selected-component__empty">No additional formal requirements are listed for this component.</p> :
+      <div className="component-requirements">
+        <h5>Component structure</h5>
+        {detail.requirements.map((group) => <RequirementAccordion key={group.id} group={group} depth={1} {...context} />)}
+      </div>}
+  </section>;
+};
+
+export const RequirementAccordion = ({ group, depth = 0, universityCode, handbookYear, selections, onSelectComponent }: Props) => {
+  const [isOpen, setIsOpen] = useState(depth === 0);
+  const contentId = useId();
+  const componentChoices = group.items.filter((item) => item.itemType === "COMPONENT");
+  const isSingleComponentChoice = group.logic === "ONE_OF" && componentChoices.length > 1 && componentChoices.length === group.items.length;
+  const selectedCode = selections[group.id];
+  const selectedChoice = componentChoices.find((item) => item.component?.code === selectedCode);
+  const hasContent = group.items.length > 0 || group.children.length > 0 || Boolean(group.description);
+  const context = { universityCode, handbookYear, selections, onSelectComponent };
+
+  return <section className={`requirement-group requirement-group--depth-${Math.min(depth, 2)}`}>
+    <button className="requirement-group__trigger" type="button" aria-expanded={isOpen} aria-controls={contentId} onClick={() => setIsOpen((open) => !open)} disabled={!hasContent}>
+      <span className="requirement-group__heading"><span className="requirement-group__title">{group.title ?? "Untitled requirement"}</span>
+        <span className="requirement-group__meta">{group.requiredCreditPoints !== null && `${group.requiredCreditPoints} credit points`}
+          {group.logic !== "UNKNOWN" && <span className="logic-label">{group.logic.replace("_", " ")}</span>}
+          {selectedChoice?.component && <span className="selection-summary">Selected: {selectedChoice.component.name}</span>}
+        </span>
+      </span>{hasContent && <span className="chevron" aria-hidden="true">{isOpen ? "−" : "+"}</span>}
+    </button>
+    {isOpen && hasContent && <div className="requirement-group__content" id={contentId}>
+      {group.description && <p className="group-description">{group.description}</p>}
+      {isSingleComponentChoice ? <fieldset className="component-choices">
+        <legend>Choose one option</legend>
+        {componentChoices.map((item) => {
+          const component = item.component;
+          if (!component) return <div className="component-choice component-choice--unavailable" key={item.id}>
+            <span className="type-badge">component</span><strong>{item.rawCode ?? "Unavailable option"}</strong><span>{item.rawName}</span>
+          </div>;
+          const selected = component.code === selectedCode;
+          return <label className={`component-choice${selected ? " component-choice--selected" : ""}`} key={item.id}>
+            <input type="radio" name={`component-choice-${group.id}`} value={component.code} checked={selected} onChange={() => onSelectComponent(group.id, component.code)} />
+            <span className="component-choice__body"><span className="type-badge">{formatType(component.type)}</span><strong>{component.code}</strong><span>{component.name}</span></span>
+            <span className="component-choice__cp">{component.creditPoints ?? item.creditPoints ?? "—"} CP</span>
+          </label>;
+        })}
+      </fieldset> : group.items.length > 0 && <div className="requirement-items">{group.items.map((item) => <RequirementRow item={item} key={item.id} />)}</div>}
+      {isSingleComponentChoice && selectedChoice?.component && <SelectedComponentRequirements componentCode={selectedChoice.component.code} context={context} />}
+      {group.children.length > 0 && <div className="nested-requirements">{group.children.map((child) => <RequirementAccordion key={child.id} group={child} depth={depth + 1} {...context} />)}</div>}
+    </div>}
+  </section>;
+};

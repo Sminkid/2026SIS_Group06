@@ -10,7 +10,8 @@ this is the project brief
 This project is a lightweight, single-purpose web application—an "app made to be deleted"—designed to help prospective undergraduate and postgraduate students visually model their daily life, course roadmaps, and finances before choosing a university in NSW. Instead of forcing students to decipher dense handbooks and confusing calendars, the platform interactively compares the real-world impact of different academic structures—like USyd’s 2-semester pace versus UNSW’s 3-trimester schedule. Powered by a single core engine, it maps single degrees, complex double degrees, and postgraduate pathways (including credit exemptions and part-time study loads). It highlights prerequisite chains and financial milestones—explicitly predicting which terms will be the most costly or demanding—so students can plan their life, budget, and study balance before exporting a shareable 1-page master decision plan and enrolling.
 
 ## Choosing University Course and visualise their study journal
-Example Planning Flow
+### Example Planning Flow
+```text
 Choose University
       ↓
 Choose Degree
@@ -28,4 +29,16 @@ Check Prerequisites + Credit Points
 Compare Workload + Cost
       ↓
 Export Final Plan
+```
+
+To run the app
+npm i
+Npx prisma migrate deploy (dont use this yet)
+npx prisma generate
+
+cd backend
+Npm run dev
+cd frontend
+Npm run dev
+
 

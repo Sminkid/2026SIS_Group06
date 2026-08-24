@@ -6,11 +6,22 @@ import { AsyncState } from "./AsyncState";
 
 const formatType = (type: string) => type.toLowerCase().replaceAll("_", " ");
 
-const RequirementRow = ({ item }: { item: RequirementItem }) => {
-  if (item.subject) return <div className="requirement-row requirement-row--subject">
+const RequirementRow = ({
+  item,
+  onOpenSubject,
+}: {
+  item: RequirementItem;
+  onOpenSubject: (subjectCode: string) => void;
+}) => {
+  if (item.subject) return <button
+    className="requirement-row requirement-row--subject requirement-row--interactive"
+    type="button"
+    onClick={() => onOpenSubject(item.subject!.code)}
+    aria-label={`View ${item.subject.code} ${item.subject.name}`}
+  >
     <span className="requirement-row__code">{item.subject.code}</span><span className="requirement-row__name">{item.subject.name}</span>
     <span className="requirement-row__cp">{item.subject.creditPoints ?? item.creditPoints ?? "—"} CP</span>
-  </div>;
+  </button>;
   if (item.component) return <div className="requirement-row requirement-row--component">
     <span className="type-badge">{formatType(item.component.type)}</span><span className="requirement-row__code">{item.component.code}</span>
     <span className="requirement-row__name">{item.component.name}</span><span className="requirement-row__cp">{item.component.creditPoints ?? item.creditPoints ?? "—"} CP</span>
@@ -27,6 +38,7 @@ interface SelectionContext {
   handbookYear: number;
   selections: ComponentSelections;
   onSelectComponent: (groupId: string, componentCode: string) => void;
+  onOpenSubject: (subjectCode: string) => void;
 }
 
 interface Props extends SelectionContext { group: RequirementGroup; depth?: number; }
@@ -64,15 +76,15 @@ const SelectedComponentRequirements = ({ componentCode, context }: { componentCo
   </section>;
 };
 
-export const RequirementAccordion = ({ group, depth = 0, universityCode, handbookYear, selections, onSelectComponent }: Props) => {
-  const [isOpen, setIsOpen] = useState(depth === 0);
-  const contentId = useId();
+export const RequirementAccordion = ({ group, depth = 0, universityCode, handbookYear, selections, onSelectComponent, onOpenSubject }: Props) => {
   const componentChoices = group.items.filter((item) => item.itemType === "COMPONENT");
   const isSingleComponentChoice = group.logic === "ONE_OF" && componentChoices.length > 1 && componentChoices.length === group.items.length;
+  const [isOpen, setIsOpen] = useState(depth === 0 && isSingleComponentChoice);
+  const contentId = useId();
   const selectedCode = selections[group.id];
   const selectedChoice = componentChoices.find((item) => item.component?.code === selectedCode);
   const hasContent = group.items.length > 0 || group.children.length > 0 || Boolean(group.description);
-  const context = { universityCode, handbookYear, selections, onSelectComponent };
+  const context = { universityCode, handbookYear, selections, onSelectComponent, onOpenSubject };
 
   return <section className={`requirement-group requirement-group--depth-${Math.min(depth, 2)}`}>
     <button className="requirement-group__trigger" type="button" aria-expanded={isOpen} aria-controls={contentId} onClick={() => setIsOpen((open) => !open)} disabled={!hasContent}>
@@ -99,7 +111,7 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
             <span className="component-choice__cp">{component.creditPoints ?? item.creditPoints ?? "—"} CP</span>
           </label>;
         })}
-      </fieldset> : group.items.length > 0 && <div className="requirement-items">{group.items.map((item) => <RequirementRow item={item} key={item.id} />)}</div>}
+      </fieldset> : group.items.length > 0 && <div className="requirement-items">{group.items.map((item) => <RequirementRow item={item} onOpenSubject={onOpenSubject} key={item.id} />)}</div>}
       {isSingleComponentChoice && selectedChoice?.component && <SelectedComponentRequirements componentCode={selectedChoice.component.code} context={context} />}
       {group.children.length > 0 && <div className="nested-requirements">{group.children.map((child) => <RequirementAccordion key={child.id} group={child} depth={depth + 1} {...context} />)}</div>}
     </div>}

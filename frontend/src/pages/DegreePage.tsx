@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchDegreeDetail } from "../api/degrees";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
@@ -6,6 +6,8 @@ import { RequirementAccordion } from "../components/RequirementAccordion";
 import type { DegreeDetailResponse, DegreeSummary, University } from "../types/handbook";
 import { useComponentSelections } from "../hooks/useComponentSelections";
 import { StudyPlansSection } from "../components/StudyPlansSection";
+import { SubjectDetailsDialog } from "../components/SubjectDetailsDialog";
+import { useSelectedComponentDetails } from "../hooks/useSelectedComponentDetails";
 
 interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; }
 
@@ -13,11 +15,21 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
   const [detail, setDetail] = useState<DegreeDetailResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
+  const [subjectCode, setSubjectCode] = useState<string | null>(null);
   const retry = useCallback(() => setReloadKey((key) => key + 1), []);
   const { selections, selectComponent } = useComponentSelections(
     university.code,
     degree.handbookYear,
     degree.code,
+  );
+  const selectedComponentCodes = useMemo(
+    () => [...new Set(Object.values(selections).filter((value) => !value.startsWith("GROUP:")))].sort(),
+    [selections],
+  );
+  const selectedComponentDetails = useSelectedComponentDetails(
+    selectedComponentCodes,
+    university.code,
+    degree.handbookYear,
   );
 
   useEffect(() => {
@@ -31,7 +43,7 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
     return () => controller.abort();
   }, [degree.code, degree.handbookYear, reloadKey, university.code]);
 
-  return <main className="page degree-page">
+  return <main className="page degree-page" id="main-content">
     <Breadcrumbs items={[{ label: "Universities", onClick: onHome }, { label: university.code, onClick: onBack }, { label: degree.code }]} />
     {status === "loading" && <AsyncState kind="loading" label="Loading degree requirements" />}
     {status === "error" && <AsyncState kind="error" label="We couldn't load this degree's requirements." onRetry={retry} />}
@@ -57,10 +69,29 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
               handbookYear={degree.handbookYear}
               selections={selections}
               onSelectComponent={selectComponent}
+              onOpenSubject={setSubjectCode}
             />
           ))}</div>}
       </section>
-      <StudyPlansSection degreeCode={degree.code} universityCode={university.code} handbookYear={degree.handbookYear} />
+      <StudyPlansSection
+        degreeCode={degree.code}
+        universityCode={university.code}
+        handbookYear={degree.handbookYear}
+        selectedComponentCodes={selectedComponentCodes}
+        onOpenSubject={setSubjectCode}
+        degreeCreditPoints={detail.degree.creditPoints}
+        requirements={detail.requirements}
+        selectedComponents={selections}
+        componentDetails={selectedComponentDetails.details}
+        degreeName={detail.degree.name}
+        onSelectComponent={selectComponent}
+      />
+      <SubjectDetailsDialog
+        subjectCode={subjectCode}
+        universityCode={university.code}
+        handbookYear={degree.handbookYear}
+        onClose={() => setSubjectCode(null)}
+      />
     </>}
   </main>;
 };

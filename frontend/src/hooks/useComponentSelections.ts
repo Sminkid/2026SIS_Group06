@@ -37,8 +37,12 @@ export const useComponentSelections = (
     try { localStorage.setItem(storageKey, JSON.stringify(selections)); } catch { /* Storage can be unavailable. */ }
   }, [selections, storageKey]);
 
-  const selectComponent = (requirementGroupId: string, componentCode: string) => {
-    setSelections((current) => ({ ...current, [requirementGroupId]: componentCode }));
+  const selectComponent = (requirementGroupId: string, componentCode: string, clearGroupIds: string[] = []) => {
+    setSelections((current) => {
+      const next = { ...current, [requirementGroupId]: componentCode };
+      clearGroupIds.forEach((groupId) => { if (groupId !== requirementGroupId) delete next[groupId]; });
+      return next;
+    });
   };
 
   return { selections, selectComponent };

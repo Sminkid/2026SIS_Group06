@@ -14,6 +14,7 @@ export const App = () => {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="site-header">
         <button className="brand" type="button" onClick={() => setScreen({ name: "universities" })} aria-label="Degree planner home">
           <span className="brand__mark" aria-hidden="true">DP</span>

@@ -63,6 +63,15 @@ export interface StudyPlanItem {
   creditPoints: number | null;
   numberOfPeriods: number | null;
   sortOrder: number | null;
+  choiceOrigin?: {
+    officialChoiceItemId: string;
+    title: string;
+    rawCode: string | null;
+    creditPoints: number | null;
+    originalPeriodId: string;
+    formalComponentCode?: string;
+    formalRequirementGroupId?: string;
+  };
 }
 export interface StudyPlanPeriod { id: string; name: string; sortOrder: number | null; items: StudyPlanItem[]; }
 export interface StudyPlanYear { id: string; name: string; sortOrder: number | null; periods: StudyPlanPeriod[]; }

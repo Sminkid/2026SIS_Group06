@@ -1,6 +1,7 @@
 import type { ComponentSelections } from "../hooks/useComponentSelections";
 import type { ComponentDetailResponse, RequirementGroup } from "../types/handbook";
 import type { PlannerState } from "../types/planner";
+import { readableText } from "../domain/readableText";
 
 interface Props { universityCode: string; degreeName: string; requirements: RequirementGroup[]; componentDetails: Record<string, ComponentDetailResponse>;
   selections: ComponentSelections; onSelect: (groupId: string, value: string, clearGroupIds?: string[]) => void; planner: PlannerState | null }
@@ -20,7 +21,7 @@ const GroupPreview = ({ group, selections, onSelect, planned }: { group: Require
   const broad = subjectItems.length === 0 && componentItems.length === 0 && group.children.length === 0;
   return <details className="path-preview" open={group.children.length <= 2}><summary><span>{title(group)}</span>
     <strong>{group.logic === "ALL" ? `CORE · Complete all${group.requiredCreditPoints !== null ? ` · ${group.requiredCreditPoints} CP` : ""}` : group.requiredCreditPoints !== null ? `OPTIONS · Choose ${group.requiredCreditPoints} CP` : group.logic.replace("_", " ")}</strong></summary>
-    <div className="path-preview__body">{group.description && <p>{group.description}</p>}{broad && <p className="broad-requirement">Broad subject choice. Searched subjects are not automatically verified to count.</p>}
+    <div className="path-preview__body">{group.description && <p>{readableText(group.description)}</p>}{broad && <p className="broad-requirement">Broad subject choice. Searched subjects are not automatically verified to count.</p>}
       {componentDecision(group) && <ComponentSelect group={group} label={componentItems[0]?.type.toLowerCase().replaceAll("_", " ") ?? title(group)} selections={selections} onSelect={onSelect} />}
       {subjectItems.length > 0 && <ul className="path-preview__subjects">{subjectItems.map((item) => <li key={item.id}>
         <strong>{group.logic === "ALL" ? planned.has(item.subject!.code) ? "✓" : "⚠" : ""} {item.subject!.code}</strong><span>{item.subject!.name}</span>
@@ -114,7 +115,7 @@ export const StudyPathSelector = ({ universityCode, degreeName, requirements, co
         : <GroupPreview group={majorOption} selections={selections} onSelect={onSelect} planned={planned} />}<ComponentPreview detail={nestedComponentDetail} selections={selections} onSelect={onSelect} planned={planned} /></div>}</section>}
     {separatePath && <section className="path-decision"><label className="study-path__field"><span>{title(separatePath)}</span><select value={selections[separatePath.id] ?? ""} onChange={(event) => onSelect(separatePath.id, event.target.value, flattenGroups(separatePath.children).map((group) => group.id))}>
       <option value="" disabled>Select a pathway</option>{separatePath.children.map((child) => <option value={`GROUP:${child.id}`} key={child.id}>{title(child)}</option>)}</select></label>
-      {separatePath.description && <p className="path-condition">{separatePath.description}</p>}{separateSelection && <div className="path-decision__detail"><GroupPreview group={separateSelection} selections={selections} onSelect={onSelect} planned={planned} />
+      {separatePath.description && <p className="path-condition">{readableText(separatePath.description)}</p>}{separateSelection && <div className="path-decision__detail"><GroupPreview group={separateSelection} selections={selections} onSelect={onSelect} planned={planned} />
         {separateComponentDetails.map((detail) => <ComponentPreview detail={detail} selections={selections} onSelect={onSelect} planned={planned} key={detail.component.code} />)}</div>}</section>}
   </section>;
 };

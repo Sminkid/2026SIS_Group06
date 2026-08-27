@@ -16,6 +16,7 @@ import { usePlannerValidation } from "../hooks/usePlannerValidation";
 import type { ValidationResult } from "../types/validation";
 import { StudyPathSelector } from "./StudyPathSelector";
 import { resolveStudyPathChoiceScope } from "../domain/studyPathChoiceScope";
+import { readableText } from "../domain/readableText";
 
 interface Props {
   degreeCode: string;
@@ -71,7 +72,7 @@ const PlanItemCard = ({
     </div>}
   </>;
 
-  const className = `plan-item${isChoiceSlot ? " plan-item--choice" : ""}${isFilledChoice ? " plan-item--filled" : ""}`;
+  const className = `plan-item${isChoiceSlot && !isPlacement ? " plan-item--choice" : ""}${isFilledChoice ? " plan-item--filled" : ""}`;
   if (!editable) return <article className={className}>{content}</article>;
 
   return <article className={className}>
@@ -80,9 +81,9 @@ const PlanItemCard = ({
       : code
         ? <button className="plan-item__main-action" type="button" onClick={() => onOpenSubject(code)} aria-label={`View ${code} ${name}`}>{content}</button>
         : <div className="plan-item__main-action">{content}</div>}
-    {((item.choiceOrigin && !isFixedComponentSubject) || (code && issues.length > 0)) && <div className="plan-item__controls">
+    {((isFilledChoice && !isFixedComponentSubject) || (code && issues.length > 0)) && <div className="plan-item__controls">
       {code && issues.length > 0 && <button className="text-button" type="button" onClick={() => onOpenSubject(code)}>View requirements</button>}
-      {item.choiceOrigin && !isFixedComponentSubject && <button className="plan-item__restore" type="button" onClick={() => onRestoreChoice(item.id)}>
+      {isFilledChoice && !isFixedComponentSubject && <button className="plan-item__restore" type="button" onClick={() => onRestoreChoice(item.id)}>
         Remove subject &amp; restore choice
       </button>}
     </div>}
@@ -149,12 +150,7 @@ export const StudyPlansSection = ({
     clear,
     selectSubject,
     restoreChoiceSlot,
-    syncSelectedComponentSubjects,
   } = usePlannerState(selectedPlan, plannerContext);
-  const plannerActive = planner !== null;
-  useEffect(() => {
-    if (plannerActive) syncSelectedComponentSubjects(componentDetails);
-  }, [componentDetails, plannerActive, syncSelectedComponentSubjects]);
   const displayedPlan = useMemo(
     () => planner && selectedPlan ? plannerToStudyPlan(planner, selectedPlan) : selectedPlan,
     [planner, selectedPlan],
@@ -250,8 +246,8 @@ export const StudyPlansSection = ({
     return index;
   }, [combinedValidation]);
   const activeChoiceScope = useMemo(
-    () => resolveStudyPathChoiceScope(activeChoice, requirements, componentDetails, selectedComponents),
-    [activeChoice, componentDetails, requirements, selectedComponents],
+    () => resolveStudyPathChoiceScope(activeChoice, requirements, componentDetails, selectedComponents, planner),
+    [activeChoice, componentDetails, planner, requirements, selectedComponents],
   );
   const chooseSubject = (subject: SubjectSearchResult, formalComponentCode?: string, formalRequirementGroupId?: string) => {
     if (!activeChoice) return;
@@ -292,7 +288,7 @@ export const StudyPlansSection = ({
           <summary>View official plan title and variants</summary>
           <p>{selectedPlan.title}</p>
         </details>}
-        {selectedPlan.description && <p>{selectedPlan.description}</p>}
+        {selectedPlan.description && <p>{readableText(selectedPlan.description)}</p>}
       </div>
       <div className={`planner-toolbar${planner ? " planner-toolbar--active" : ""}`}>
         <div>

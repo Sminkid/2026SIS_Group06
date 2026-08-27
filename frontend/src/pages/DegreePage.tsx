@@ -9,6 +9,7 @@ import { StudyPlansSection } from "../components/StudyPlansSection";
 import { SubjectDetailsDialog } from "../components/SubjectDetailsDialog";
 import { useSelectedComponentDetails } from "../hooks/useSelectedComponentDetails";
 import { DegreeCompletionOverview } from "../components/DegreeCompletionOverview";
+import { readableText } from "../domain/readableText";
 
 interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; }
 const componentIndex = (groups: RequirementGroup[]) => {
@@ -85,7 +86,7 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
           <span><strong>{detail.degree.handbookYear}</strong> handbook</span>
           <span><strong>{detail.degree.university.code}</strong> {detail.degree.university.name}</span>
         </div>
-        {detail.degree.description && !hasSemanticOverview && <p className="degree-description">{detail.degree.description}</p>}
+        {detail.degree.description && !hasSemanticOverview && <p className="degree-description">{readableText(detail.degree.description)}</p>}
       </header>
       <section className="requirements-section" aria-labelledby="requirements-heading">
         <div className="section-heading"><div><p className="step-label">Step 3 of 3</p><h2 id="requirements-heading">Course structure</h2></div><span className="result-count">{detail.requirements.length} sections</span></div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { fetchSubjectAccessConditionsBatch, searchSubjects } from "../api/subjects";
 import { validateSubjectCandidate } from "../domain/plannerValidation";
+import { collectRequirementPoolContexts, getSubjectSelectionAction } from "../domain/subjectChoiceEligibility";
 import type { ChoiceScope } from "../domain/studyPathChoiceScope";
 import type { RequirementGroup, StudyPlanItem } from "../types/handbook";
 import type { PlannerState } from "../types/planner";
@@ -12,18 +13,6 @@ interface Props {
   onClose: () => void; onOpenSubject: (code: string) => void;
   onSelect: (subject: SubjectSearchResult, componentCode?: string, groupId?: string) => void;
 }
-interface SubjectPool { group: RequirementGroup; quotaGroup: RequirementGroup; subjects: SubjectSearchResult[]; selectable: boolean; requiredCore: boolean }
-const collectPools = (
-  groups: RequirementGroup[], selectableIds: Set<string>,
-  inheritedSelectable?: RequirementGroup, inheritedCore?: RequirementGroup,
-): SubjectPool[] => groups.flatMap((group) => {
-  const selectableGroup = inheritedSelectable ?? (selectableIds.has(group.id) ? group : undefined);
-  const coreGroup = selectableGroup ? undefined : inheritedCore ?? (group.logic === "ALL" ? group : undefined);
-  const subjects = group.items.flatMap((item) => item.subject ? [{ ...item.subject, prerequisiteStatus: "UNKNOWN" as const, recommendation: "REQUIREMENT_MATCH" as const }] : []);
-  return [...(subjects.length ? [{ group, quotaGroup: selectableGroup ?? coreGroup ?? group, subjects, selectable: Boolean(selectableGroup), requiredCore: Boolean(coreGroup) }] : []),
-    ...collectPools(group.children, selectableIds, selectableGroup, coreGroup)];
-});
-
 const flattenGroups = (groups: RequirementGroup[]): RequirementGroup[] => groups.flatMap((group) => [group, ...flattenGroups(group.children)]);
 const subjectCodesIn = (group: RequirementGroup) => new Set(flattenGroups([group]).flatMap((candidate) =>
   candidate.items.flatMap((item) => item.subject ? [item.subject.code] : [])));
@@ -53,13 +42,20 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
       ? (item.subject.creditPoints ?? item.creditPoints ?? 0) : 0);
   }, 0) : 0;
   const maximumPoints = quotaGroup?.maximumCreditPoints ?? quotaRequired;
-  const requirementComplete = maximumPoints !== null && selectedPoints >= maximumPoints;
   return <div className="subject-result-list">{results.map((subject) => {
     const access = accessConditions[subject.code];
     const actionableIssues = (planner ? validateSubjectCandidate(planner, choiceItem.id, subject, access) : []).filter((issue) => issue.severity !== "info");
     const duplicate = planned.has(subject.code) && choiceItem.subject?.code !== subject.code;
     const currentPoints = currentBelongsToGroup ? (choiceItem.subject?.creditPoints ?? choiceItem.creditPoints ?? 0) : 0;
-    const wouldExceed = maximumPoints !== null && selectedPoints - currentPoints + (subject.creditPoints ?? 0) > maximumPoints;
+    const action = getSubjectSelectionAction({
+      belongsToResolvedScope: selectable || requiredCore,
+      duplicate,
+      maximumCreditPoints: maximumPoints,
+      selectedCreditPoints: selectedPoints,
+      currentCreditPoints: currentPoints,
+      candidateCreditPoints: subject.creditPoints ?? 0,
+      replacingCurrent: currentBelongsToGroup && Boolean(choiceItem.subject),
+    });
     return <article className="subject-result" key={subject.id}><div className="subject-result__main">
       <span className="subject-result__code">{subject.code}</span><h3>{subject.name}</h3><div className="subject-result__meta">
         <span>{subject.creditPoints === null ? "CP not listed" : `${subject.creditPoints} CP`}</span>{(componentCode || quotaGroup) && <span className="match-badge">Requirement match ✓</span>}</div>
@@ -70,10 +66,10 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
       {!duplicate && actionableIssues.map((issue, index) => <p className="candidate-access candidate-access--warning" key={`${issue.code}-${index}`}>⚠ {issue.message}</p>)}
     </div><div className="subject-result__actions">
       {(access?.hasConditions || subject.prerequisiteStatus === "HAS_CONDITIONS") && <button className="text-button" type="button" onClick={() => onOpenSubject(subject.code)}>View requirements</button>}
-      {(selectable || requiredCore) && <button className="secondary-button" type="button"
-        disabled={duplicate || wouldExceed || (requirementComplete && !currentBelongsToGroup)}
+      {action.visible && <button className="secondary-button" type="button"
+        disabled={action.disabled}
         onClick={() => onSelect(subject, componentCode, quotaGroup?.id)}>
-        {requirementComplete ? currentBelongsToGroup ? "Replace current option" : "Requirement already satisfied" : "Select"}
+        {action.label}
       </button>}
     </div></article>;
   })}</div>;
@@ -84,7 +80,11 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
   const [query, setQuery] = useState(""); const [externalResults, setExternalResults] = useState<SubjectSearchResult[]>([]);
   const [externalStatus, setExternalStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [accessConditions, setAccessConditions] = useState<Record<string, SubjectAccessConditions>>({}); const [message, setMessage] = useState("");
-  const pools = useMemo(() => collectPools(scope.groups ?? [], new Set(scope.selectableGroupIds ?? [])).sort((a, b) => Number(b.selectable) - Number(a.selectable)), [scope.groups, scope.selectableGroupIds]);
+  const pools = useMemo(() => collectRequirementPoolContexts(scope.groups ?? [], new Set(scope.selectableGroupIds ?? []))
+    .map((pool) => ({ ...pool, subjects: pool.group.items.flatMap((item) => item.subject ? [{
+      ...item.subject, prerequisiteStatus: "UNKNOWN" as const, recommendation: "REQUIREMENT_MATCH" as const,
+    }] : []) }))
+    .sort((a, b) => Number(b.selectable) - Number(a.selectable)), [scope.groups, scope.selectableGroupIds]);
   const codes = useMemo(() => [...new Set([...pools.flatMap((pool) => pool.subjects.map((subject) => subject.code)), ...externalResults.map((subject) => subject.code)])].sort(), [externalResults, pools]);
   const codeKey = codes.join("|");
   useEffect(() => {

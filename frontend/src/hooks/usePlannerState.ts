@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { StudyPlan } from "../types/handbook";
-import type { ComponentDetailResponse } from "../types/handbook";
 import type { SubjectSearchResult } from "../types/subject";
 import {
   cloneOfficialPlan,
@@ -11,21 +10,6 @@ import {
 interface StoredPlanner {
   storageKey: string;
   planner: PlannerState | null;
-}
-
-type ComponentSubject = NonNullable<
-  ComponentDetailResponse["requirements"][number]["items"][number]["subject"]
->;
-interface ComponentPlanTemplate {
-  kind: "SUBJECT" | "CHOICE";
-  subject: ComponentSubject | null;
-  creditPoints: number;
-  origin: {
-    componentId: string;
-    componentCode: string;
-    groupId: string;
-    title: string;
-  };
 }
 
 const plannerItemIsValid = (value: unknown): boolean => {
@@ -425,105 +409,6 @@ export const usePlannerState = (
     });
   };
 
-  const syncSelectedComponentSubjects = useCallback((details: Record<string, ComponentDetailResponse>) => {
-    setStored((current) => {
-      if (current.storageKey !== storageKey || !current.planner) return current;
-      const allItems = [
-        ...current.planner.years.flatMap((year) => year.periods.flatMap((period) => period.items)),
-        ...current.planner.unassignedItems,
-      ];
-      const plannedCodes = new Set(allItems.flatMap((item) => item.subject ? [item.subject.code] : []));
-      const alreadyExpanded = new Set(allItems.flatMap((item) =>
-        item.choiceOrigin?.formalComponentId ? [item.choiceOrigin.formalComponentId] : []));
-      const selectedCodes = new Set(current.planner.context.selectedComponentCodes);
-      const parentComponents = new Set(Object.values(details).flatMap((detail) => {
-        const collect = (groups: ComponentDetailResponse["requirements"]): string[] => groups.flatMap((group) => [
-          ...group.items.flatMap((item) => item.component && selectedCodes.has(item.component.code) ? [detail.component.id] : []),
-          ...collect(group.children),
-        ]);
-        return collect(detail.requirements);
-      }));
-      const templates: ComponentPlanTemplate[] = Object.values(details).filter((detail) =>
-        !alreadyExpanded.has(detail.component.id) && !parentComponents.has(detail.component.id)).flatMap<ComponentPlanTemplate>((detail) =>
-        detail.requirements.flatMap<ComponentPlanTemplate>((group) => {
-          const subjects = group.items.flatMap((item) => item.subject ? [item.subject] : []);
-          if (subjects.length === 0) return [];
-          const origin = {
-            componentId: detail.component.id,
-            componentCode: detail.component.code,
-            groupId: group.id,
-            title: group.title ?? detail.component.name,
-          };
-          if (group.logic === "ALL") return subjects.flatMap((subject) => {
-            if (plannedCodes.has(subject.code)) return [];
-            plannedCodes.add(subject.code);
-            return [{ kind: "SUBJECT" as const, subject, creditPoints: subject.creditPoints ?? 0, origin }];
-          });
-          if (group.logic !== "ANY" && group.logic !== "ONE_OF") return [];
-          const candidatePoints = subjects.map((subject) => subject.creditPoints).filter((points): points is number => points !== null && points > 0);
-          const slotPoints = candidatePoints.length > 0 ? Math.min(...candidatePoints) : group.requiredCreditPoints;
-          if (!slotPoints || !group.requiredCreditPoints) return [];
-          return Array.from({ length: Math.ceil(group.requiredCreditPoints / slotPoints) }, (_, index) => ({
-            kind: "CHOICE" as const,
-            subject: null,
-            creditPoints: Math.min(slotPoints, group.requiredCreditPoints! - index * slotPoints),
-            origin,
-          }));
-        }));
-      if (templates.length === 0) return current;
-
-      let templateIndex = 0;
-      const years = current.planner.years.map((year) => ({
-        ...year,
-        periods: year.periods.map((period) => ({
-          ...period,
-          items: period.items.flatMap((item) => {
-            if (item.itemType !== "CHOICE" || !item.choiceOrigin || item.choiceOrigin.formalComponentId
-              || /\b(internship|placement|practicum)\b/i.test(item.title)) return [item];
-            const slotPoints = item.creditPoints ?? 0;
-            let usedPoints = 0;
-            const replacements: PlannerState["unassignedItems"] = [];
-            while (templateIndex < templates.length) {
-              const template = templates[templateIndex]!;
-              const points = template.creditPoints;
-              if (points <= 0 || (slotPoints > 0 && usedPoints + points > slotPoints)) break;
-              templateIndex += 1;
-              usedPoints += points;
-              replacements.push({
-                ...item,
-                plannerItemId: `${item.plannerItemId}:component:${template.origin.componentId}:${template.origin.groupId}:${templateIndex}`,
-                itemType: template.kind,
-                subject: template.subject ? {
-                  officialSubjectId: template.subject.id,
-                  code: template.subject.code,
-                  name: template.subject.name,
-                  creditPoints: template.subject.creditPoints,
-                } : null,
-                rawCode: template.subject?.code ?? null,
-                title: template.subject?.name ?? template.origin.title,
-                creditPoints: template.creditPoints,
-                choiceOrigin: {
-                  ...item.choiceOrigin,
-                  title: template.origin.title,
-                  creditPoints: template.creditPoints,
-                  formalComponentId: template.origin.componentId,
-                  formalComponentCode: template.origin.componentCode,
-                  formalRequirementGroupId: template.origin.groupId,
-                  componentRequirementKind: template.kind === "SUBJECT" ? "FIXED" : "SELECTIVE",
-                },
-              });
-              if (slotPoints > 0 && usedPoints >= slotPoints) break;
-            }
-            const remainingPoints = slotPoints > usedPoints ? slotPoints - usedPoints : 0;
-            return [...replacements, ...(remainingPoints > 0 ? [{ ...item, creditPoints: remainingPoints }] : [])];
-          }),
-        })),
-      }));
-      if (templateIndex === 0) return current;
-      return { storageKey, planner: { ...current.planner, years, updatedAt: new Date().toISOString() } };
-    });
-  }, [storageKey]);
-
   return {
     planner,
     storageKey,
@@ -534,6 +419,5 @@ export const usePlannerState = (
     moveItem,
     restoreChoiceSlot,
     clearPeriod,
-    syncSelectedComponentSubjects,
   };
 };

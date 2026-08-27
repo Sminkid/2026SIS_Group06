@@ -1,5 +1,6 @@
 import type { ComponentSelections } from "../hooks/useComponentSelections";
 import type { ComponentDetailResponse, RequirementGroup, StudyPlanItem } from "../types/handbook";
+import type { PlannerState } from "../types/planner";
 
 export interface ChoiceScope {
   kind: "FORMAL" | "BROAD" | "UNRESOLVED";
@@ -29,12 +30,9 @@ const selectedComponentsIn = (
 }) : [];
 
 const componentScope = (detail: ComponentDetailResponse, preferredGroupId?: string): ChoiceScope => {
-  const optionalGroups = flatten(detail.requirements).filter((group) => {
-    const hasSubjects = group.items.some((item) => item.subject);
-    const name = normalized(group.title ?? "");
-    return hasSubjects && !/\b(core|mandatory|compulsory)\b/.test(name)
-      && (group.logic === "ANY" || group.logic === "ONE_OF" || /\b(option|elective|choice)\b/.test(name));
-  });
+  const selectableGroups = flatten(detail.requirements).filter((group) =>
+    (group.logic === "ANY" || group.logic === "ONE_OF")
+    && flatten([group]).some((candidate) => candidate.items.some((item) => item.subject)));
   return {
     kind: "FORMAL",
     label: detail.component.name,
@@ -42,7 +40,7 @@ const componentScope = (detail: ComponentDetailResponse, preferredGroupId?: stri
     componentId: detail.component.id,
     requirementGroupId: preferredGroupId,
     groups: detail.requirements,
-    selectableGroupIds: preferredGroupId ? [preferredGroupId] : optionalGroups.map((group) => group.id),
+    selectableGroupIds: preferredGroupId ? [preferredGroupId] : selectableGroups.map((group) => group.id),
   };
 };
 
@@ -51,6 +49,7 @@ export const resolveStudyPathChoiceScope = (
   degreeRequirements: RequirementGroup[],
   details: Record<string, ComponentDetailResponse>,
   selections: ComponentSelections,
+  planner?: PlannerState | null,
 ): ChoiceScope => {
   if (!choice) return { kind: "UNRESOLVED" };
   const origin = choice.choiceOrigin;
@@ -66,6 +65,38 @@ export const resolveStudyPathChoiceScope = (
       groups: group ? [group] : undefined,
       selectableGroupIds: [origin.formalRequirementGroupId],
     };
+  }
+
+  const explicitGroup = degreeRequirements.find((group) => group.pathways.length > 0);
+  const selectedPathwayValue = explicitGroup ? selections[explicitGroup.id] : undefined;
+  const selectedPathway = selectedPathwayValue?.startsWith("PATHWAY:")
+    ? explicitGroup?.pathways.find((pathway) => pathway.id === selectedPathwayValue.slice(8))
+    : undefined;
+  if (explicitGroup && selectedPathway && planner) {
+    const roadmapChoices = planner.years.flatMap((year) => year.periods.flatMap((period) => period.items))
+      .filter((item) => item.choiceOrigin && !/\b(internship|placement|practicum|professional experience)\b/i.test(item.title));
+    const choiceIndex = roadmapChoices.findIndex((item) => item.plannerItemId === choice.id);
+    if (choiceIndex >= 0) {
+      const startPoint = roadmapChoices.slice(0, choiceIndex).reduce((total, item) => total + (item.creditPoints ?? 0), 0);
+      let allocationEnd = 0;
+      for (const selection of selectedPathway.selections) {
+        const allocationPoints = selection.requiredCreditPoints / Math.max(1, selection.requiredSelections);
+        for (let index = 0; index < selection.requiredSelections; index += 1) {
+          allocationEnd += allocationPoints;
+          if (startPoint >= allocationEnd) continue;
+          const group = flatten(degreeRequirements).find((candidate) => candidate.id === selection.requirementGroupId);
+          if (selection.selectionType === "ELECTIVE_ALLOCATION") {
+            return {
+              kind: "BROAD", label: group?.title ?? "Electives", requirementGroupId: group?.id,
+              groups: group ? [group] : undefined, selectableGroupIds: group ? [group.id] : undefined,
+            };
+          }
+          const componentCode = selections[`${selectedPathway.id}:selection:${selection.requirementGroupId}:${index}`];
+          if (componentCode && details[componentCode]) return componentScope(details[componentCode]);
+          return { kind: "UNRESOLVED" };
+        }
+      }
+    }
   }
   const rawComponentCode = (origin?.rawCode ?? choice.rawCode)?.trim().toUpperCase();
   if (rawComponentCode && details[rawComponentCode]) return componentScope(details[rawComponentCode]);
@@ -96,6 +127,13 @@ export const resolveStudyPathChoiceScope = (
   if (/transdisciplinary/.test(slotName) && separateSelection) {
     const group = flatten([separateSelection]).find((candidate) => /transdisciplinary/.test(normalized(candidate.title ?? "")));
     if (group) return { kind: "FORMAL", label: group.title ?? "Transdisciplinary Elective", requirementGroupId: group.id, groups: [group], selectableGroupIds: [group.id] };
+  }
+  if (majorOption?.items.some((item) => item.subject) && /option|technical/.test(slotName)) {
+    return {
+      kind: "FORMAL", label: majorDetail?.component.name ?? majorOption.title ?? "Selected major",
+      componentCode: majorDetail?.component.code, componentId: majorDetail?.component.id,
+      requirementGroupId: majorOption.id, groups: [majorOption], selectableGroupIds: [majorOption.id],
+    };
   }
   if (separateNested.length > 0 && /elective|specialist|sub major|submajor|industry/.test(slotName)) return componentScope(separateNested.at(-1)!);
   if (majorNested.length > 0 && /option|technical|sub major|submajor/.test(slotName)) return componentScope(majorNested.at(-1)!);

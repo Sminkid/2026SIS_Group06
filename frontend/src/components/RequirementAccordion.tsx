@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { fetchComponentDetail } from "../api/components";
 import type { ComponentSelections } from "../hooks/useComponentSelections";
+import { readableText } from "../domain/readableText";
 import type { ComponentDetailResponse, RequirementGroup, RequirementItem } from "../types/handbook";
 import { AsyncState } from "./AsyncState";
 
@@ -127,7 +128,7 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
       </span>{hasContent && <span className="chevron" aria-hidden="true">{isOpen ? "−" : "+"}</span>}
     </button>
     {isOpen && hasContent && <div className="requirement-group__content" id={contentId}>
-      {group.description && <details className="official-requirement"><summary>Official requirement</summary><p className="group-description">{group.description}</p></details>}
+      {group.description && <details className="official-requirement"><summary>Official requirement</summary><p className="group-description">{readableText(group.description)}</p></details>}
       {isSingleComponentChoice ? <fieldset className="component-choices">
         <legend>{readableGroupTitle(group.title)}</legend>
         <div className="component-choices__tools">

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchComponentDetail } from "../api/components";
+import { createLatestRequestGate, type ComponentDetailStatus } from "../domain/componentDetailState";
 import type { ComponentDetailResponse } from "../types/handbook";
 
 export const useSelectedComponentDetails = (
@@ -10,7 +11,9 @@ export const useSelectedComponentDetails = (
 ) => {
   const key = `${components.map((component) => component.id).join("|")}:${selectedComponentCodes.join("|")}`;
   const [details, setDetails] = useState<Record<string, ComponentDetailResponse>>({});
-  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [status, setStatus] = useState<ComponentDetailStatus>("idle");
+  const gate = useRef<ReturnType<typeof createLatestRequestGate> | null>(null);
+  gate.current ??= createLatestRequestGate();
 
   useEffect(() => {
     if (components.length === 0) {
@@ -19,6 +22,7 @@ export const useSelectedComponentDetails = (
       return;
     }
     const controller = new AbortController();
+    const request = gate.current!.begin();
     setStatus("loading");
     const loadSelected = async () => {
       const references = new Map(components.map((component) => [component.code, component]));
@@ -46,13 +50,21 @@ export const useSelectedComponentDetails = (
     };
     void loadSelected()
       .then((loadedDetails) => {
+        if (!gate.current!.isLatest(request)) return;
         setDetails(loadedDetails);
         setStatus("ready");
       })
       .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
+        if (!gate.current!.isLatest(request)) return;
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setDetails({});
+          setStatus("error");
+        }
       });
-    return () => controller.abort();
+    return () => {
+      gate.current!.invalidate();
+      controller.abort();
+    };
   }, [handbookYear, key, universityCode]);
 
   return useMemo(() => ({ details, status }), [details, status]);

@@ -1,9 +1,10 @@
-import { useEffect, useId, useState } from "react";
-import { fetchComponentDetail } from "../api/components";
+import { useId, useState } from "react";
 import type { ComponentSelections } from "../hooks/useComponentSelections";
 import { readableText } from "../domain/readableText";
 import type { ComponentDetailResponse, RequirementGroup, RequirementItem } from "../types/handbook";
 import { AsyncState } from "./AsyncState";
+import { useComponentDetail } from "../hooks/useComponentDetail";
+import { componentCreditLabel, componentDetailView } from "../domain/componentDetailState";
 
 const formatType = (type: string) => type.toLowerCase().replaceAll("_", " ");
 const readableGroupTitle = (title: string | null) => {
@@ -64,36 +65,24 @@ interface SelectionContext {
 interface Props extends SelectionContext { group: RequirementGroup; depth?: number; }
 
 const SelectedComponentRequirements = ({ componentId, context }: { componentId: string; context: SelectionContext }) => {
-  const [detail, setDetail] = useState<ComponentDetailResponse | null>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setStatus("loading"); setDetail(null);
-    void fetchComponentDetail(componentId, context.universityCode, context.handbookYear, controller.signal)
-      .then((result) => { setDetail(result); setStatus("ready"); })
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
-      });
-    return () => controller.abort();
-  }, [componentId, context.handbookYear, context.universityCode, reloadKey]);
-
-  if (status === "loading") return <AsyncState kind="loading" label="Loading selected component requirements" />;
-  if (status === "error") return <AsyncState kind="error" label="We couldn't load this component's requirements." onRetry={() => setReloadKey((key) => key + 1)} />;
+  const { detail, status, retry } = useComponentDetail(componentId, context.universityCode, context.handbookYear);
+  const view = componentDetailView(status, detail);
+  if (view === "loading") return <AsyncState kind="loading" label="Loading selected component requirements" />;
+  if (view === "failure") return <AsyncState kind="error" label="We couldn’t load this component’s requirements." onRetry={retry} />;
   if (!detail) return null;
   const creditSummary = componentCreditSummary(detail.requirements);
+  const creditLabel = componentCreditLabel(detail);
 
   return <section className="selected-component" aria-label={`Selected ${formatType(detail.component.type)}`}>
     <div className="selected-component__header">
       <div><p className="selected-component__label">Selected {formatType(detail.component.type)}</p><h4>{detail.component.name}</h4></div>
-      {detail.component.creditPoints !== null && <span>{detail.component.creditPoints} CP</span>}
+      {creditLabel && <span>{creditLabel}</span>}
     </div>
     {(creditSummary.required > 0 || creditSummary.selective > 0) && <p className="selected-component__summary">
       {creditSummary.required > 0 && <span>{creditSummary.required} CP required</span>}
       {creditSummary.selective > 0 && <span>{creditSummary.selective} CP selected from options</span>}
     </p>}
-    {detail.requirements.length === 0 ? <p className="selected-component__empty">No verified subject list is available for this requirement. You may search other subjects, but eligibility must be confirmed.{detail.component.sourceUrl && <> <a href={detail.component.sourceUrl} target="_blank" rel="noreferrer">View the official handbook source.</a></>}</p> :
+    {view === "success-empty" ? <p className="selected-component__empty">No verified subject list is available for this requirement. You may search other subjects, but eligibility must be confirmed.{detail.component.sourceUrl && <> <a href={detail.component.sourceUrl} target="_blank" rel="noreferrer">View the official handbook source.</a></>}</p> :
       <div className="component-requirements">
         <h5>Component structure</h5>
         {detail.requirements.map((group) => <RequirementAccordion key={group.id} group={group} depth={1} {...context} />)}

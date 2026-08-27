@@ -28,6 +28,13 @@ const itemFingerprint = (item: GroupRecord["RequirementItem"][number]): string =
 const statusRank = (status: GroupRecord["status"]): number =>
   status === "AUTHORITATIVE" ? 0 : status === "RAW_FALLBACK" ? 2 : 1;
 
+export const isGroupCompatibleWithComponentRole = (componentType: string, title: string | null): boolean => {
+  const normalized = normalizedText(title);
+  if (componentType === "MAJOR" && /\bminor only\b/.test(normalized)) return false;
+  if (componentType === "MINOR" && /\bmajor only\b/.test(normalized)) return false;
+  return true;
+};
+
 const mapGroup = (group: GroupRecord): DegreeRequirementGroup => {
   const uniqueItems = [...new Map(group.RequirementItem.map((item) => [itemFingerprint(item), item])).values()];
   const items: DegreeRequirementGroup["items"] = uniqueItems.map((item) => ({
@@ -67,9 +74,11 @@ export const mapComponentDetail = (
   handbook: HandbookRecord,
   component: ComponentRecord,
 ): ComponentDetailResponse => {
-  const sourceGroupsById = new Map(component.RequirementGroup.map((group) => [group.id, group]));
+  const roleCompatibleGroups = component.RequirementGroup.filter((group) =>
+    isGroupCompatibleWithComponentRole(component.type, group.title));
+  const sourceGroupsById = new Map(roleCompatibleGroups.map((group) => [group.id, group]));
   const childrenByParent = new Map<string, GroupRecord[]>();
-  for (const group of component.RequirementGroup) {
+  for (const group of roleCompatibleGroups) {
     if (!group.parentGroupId || !sourceGroupsById.has(group.parentGroupId)) continue;
     childrenByParent.set(group.parentGroupId, [...(childrenByParent.get(group.parentGroupId) ?? []), group]);
   }
@@ -82,12 +91,12 @@ export const mapComponentDetail = (
     ]);
   };
   const canonicalByFingerprint = new Map<string, GroupRecord>();
-  for (const group of [...component.RequirementGroup].sort((left, right) => statusRank(left.status) - statusRank(right.status) || compareOrder(left, right))) {
+  for (const group of [...roleCompatibleGroups].sort((left, right) => statusRank(left.status) - statusRank(right.status) || compareOrder(left, right))) {
     const key = fingerprint(group);
     if (!canonicalByFingerprint.has(key)) canonicalByFingerprint.set(key, group);
   }
   const canonicalGroups = [...canonicalByFingerprint.values()];
-  const canonicalForId = new Map(component.RequirementGroup.map((group) => [
+  const canonicalForId = new Map(roleCompatibleGroups.map((group) => [
     group.id,
     canonicalByFingerprint.get(fingerprint(group)),
   ]));

@@ -87,6 +87,12 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
   const pools = useMemo(() => collectPools(scope.groups ?? [], new Set(scope.selectableGroupIds ?? [])).sort((a, b) => Number(b.selectable) - Number(a.selectable)), [scope.groups, scope.selectableGroupIds]);
   const codes = useMemo(() => [...new Set([...pools.flatMap((pool) => pool.subjects.map((subject) => subject.code)), ...externalResults.map((subject) => subject.code)])].sort(), [externalResults, pools]);
   const codeKey = codes.join("|");
+  useEffect(() => {
+    if (import.meta.env.DEV && choiceItem?.choiceOrigin?.formalComponentId && scope.componentId
+      && choiceItem.choiceOrigin.formalComponentId !== scope.componentId) {
+      console.error("Roadmap choice provenance mismatch: the active slot and candidate requirement belong to different components.");
+    }
+  }, [choiceItem, scope.componentId]);
   useEffect(() => { const dialog = dialogRef.current; if (choiceItem && dialog && !dialog.open) dialog.showModal(); if (!choiceItem && dialog?.open) dialog.close(); }, [choiceItem]);
   useEffect(() => {
     if (!choiceItem || codes.length === 0) { setAccessConditions({}); return; } const controller = new AbortController();
@@ -119,7 +125,7 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       <button className="dialog-close" type="button" aria-label="Close subject selector" onClick={onClose}>×</button></header>
     <div className={`eligibility-note${scope.kind === "FORMAL" ? " eligibility-note--matched" : ""}`}>{scope.kind === "FORMAL" ? <><strong>From: {scope.label}</strong><br />Requirement match and access conditions are evaluated separately.</>
       : scope.kind === "BROAD" ? <><strong>Broad choice: {scope.label}</strong><br />Search results are not automatically verified to count.</> : <>Use the unverified external search for this roadmap slot.</>}</div>
-    <div className="subject-results subject-results--grouped" aria-live="polite">{scope.kind === "FORMAL" && pools.length === 0 && <AsyncState kind="empty" label="No resolved subjects are listed in this formal choice pool." />}
+    <div className="subject-results subject-results--grouped" aria-live="polite">{scope.kind === "FORMAL" && pools.length === 0 && <AsyncState kind="empty" label="No verified subject list is available for this requirement. You may search other subjects, but eligibility must be confirmed." />}
       {pools.map(({ group, quotaGroup, subjects, selectable, requiredCore }) => <section className={`subject-pool${selectable ? " subject-pool--selectable" : " subject-pool--context"}`} key={group.id}>
         <header><div><span>{quotaGroup.title ?? group.title ?? "Requirement subjects"}</span><strong>{selectable ? "Options" : requiredCore ? "Core" : "Context"}</strong></div>
           <p>{progressText(quotaGroup, requiredCore)}</p></header>

@@ -5,6 +5,7 @@ export interface ChoiceScope {
   kind: "FORMAL" | "BROAD" | "UNRESOLVED";
   label?: string;
   componentCode?: string;
+  componentId?: string;
   requirementGroupId?: string;
   groups?: RequirementGroup[];
   selectableGroupIds?: string[];
@@ -38,6 +39,7 @@ const componentScope = (detail: ComponentDetailResponse, preferredGroupId?: stri
     kind: "FORMAL",
     label: detail.component.name,
     componentCode: detail.component.code,
+    componentId: detail.component.id,
     requirementGroupId: preferredGroupId,
     groups: detail.requirements,
     selectableGroupIds: preferredGroupId ? [preferredGroupId] : optionalGroups.map((group) => group.id),

@@ -5,6 +5,8 @@ export interface PlannerContext {
   handbookYear: number;
   degreeCode: string;
   selectedComponentCodes: string[];
+  activePathwayRequirementGroupIds: string[];
+  knownPathwayRequirementGroupIds: string[];
 }
 
 export interface PlannerItem {
@@ -29,7 +31,9 @@ export interface PlannerItem {
     creditPoints: number | null;
     originalPeriodId: string;
     formalComponentCode?: string;
+    formalComponentId?: string;
     formalRequirementGroupId?: string;
+    componentRequirementKind?: "FIXED" | "SELECTIVE";
   } | null;
   officialSortOrder: number | null;
 }

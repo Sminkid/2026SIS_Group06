@@ -46,7 +46,9 @@ const PlanItemCard = ({
   onRestoreChoice: (plannerItemId: string) => void;
 }) => {
   const isChoice = item.itemType === "CHOICE";
-  const isFilledChoice = Boolean(item.choiceOrigin) && !isChoice;
+  const isPlacement = isChoice && /\b(internship|placement|practicum|professional experience)\b/i.test(item.title);
+  const isFixedComponentSubject = item.choiceOrigin?.componentRequirementKind === "FIXED";
+  const isFilledChoice = Boolean(item.choiceOrigin) && !isChoice && !isFixedComponentSubject;
   const isChoiceSlot = isChoice || isFilledChoice;
   const code = item.subject?.code ?? item.rawCode;
   const name = item.subject?.name ?? item.title;
@@ -54,12 +56,14 @@ const PlanItemCard = ({
 
   const content = <>
     <div className="plan-item__top">
-      <span className="plan-item__kind">{isFilledChoice ? "Selected subject" : isChoice ? "Choice" : "Subject"}</span>
+      <span className="plan-item__kind">{isPlacement ? "Professional placement" : isFilledChoice ? "Selected subject" : isChoice ? "Choice" : "Subject"}</span>
       {creditPoints !== null && <span className="plan-item__cp">{creditPoints} CP</span>}
     </div>
     <h5>{name}</h5>
     {code && <p className="plan-item__code">{code}</p>}
-    {isChoiceSlot && <p className="plan-item__note">{editable
+    {isFixedComponentSubject && <p className="plan-item__note">Required by the selected component.</p>}
+    {isPlacement && <p className="plan-item__note">Required professional placement. Sponsoring employer and enrolment details are confirmed through the course process.</p>}
+    {isChoiceSlot && !isPlacement && <p className="plan-item__note">{editable
       ? isFilledChoice ? `From: ${item.choiceOrigin?.title} · Click to change` : "Click to choose a subject"
       : "Customize the plan to choose a subject"}</p>}
     {issues.length > 0 && <div className="plan-item__issues">
@@ -71,14 +75,14 @@ const PlanItemCard = ({
   if (!editable) return <article className={className}>{content}</article>;
 
   return <article className={className}>
-    {isChoiceSlot
+    {isPlacement ? <div className="plan-item__main-action">{content}</div> : isChoiceSlot
       ? <button className="plan-item__main-action" type="button" onClick={() => onChoose(item)}>{content}</button>
       : code
         ? <button className="plan-item__main-action" type="button" onClick={() => onOpenSubject(code)} aria-label={`View ${code} ${name}`}>{content}</button>
         : <div className="plan-item__main-action">{content}</div>}
-    {(item.choiceOrigin || (code && issues.length > 0)) && <div className="plan-item__controls">
+    {((item.choiceOrigin && !isFixedComponentSubject) || (code && issues.length > 0)) && <div className="plan-item__controls">
       {code && issues.length > 0 && <button className="text-button" type="button" onClick={() => onOpenSubject(code)}>View requirements</button>}
-      {item.choiceOrigin && <button className="plan-item__restore" type="button" onClick={() => onRestoreChoice(item.id)}>
+      {item.choiceOrigin && !isFixedComponentSubject && <button className="plan-item__restore" type="button" onClick={() => onRestoreChoice(item.id)}>
         Remove subject &amp; restore choice
       </button>}
     </div>}
@@ -121,12 +125,23 @@ export const StudyPlansSection = ({
   }, [degreeCode, handbookYear, reloadKey, universityCode]);
 
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[0];
+  const pathwayGroups = useMemo(() => requirements.flatMap((group) => group.pathways.flatMap((pathway) =>
+    pathway.selections.map((selection) => selection.requirementGroupId))), [requirements]);
+  const activePathwayGroups = useMemo(() => requirements.flatMap((group) => {
+    const selected = selectedComponents[group.id];
+    const pathway = selected?.startsWith("PATHWAY:")
+      ? group.pathways.find((candidate) => candidate.id === selected.slice(8))
+      : undefined;
+    return pathway?.selections.map((selection) => selection.requirementGroupId) ?? [];
+  }), [requirements, selectedComponents]);
   const plannerContext = useMemo<PlannerContext>(() => ({
     universityCode,
     handbookYear,
     degreeCode,
     selectedComponentCodes,
-  }), [degreeCode, handbookYear, selectedComponentCodes, universityCode]);
+    activePathwayRequirementGroupIds: [...new Set(activePathwayGroups)],
+    knownPathwayRequirementGroupIds: [...new Set(pathwayGroups)],
+  }), [activePathwayGroups, degreeCode, handbookYear, pathwayGroups, selectedComponentCodes, universityCode]);
   const {
     planner,
     customize,
@@ -134,11 +149,17 @@ export const StudyPlansSection = ({
     clear,
     selectSubject,
     restoreChoiceSlot,
+    syncSelectedComponentSubjects,
   } = usePlannerState(selectedPlan, plannerContext);
+  const plannerActive = planner !== null;
+  useEffect(() => {
+    if (plannerActive) syncSelectedComponentSubjects(componentDetails);
+  }, [componentDetails, plannerActive, syncSelectedComponentSubjects]);
   const displayedPlan = useMemo(
     () => planner && selectedPlan ? plannerToStudyPlan(planner, selectedPlan) : selectedPlan,
     [planner, selectedPlan],
   );
+  const displayedSessionNames = useMemo(() => [...new Set(displayedPlan?.years.flatMap((year) => year.periods.map((period) => period.name)) ?? [])], [displayedPlan]);
   const { validation } = usePlannerValidation({
     planner,
     degreeCreditPoints,
@@ -287,8 +308,17 @@ export const StudyPlansSection = ({
           </> : <button className="primary-button" type="button" onClick={customize}>Customize plan</button>}
         </div>
       </div>
+      {planner && <div className="roadmap-basis" role="status">
+        <strong>Roadmap based on: {selectedPlan.title}</strong>
+        {Object.values(componentDetails).length > 0 && <span>Personalised with: {Object.values(componentDetails).map((detail) => detail.component.name).join(" · ")}</span>}
+      </div>}
       <div className="planner-study-layout">
       <div className="planner-plan-column">
+      {displayedSessionNames.some((name) => /session 1|autumn|spring/i.test(name)) && <details className="session-help"><summary>Understanding teaching sessions</summary><dl>
+        {displayedSessionNames.filter((name) => /autumn/i.test(name)).length > 0 && <div><dt>Autumn</dt><dd>Main first-half teaching session.</dd></div>}
+        {displayedSessionNames.filter((name) => /spring/i.test(name)).length > 0 && <div><dt>Spring</dt><dd>Main second-half teaching session.</dd></div>}
+        {displayedSessionNames.filter((name) => /session 1/i.test(name)).length > 0 && <div><dt>Session 1</dt><dd>A separate teaching or placement period used by this course calendar; it is not assumed to be Autumn.</dd></div>}
+      </dl><p>Exact dates are not stored in this planner. Check the university academic calendar before enrolling.</p></details>}
       <div className="plan-years">
         {displayedPlan.years.map((year) => <section className="plan-year" key={year.id}>
           <h3>{year.name}</h3>

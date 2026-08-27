@@ -1,3 +1,5 @@
+import type { RequisiteGroupType } from "../generated/prisma/enums.js";
+
 export type PrerequisiteStatus = "HAS_CONDITIONS" | "NO_CONDITIONS" | "UNKNOWN";
 
 export interface SubjectSearchResult {
@@ -21,7 +23,7 @@ export interface SubjectDetailResponse {
     hasConditions: boolean;
     groups: Array<{
       id: string;
-      groupType: "REQUISITE" | "ANTI_REQUISITE";
+      groupType: RequisiteGroupType;
       rule: string | null;
       sortOrder: number | null;
       items: Array<{

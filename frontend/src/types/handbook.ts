@@ -2,10 +2,18 @@ export interface University { id: string; code: string; name: string; }
 export interface HandbookSummary { id: string; universityCode: string; year: number; sourceUrl: string | null; }
 export interface DegreeSummary { id: string; code: string; name: string; creditPoints: number | null; handbookYear: number; }
 export type RequirementLogic = "ALL" | "ANY" | "ONE_OF" | "UNKNOWN";
-export type RequirementItemType = "SUBJECT" | "COMPONENT" | "OTHER";
+export type RequirementItemType = "SUBJECT" | "COMPONENT" | "TABLE" | "RAW" | "OTHER";
 
 export interface RequirementSubject { id: string; code: string; name: string; creditPoints: number | null; }
-export interface RequirementComponent { id: string; code: string; name: string; type: string; creditPoints: number | null; }
+export interface RequirementComponent {
+  id: string;
+  code: string;
+  displayCode: string | null;
+  name: string;
+  type: string;
+  creditPoints: number | null;
+  creditPointsAvailability: "EXPLICIT_RELATIONSHIP" | "EXPLICIT_COMPONENT" | "DERIVED_REQUIREMENTS" | "UNAVAILABLE";
+}
 export interface RequirementItem {
   id: string;
   itemType: RequirementItemType;
@@ -26,6 +34,17 @@ export interface RequirementGroup {
   sortOrder: number | null;
   items: RequirementItem[];
   children: RequirementGroup[];
+  pathways: Array<{
+    id: string;
+    title: string;
+    requiredCreditPoints: number;
+    selections: Array<{
+      requirementGroupId: string;
+      selectionType: "COMPONENT" | "ELECTIVE_ALLOCATION";
+      requiredSelections: number;
+      requiredCreditPoints: number;
+    }>;
+  }>;
 }
 export interface DegreeDetailResponse {
   degree: {
@@ -38,6 +57,22 @@ export interface DegreeDetailResponse {
     description: string | null;
   };
   requirements: RequirementGroup[];
+  completionSummary: StudentRequirementSummary[];
+}
+
+export type RequirementObligation = "REQUIRED" | "OPTIONAL" | "CONDITIONAL" | "INFORMATIONAL";
+export interface StudentRequirementSummary {
+  id: string;
+  title: string;
+  explanation: string | null;
+  obligation: RequirementObligation;
+  minimumCreditPoints: number | null;
+  maximumCreditPoints: number | null;
+  conditionLabel: string | null;
+  actionKind: "NONE" | "CHOOSE_COMPONENT" | "CHOOSE_SUBJECTS" | "CONFIRM_CONDITION";
+  sourceText: string | null;
+  sourceUrl: string | null;
+  requirementGroupId: string;
 }
 
 export interface ComponentDetailResponse {
@@ -48,6 +83,7 @@ export interface ComponentDetailResponse {
     type: string;
     originalType: string | null;
     creditPoints: number | null;
+    sourceUrl: string | null;
     handbookYear: number;
     university: University;
   };
@@ -70,7 +106,9 @@ export interface StudyPlanItem {
     creditPoints: number | null;
     originalPeriodId: string;
     formalComponentCode?: string;
+    formalComponentId?: string;
     formalRequirementGroupId?: string;
+    componentRequirementKind?: "FIXED" | "SELECTIVE";
   };
 }
 export interface StudyPlanPeriod { id: string; name: string; sortOrder: number | null; items: StudyPlanItem[]; }

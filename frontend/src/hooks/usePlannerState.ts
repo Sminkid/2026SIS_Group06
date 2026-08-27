@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { StudyPlan } from "../types/handbook";
+import type { ComponentDetailResponse } from "../types/handbook";
 import type { SubjectSearchResult } from "../types/subject";
 import {
   cloneOfficialPlan,
@@ -12,6 +13,41 @@ interface StoredPlanner {
   planner: PlannerState | null;
 }
 
+type ComponentSubject = NonNullable<
+  ComponentDetailResponse["requirements"][number]["items"][number]["subject"]
+>;
+interface ComponentPlanTemplate {
+  kind: "SUBJECT" | "CHOICE";
+  subject: ComponentSubject | null;
+  creditPoints: number;
+  origin: {
+    componentId: string;
+    componentCode: string;
+    groupId: string;
+    title: string;
+  };
+}
+
+const plannerItemIsValid = (value: unknown): boolean => {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  if (typeof item.plannerItemId !== "string" || typeof item.title !== "string") return false;
+  if (item.itemType !== "SUBJECT" && item.itemType !== "CHOICE") return false;
+  if (item.subject === null) return true;
+  if (!item.subject || typeof item.subject !== "object") return false;
+  const subject = item.subject as Record<string, unknown>;
+  return typeof subject.officialSubjectId === "string"
+    && typeof subject.code === "string"
+    && typeof subject.name === "string";
+};
+
+const plannerItemsAreValid = (candidate: Partial<PlannerState>): boolean => {
+  const yearItems = candidate.years?.flatMap((year) =>
+    year.periods.flatMap((period) => period.items)) ?? [];
+  return yearItems.every(plannerItemIsValid)
+    && (candidate.unassignedItems ?? []).every(plannerItemIsValid);
+};
+
 const keyPart = (value: string) => encodeURIComponent(value.trim().toUpperCase());
 
 export const createPlannerStorageKey = (
@@ -21,6 +57,9 @@ export const createPlannerStorageKey = (
   const components = context.selectedComponentCodes.length > 0
     ? [...new Set(context.selectedComponentCodes)].sort().map(keyPart).join("+")
     : "NO-COMPONENT";
+  const pathwayGroups = context.activePathwayRequirementGroupIds.length > 0
+    ? [...context.activePathwayRequirementGroupIds].sort().map(keyPart).join("+")
+    : "NO-PATHWAY";
 
   return [
     "planner",
@@ -28,6 +67,7 @@ export const createPlannerStorageKey = (
     String(context.handbookYear),
     keyPart(context.degreeCode),
     components,
+    pathwayGroups,
     encodeURIComponent(sourcePlanId),
   ].join(":");
 };
@@ -45,7 +85,54 @@ const isPlannerState = (
     && candidate.context.handbookYear === context.handbookYear
     && candidate.context.degreeCode === context.degreeCode
     && Array.isArray(candidate.years)
-    && Array.isArray(candidate.unassignedItems);
+    && Array.isArray(candidate.unassignedItems)
+    && plannerItemsAreValid(candidate);
+};
+
+export const reconcilePlannerComponentSelections = (
+  planner: PlannerState,
+  context: PlannerContext,
+): PlannerState => {
+  const selectedCodes = new Set(context.selectedComponentCodes);
+  const activePathwayGroups = new Set(context.activePathwayRequirementGroupIds);
+  const knownPathwayGroups = new Set(context.knownPathwayRequirementGroupIds);
+  const reconcileItem = (item: PlannerState["unassignedItems"][number]) => {
+    const origin = item.choiceOrigin;
+    const staleComponent = origin?.formalComponentCode && !selectedCodes.has(origin.formalComponentCode);
+    const stalePathway = origin?.formalRequirementGroupId
+      && knownPathwayGroups.has(origin.formalRequirementGroupId)
+      && !activePathwayGroups.has(origin.formalRequirementGroupId);
+    if (!item.subject || !origin || (!staleComponent && !stalePathway)) {
+      return item;
+    }
+    const {
+      formalComponentCode: _componentCode,
+      formalComponentId: _componentId,
+      formalRequirementGroupId: _group,
+      componentRequirementKind: _kind,
+      ...choiceOrigin
+    } = origin;
+    return {
+      ...item,
+      itemType: "CHOICE" as const,
+      subject: null,
+      rawCode: origin.rawCode,
+      title: origin.title,
+      creditPoints: origin.creditPoints,
+      choiceOrigin,
+    };
+  };
+  return {
+    ...planner,
+    years: planner.years.map((year) => ({
+      ...year,
+      periods: year.periods.map((period) => ({
+        ...period,
+        items: period.items.map(reconcileItem),
+      })),
+    })),
+    unassignedItems: planner.unassignedItems.map(reconcileItem),
+  };
 };
 
 const upgradePlannerState = (value: unknown): unknown => {
@@ -119,10 +206,14 @@ export const usePlannerState = (
         && current.planner.context.handbookYear === context.handbookYear
         && current.planner.context.degreeCode === context.degreeCode;
       if (canCarryDraft && current.planner) {
+        const reconciled = reconcilePlannerComponentSelections(
+          current.planner,
+          context,
+        );
         return {
           storageKey,
           planner: {
-            ...current.planner,
+            ...reconciled,
             context: { ...context, selectedComponentCodes: [...context.selectedComponentCodes] },
             updatedAt: new Date().toISOString(),
           },
@@ -334,6 +425,105 @@ export const usePlannerState = (
     });
   };
 
+  const syncSelectedComponentSubjects = useCallback((details: Record<string, ComponentDetailResponse>) => {
+    setStored((current) => {
+      if (current.storageKey !== storageKey || !current.planner) return current;
+      const allItems = [
+        ...current.planner.years.flatMap((year) => year.periods.flatMap((period) => period.items)),
+        ...current.planner.unassignedItems,
+      ];
+      const plannedCodes = new Set(allItems.flatMap((item) => item.subject ? [item.subject.code] : []));
+      const alreadyExpanded = new Set(allItems.flatMap((item) =>
+        item.choiceOrigin?.formalComponentId ? [item.choiceOrigin.formalComponentId] : []));
+      const selectedCodes = new Set(current.planner.context.selectedComponentCodes);
+      const parentComponents = new Set(Object.values(details).flatMap((detail) => {
+        const collect = (groups: ComponentDetailResponse["requirements"]): string[] => groups.flatMap((group) => [
+          ...group.items.flatMap((item) => item.component && selectedCodes.has(item.component.code) ? [detail.component.id] : []),
+          ...collect(group.children),
+        ]);
+        return collect(detail.requirements);
+      }));
+      const templates: ComponentPlanTemplate[] = Object.values(details).filter((detail) =>
+        !alreadyExpanded.has(detail.component.id) && !parentComponents.has(detail.component.id)).flatMap<ComponentPlanTemplate>((detail) =>
+        detail.requirements.flatMap<ComponentPlanTemplate>((group) => {
+          const subjects = group.items.flatMap((item) => item.subject ? [item.subject] : []);
+          if (subjects.length === 0) return [];
+          const origin = {
+            componentId: detail.component.id,
+            componentCode: detail.component.code,
+            groupId: group.id,
+            title: group.title ?? detail.component.name,
+          };
+          if (group.logic === "ALL") return subjects.flatMap((subject) => {
+            if (plannedCodes.has(subject.code)) return [];
+            plannedCodes.add(subject.code);
+            return [{ kind: "SUBJECT" as const, subject, creditPoints: subject.creditPoints ?? 0, origin }];
+          });
+          if (group.logic !== "ANY" && group.logic !== "ONE_OF") return [];
+          const candidatePoints = subjects.map((subject) => subject.creditPoints).filter((points): points is number => points !== null && points > 0);
+          const slotPoints = candidatePoints.length > 0 ? Math.min(...candidatePoints) : group.requiredCreditPoints;
+          if (!slotPoints || !group.requiredCreditPoints) return [];
+          return Array.from({ length: Math.ceil(group.requiredCreditPoints / slotPoints) }, (_, index) => ({
+            kind: "CHOICE" as const,
+            subject: null,
+            creditPoints: Math.min(slotPoints, group.requiredCreditPoints! - index * slotPoints),
+            origin,
+          }));
+        }));
+      if (templates.length === 0) return current;
+
+      let templateIndex = 0;
+      const years = current.planner.years.map((year) => ({
+        ...year,
+        periods: year.periods.map((period) => ({
+          ...period,
+          items: period.items.flatMap((item) => {
+            if (item.itemType !== "CHOICE" || !item.choiceOrigin || item.choiceOrigin.formalComponentId
+              || /\b(internship|placement|practicum)\b/i.test(item.title)) return [item];
+            const slotPoints = item.creditPoints ?? 0;
+            let usedPoints = 0;
+            const replacements: PlannerState["unassignedItems"] = [];
+            while (templateIndex < templates.length) {
+              const template = templates[templateIndex]!;
+              const points = template.creditPoints;
+              if (points <= 0 || (slotPoints > 0 && usedPoints + points > slotPoints)) break;
+              templateIndex += 1;
+              usedPoints += points;
+              replacements.push({
+                ...item,
+                plannerItemId: `${item.plannerItemId}:component:${template.origin.componentId}:${template.origin.groupId}:${templateIndex}`,
+                itemType: template.kind,
+                subject: template.subject ? {
+                  officialSubjectId: template.subject.id,
+                  code: template.subject.code,
+                  name: template.subject.name,
+                  creditPoints: template.subject.creditPoints,
+                } : null,
+                rawCode: template.subject?.code ?? null,
+                title: template.subject?.name ?? template.origin.title,
+                creditPoints: template.creditPoints,
+                choiceOrigin: {
+                  ...item.choiceOrigin,
+                  title: template.origin.title,
+                  creditPoints: template.creditPoints,
+                  formalComponentId: template.origin.componentId,
+                  formalComponentCode: template.origin.componentCode,
+                  formalRequirementGroupId: template.origin.groupId,
+                  componentRequirementKind: template.kind === "SUBJECT" ? "FIXED" : "SELECTIVE",
+                },
+              });
+              if (slotPoints > 0 && usedPoints >= slotPoints) break;
+            }
+            const remainingPoints = slotPoints > usedPoints ? slotPoints - usedPoints : 0;
+            return [...replacements, ...(remainingPoints > 0 ? [{ ...item, creditPoints: remainingPoints }] : [])];
+          }),
+        })),
+      }));
+      if (templateIndex === 0) return current;
+      return { storageKey, planner: { ...current.planner, years, updatedAt: new Date().toISOString() } };
+    });
+  }, [storageKey]);
+
   return {
     planner,
     storageKey,
@@ -344,5 +534,6 @@ export const usePlannerState = (
     moveItem,
     restoreChoiceSlot,
     clearPeriod,
+    syncSelectedComponentSubjects,
   };
 };

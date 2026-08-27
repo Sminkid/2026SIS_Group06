@@ -13,12 +13,35 @@ const compareOrder = <T extends { id: string; sortOrder: number | null }>(left: 
   return (left.sortOrder ?? 0) - (right.sortOrder ?? 0) || left.id.localeCompare(right.id);
 };
 
+const normalizedText = (value: string | null): string =>
+  (value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
+const itemFingerprint = (item: GroupRecord["RequirementItem"][number]): string => [
+  item.itemType,
+  item.Subject?.id ?? "",
+  item.Component?.id ?? "",
+  normalizedText(item.rawCode),
+  normalizedText(item.rawName),
+  item.creditPoints ?? "",
+].join("|");
+
+const statusRank = (status: GroupRecord["status"]): number =>
+  status === "AUTHORITATIVE" ? 0 : status === "RAW_FALLBACK" ? 2 : 1;
+
 const mapGroup = (group: GroupRecord): DegreeRequirementGroup => {
-  const items = group.RequirementItem.map((item) => ({
+  const uniqueItems = [...new Map(group.RequirementItem.map((item) => [itemFingerprint(item), item])).values()];
+  const items: DegreeRequirementGroup["items"] = uniqueItems.map((item) => ({
     id: item.id,
     itemType: item.itemType,
     subject: item.Subject,
-    component: item.Component,
+    component: item.Component ? {
+      ...item.Component,
+      displayCode: item.Component.code.split(":").length >= 4 ? null : item.Component.code,
+      creditPoints: item.creditPoints ?? item.Component.creditPoints,
+      creditPointsAvailability: item.creditPoints !== null
+        ? "EXPLICIT_RELATIONSHIP"
+        : item.Component.creditPoints !== null ? "EXPLICIT_COMPONENT" : "UNAVAILABLE",
+    } : null,
     rawCode: item.rawCode,
     rawName: item.rawName,
     creditPoints: item.creditPoints,
@@ -35,6 +58,7 @@ const mapGroup = (group: GroupRecord): DegreeRequirementGroup => {
     sortOrder: group.sortOrder,
     items,
     children: [],
+    pathways: [],
   };
 };
 
@@ -43,14 +67,41 @@ export const mapComponentDetail = (
   handbook: HandbookRecord,
   component: ComponentRecord,
 ): ComponentDetailResponse => {
+  const sourceGroupsById = new Map(component.RequirementGroup.map((group) => [group.id, group]));
+  const childrenByParent = new Map<string, GroupRecord[]>();
+  for (const group of component.RequirementGroup) {
+    if (!group.parentGroupId || !sourceGroupsById.has(group.parentGroupId)) continue;
+    childrenByParent.set(group.parentGroupId, [...(childrenByParent.get(group.parentGroupId) ?? []), group]);
+  }
+  const fingerprint = (group: GroupRecord): string => {
+    const items = [...new Set(group.RequirementItem.map(itemFingerprint))].sort();
+    const children = (childrenByParent.get(group.id) ?? []).map(fingerprint).sort();
+    return JSON.stringify([
+      normalizedText(group.title), group.logic,
+      group.requiredCreditPoints, group.maximumCreditPoints, items, children,
+    ]);
+  };
+  const canonicalByFingerprint = new Map<string, GroupRecord>();
+  for (const group of [...component.RequirementGroup].sort((left, right) => statusRank(left.status) - statusRank(right.status) || compareOrder(left, right))) {
+    const key = fingerprint(group);
+    if (!canonicalByFingerprint.has(key)) canonicalByFingerprint.set(key, group);
+  }
+  const canonicalGroups = [...canonicalByFingerprint.values()];
+  const canonicalForId = new Map(component.RequirementGroup.map((group) => [
+    group.id,
+    canonicalByFingerprint.get(fingerprint(group)),
+  ]));
   const groupsById = new Map<string, DegreeRequirementGroup>();
-  for (const group of component.RequirementGroup) groupsById.set(group.id, mapGroup(group));
+  for (const group of canonicalGroups) groupsById.set(group.id, mapGroup(group));
 
   const requirements: DegreeRequirementGroup[] = [];
-  for (const group of component.RequirementGroup) {
+  for (const group of canonicalGroups) {
     const mapped = groupsById.get(group.id);
     if (!mapped) continue;
-    const parent = group.parentGroupId ? groupsById.get(group.parentGroupId) : undefined;
+    const canonicalParent = group.parentGroupId ? canonicalForId.get(group.parentGroupId) : undefined;
+    const parent = canonicalParent && canonicalParent.id !== group.id
+      ? groupsById.get(canonicalParent.id)
+      : undefined;
     if (parent) parent.children.push(mapped);
     else requirements.push(mapped);
   }
@@ -65,6 +116,7 @@ export const mapComponentDetail = (
       type: component.type,
       originalType: component.originalType,
       creditPoints: component.creditPoints,
+      sourceUrl: component.sourceUrl,
       handbookYear: handbook.year,
       university: { id: university.id, code: university.code, name: university.name },
     },

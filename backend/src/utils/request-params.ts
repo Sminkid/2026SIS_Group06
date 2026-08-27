@@ -59,6 +59,14 @@ export const parseComponentCode = (value: unknown): string => {
   return code;
 };
 
+export const parseComponentIdentifier = (value: unknown): string => {
+  const identifier = typeof value === "string" ? value.trim() : "";
+  if (!identifier || identifier.length > 160 || !/^[A-Za-z0-9:_-]+$/.test(identifier)) {
+    throw new ApiError(400, "Invalid component identifier");
+  }
+  return identifier;
+};
+
 export const parseRequirementGroupId = (value: unknown): string => {
   const id = typeof value === "string" ? value.trim() : "";
   if (!id || id.length > 128 || !/^[A-Za-z0-9_-]+$/.test(id)) {

@@ -2,7 +2,8 @@ import { GoogleGenAI } from "@google/genai";
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/api-error.js";
 
-const MODEL = "gemini-2.5-flash";
+const PRIMARY_MODEL = "gemini-2.5-flash";
+const FALLBACK_MODEL = "gemini-2.5-flash-lite";
 
 const SYSTEM_PROMPT = `You are a glossary assistant embedded in a university course-planning app.
 
@@ -34,17 +35,28 @@ const getClient = (): GoogleGenAI => {
   return client;
 };
 
-export const answerGlossaryQuestion = async (question: string): Promise<string> => {
+const generate = (model: string, question: string) => {
   const ai = getClient();
 
-  const result = await ai.models.generateContent({
-    model: MODEL,
+  return ai.models.generateContent({
+    model,
     contents: question,
     config: {
       systemInstruction: SYSTEM_PROMPT,
       maxOutputTokens: 300,
     },
   });
+};
+
+export const answerGlossaryQuestion = async (question: string): Promise<string> => {
+  let result;
+
+  try {
+    result = await generate(PRIMARY_MODEL, question);
+  } catch (primaryError) {
+    console.warn(`Gemini ${PRIMARY_MODEL} call failed, retrying with ${FALLBACK_MODEL}`, primaryError);
+    result = await generate(FALLBACK_MODEL, question);
+  }
 
   const answer = result.text?.trim();
 
@@ -54,3 +66,4 @@ export const answerGlossaryQuestion = async (question: string): Promise<string> 
 
   return answer;
 };
+

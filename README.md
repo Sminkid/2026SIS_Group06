@@ -97,4 +97,5 @@ npm run dev
 ## Connecting Database + LLM 
 
 Database credentials in Quangs tab
+
 LLM credentials in Jonos tab 

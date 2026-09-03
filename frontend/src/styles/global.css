@@ -167,10 +167,14 @@ h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02
 .glossary-chat__message--error .glossary-chat__message-role { color: #a10000; }
 .glossary-chat__message--pending .glossary-chat__typing { color: var(--muted); font-style: italic; }
 
-.glossary-chat__form { display: flex; align-items: flex-end; gap: .6rem; padding: 1rem 1.25rem; border-top: 1px solid var(--line); background: var(--surface); }
+.glossary-chat__form { display: flex; align-items: center; gap: .6rem; padding: 1rem 1.25rem; border-top: 1px solid var(--line); background: var(--surface); }
 .glossary-chat__form textarea { flex: 1; resize: none; padding: .65rem .75rem; border: 1px solid #bfc6d1; color: var(--navy); background: var(--soft); font: inherit; }
-.glossary-chat__form button { padding: .65rem 1.1rem; border: 1px solid var(--navy); color: #fff; background: var(--navy); font-weight: 700; cursor: pointer; }
-.glossary-chat__form button:disabled { opacity: .55; cursor: not-allowed; }
+.glossary-chat__send { display: grid; place-items: center; flex-shrink: 0; width: 2.5rem; height: 2.5rem; border: 1px solid var(--navy); border-radius: 50%; color: #fff; background: var(--navy); cursor: pointer; }
+.glossary-chat__send:hover:not(:disabled) { background: var(--blue); border-color: var(--blue); }
+.glossary-chat__send:disabled { opacity: .55; cursor: not-allowed; }
+.glossary-chat__spinner { width: 1rem; height: 1rem; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: glossary-chat-spin .7s linear infinite; }
+@keyframes glossary-chat-spin { to { transform: rotate(360deg); } }
+
 
 @media (max-width: 720px) {
     .glossary-chat { position: fixed; inset: 0; width: 100vw; height: 100vh; }

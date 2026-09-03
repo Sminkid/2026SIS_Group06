@@ -72,6 +72,11 @@ Install dependencies from the repo root:
 npm i
 ```
 
+Create env.file from the place holder example:
+```bash
+cp backend/.env.example backend/.env
+```
+
 Generate the Prisma client:
 
 ```bash
@@ -88,3 +93,8 @@ Run frontend and backend simultaneously
 cd ..
 npm run dev
 ```
+
+## Connecting Database + LLM 
+
+Database credentials in Quangs tab
+LLM credentials in Jonos tab 

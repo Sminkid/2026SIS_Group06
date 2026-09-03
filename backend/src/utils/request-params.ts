@@ -58,3 +58,22 @@ export const parseComponentCode = (value: unknown): string => {
 
   return code;
 };
+
+const MAX_CHAT_QUESTION_LENGTH = 500;
+
+export const parseChatQuestion = (value: unknown): string => {
+  const question = typeof value === "string" ? value.trim() : "";
+
+  if (!question) {
+    throw new ApiError(400, "question is required");
+  }
+
+  if (question.length > MAX_CHAT_QUESTION_LENGTH) {
+    throw new ApiError(
+      400,
+      `question must be ${MAX_CHAT_QUESTION_LENGTH} characters or fewer`,
+    );
+  }
+
+  return question;
+};

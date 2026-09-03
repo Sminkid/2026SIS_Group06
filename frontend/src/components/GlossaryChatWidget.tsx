@@ -1,80 +1,128 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { askGlossaryQuestion } from "../api/chat";
 import { ApiRequestError } from "../api/client";
 
-type Status = "idle" | "loading" | "ready" | "error";
+type MessageRole = "user" | "assistant" | "error";
+
+interface ChatMessage {
+  id: string;
+  role: MessageRole;
+  content: string;
+}
 
 export const GlossaryChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
-  const [errorMessage, setErrorMessage] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const trimmed = question.trim();
-    if (!trimmed || status === "loading") return;
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, isLoading]);
 
+  const submitQuestion = (trimmed: string) => {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
 
-    setStatus("loading");
-    setErrorMessage("");
+    setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", content: trimmed }]);
+    setQuestion("");
+    setIsLoading(true);
 
     askGlossaryQuestion(trimmed, controller.signal)
       .then((result) => {
-        setAnswer(result.answer);
-        setStatus("ready");
+        setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.answer }]);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setErrorMessage(error instanceof ApiRequestError ? error.message : "Something went wrong. Try again.");
-        setStatus("error");
-      });
+        const message = error instanceof ApiRequestError ? error.message : "Something went wrong. Try again.";
+        setMessages((current) => [...current, { id: crypto.randomUUID(), role: "error", content: message }]);
+      })
+      .finally(() => setIsLoading(false));
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = question.trim();
+    if (!trimmed || isLoading) return;
+    submitQuestion(trimmed);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      const trimmed = question.trim();
+      if (!trimmed || isLoading) return;
+      submitQuestion(trimmed);
+    }
   };
 
   return (
-    <div className="glossary-chat">
-      {isOpen && (
-        <div className="glossary-chat__panel" role="dialog" aria-label="Terminology glossary assistant">
-          <div className="glossary-chat__header">
-            <h2>Glossary assistant</h2>
-            <button type="button" className="glossary-chat__close" onClick={() => setIsOpen(false)} aria-label="Close glossary assistant">
-              ×
-            </button>
-          </div>
-          <p className="glossary-chat__hint">
-            Ask about general terms like &quot;what is a credit point&quot; or &quot;semester vs trimester&quot;.
-          </p>
-          <form className="glossary-chat__form" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              placeholder="e.g. What does WAM mean?"
-              aria-label="Ask a terminology question"
-            />
-            <button type="submit" disabled={status === "loading" || !question.trim()}>
-              {status === "loading" ? "Asking…" : "Ask"}
-            </button>
-          </form>
-          {status === "error" && <p className="glossary-chat__error" role="alert">{errorMessage}</p>}
-          {status === "ready" && <p className="glossary-chat__answer">{answer}</p>}
-        </div>
-      )}
+    <>
       <button
         type="button"
         className="glossary-chat__toggle"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
+        aria-label={isOpen ? "Close glossary assistant" : "Open glossary assistant"}
       >
         {isOpen ? "Close" : "Glossary"}
       </button>
-    </div>
+
+      {isOpen && (
+        <aside className="glossary-chat" aria-label="Terminology glossary assistant">
+          <div className="glossary-chat__header">
+            <div>
+              <p className="glossary-chat__eyebrow">Assistant</p>
+              <h2>Glossary</h2>
+            </div>
+            <button type="button" className="glossary-chat__close" onClick={() => setIsOpen(false)} aria-label="Close glossary assistant">
+              ×
+            </button>
+          </div>
+
+          <div className="glossary-chat__messages">
+            {messages.length === 0 && (
+              <p className="glossary-chat__empty">
+                Ask about general terms like &quot;what is a credit point&quot; or &quot;semester vs trimester&quot;.
+              </p>
+            )}
+            {messages.map((message) => (
+              <div key={message.id} className={`glossary-chat__message glossary-chat__message--${message.role}`}>
+                <span className="glossary-chat__message-role">
+                  {message.role === "user" ? "You" : message.role === "assistant" ? "Glossary" : "Error"}
+                </span>
+                <p>{message.content}</p>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="glossary-chat__message glossary-chat__message--assistant glossary-chat__message--pending">
+                <span className="glossary-chat__message-role">Glossary</span>
+                <p className="glossary-chat__typing" aria-live="polite">Thinking…</p>
+              </div>
+            )}
+            <div ref={bottomRef} />
+          </div>
+
+          <form className="glossary-chat__form" onSubmit={handleSubmit}>
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask a terminology question…"
+              aria-label="Ask a terminology question"
+              rows={2}
+            />
+            <button type="submit" disabled={isLoading || !question.trim()}>
+              {isLoading ? "Asking…" : "Send"}
+            </button>
+          </form>
+        </aside>
+      )}
+    </>
   );
 };

@@ -63,24 +63,22 @@ export const GlossaryChatWidget = () => {
 
   return (
     <>
-      <button
-        type="button"
-        className="glossary-chat__toggle"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-expanded={isOpen}
-        aria-label={isOpen ? "Close glossary assistant" : "Open glossary assistant"}
-      >
-        {isOpen ? "Close" : "Glossary"}
-      </button>
+      {!isOpen && (
+        <button
+          type="button"
+          className="glossary-chat__toggle"
+          onClick={() => setIsOpen(true)}
+          aria-label="Open assistant"
+        >
+          Assistant
+        </button>
+      )}
 
       {isOpen && (
-        <aside className="glossary-chat" aria-label="Terminology glossary assistant">
+        <aside className="glossary-chat" aria-label="Assistant">
           <div className="glossary-chat__header">
-            <div>
-              <p className="glossary-chat__eyebrow">Assistant</p>
-              <h2>Glossary</h2>
-            </div>
-            <button type="button" className="glossary-chat__close" onClick={() => setIsOpen(false)} aria-label="Close glossary assistant">
+            <h2>Assistant</h2>
+            <button type="button" className="glossary-chat__close" onClick={() => setIsOpen(false)} aria-label="Close assistant">
               ×
             </button>
           </div>
@@ -94,14 +92,14 @@ export const GlossaryChatWidget = () => {
             {messages.map((message) => (
               <div key={message.id} className={`glossary-chat__message glossary-chat__message--${message.role}`}>
                 <span className="glossary-chat__message-role">
-                  {message.role === "user" ? "You" : message.role === "assistant" ? "Glossary" : "Error"}
+                  {message.role === "user" ? "You" : message.role === "assistant" ? "Assistant" : "Error"}
                 </span>
                 <p>{message.content}</p>
               </div>
             ))}
             {isLoading && (
               <div className="glossary-chat__message glossary-chat__message--assistant glossary-chat__message--pending">
-                <span className="glossary-chat__message-role">Glossary</span>
+                <span className="glossary-chat__message-role">Assistant</span>
                 <p className="glossary-chat__typing" aria-live="polite">Thinking…</p>
               </div>
             )}

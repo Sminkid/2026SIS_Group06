@@ -3,6 +3,8 @@ import type { DegreeSummary, University } from "./types/handbook";
 import { DegreePage } from "./pages/DegreePage";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
+import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
+
 
 type Screen =
   | { name: "universities" }
@@ -40,6 +42,7 @@ export const App = () => {
           onHome={() => setScreen({ name: "universities" })}
         />
       )}
+      <GlossaryChatWidget />
     </div>
   );
 };

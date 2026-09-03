@@ -141,3 +141,19 @@ h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02
   .plan-item { min-height: 7.5rem; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+.glossary-chat { position: fixed; right: 1.5rem; bottom: 1.5rem; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: .75rem; }
+.glossary-chat__toggle { padding: .85rem 1.35rem; border: 1px solid var(--navy); color: #fff; background: var(--navy); font-weight: 750; cursor: pointer; box-shadow: 0 8px 20px rgba(20,33,61,.25); }
+.glossary-chat__toggle:hover { background: var(--blue); border-color: var(--blue); }
+.glossary-chat__panel { width: min(22rem, calc(100vw - 3rem)); padding: 1.25rem; border: 1px solid var(--line); background: var(--surface); box-shadow: 0 12px 32px rgba(20,33,61,.18); }
+.glossary-chat__header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .5rem; }
+.glossary-chat__header h2 { margin: 0; font-size: 1rem; }
+.glossary-chat__close { padding: 0 .35rem; border: 0; color: var(--muted); background: transparent; font-size: 1.25rem; line-height: 1; cursor: pointer; }
+.glossary-chat__close:hover { color: var(--navy); }
+.glossary-chat__hint { margin: 0 0 1rem; color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.glossary-chat__form { display: flex; gap: .5rem; }
+.glossary-chat__form input { flex: 1; padding: .65rem .75rem; border: 1px solid #bfc6d1; color: var(--navy); background: var(--soft); }
+.glossary-chat__form button { padding: .65rem 1rem; border: 1px solid var(--navy); color: #fff; background: var(--navy); font-weight: 700; cursor: pointer; }
+.glossary-chat__form button:disabled { opacity: .55; cursor: not-allowed; }
+.glossary-chat__error { margin: 1rem 0 0; padding: .75rem; border: 1px solid #d33; color: #a10000; background: #fdeceb; font-size: .82rem; }
+.glossary-chat__answer { margin: 1rem 0 0; padding: .85rem; border: 1px solid var(--line); background: var(--soft); color: var(--navy); font-size: .85rem; line-height: 1.6; white-space: pre-wrap; }

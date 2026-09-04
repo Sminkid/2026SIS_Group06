@@ -77,6 +77,19 @@ Create env.file from the place holder example:
 cp backend/.env.example backend/.env
 ```
 
+Connect database and LLM by filling credentials in backend/env.
+
+Database credentials in Quangs tab
+
+LLM credentials in Jonos tab 
+
+Fill the following appropriately 
+
+```bash
+DATABASE_URL=
+GEMINI_API_KEY=
+```
+
 Generate the Prisma client:
 
 ```bash
@@ -94,8 +107,3 @@ cd ..
 npm run dev
 ```
 
-## Connecting Database + LLM 
-
-Database credentials in Quangs tab
-
-LLM credentials in Jonos tab 

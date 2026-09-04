@@ -3,6 +3,7 @@ import type { DegreeSummary, University } from "./types/handbook";
 import { DegreePage } from "./pages/DegreePage";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
+import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
 
 type Screen =
   | { name: "universities" }
@@ -23,24 +24,26 @@ export const App = () => {
         <span className="site-header__note">University handbook explorer</span>
       </header>
 
-      {screen.name === "universities" && (
-        <HomePage onSelectUniversity={(university) => setScreen({ name: "degrees", university })} />
-      )}
-      {screen.name === "degrees" && (
-        <DegreeSelectionPage
-          university={screen.university}
-          onBack={() => setScreen({ name: "universities" })}
-          onSelectDegree={(degree) => setScreen({ name: "degree", university: screen.university, degree })}
-        />
-      )}
-      {screen.name === "degree" && (
-        <DegreePage
-          university={screen.university}
-          degree={screen.degree}
-          onBack={() => setScreen({ name: "degrees", university: screen.university })}
-          onHome={() => setScreen({ name: "universities" })}
-        />
-      )}
+        {screen.name === "universities" && (
+          <HomePage onSelectUniversity={(university) => setScreen({ name: "degrees", university })} />
+        )}
+        {screen.name === "degrees" && (
+          <DegreeSelectionPage
+            university={screen.university}
+            onBack={() => setScreen({ name: "universities" })}
+            onSelectDegree={(degree) => setScreen({ name: "degree", university: screen.university, degree })}
+          />
+        )}
+        {screen.name === "degree" && (
+          <DegreePage
+            university={screen.university}
+            degree={screen.degree}
+            onBack={() => setScreen({ name: "degrees", university: screen.university })}
+            onHome={() => setScreen({ name: "universities" })}
+          />
+        )}
+      </div>
+      <GlossaryChatWidget />
     </div>
   );
 };

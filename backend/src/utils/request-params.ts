@@ -106,4 +106,21 @@ export const parseSearchLimit = (value: unknown): number => {
     throw new ApiError(400, "limit must be an integer between 1 and 50");
   }
   return limit;
+const MAX_CHAT_QUESTION_LENGTH = 500;
+
+export const parseChatQuestion = (value: unknown): string => {
+  const question = typeof value === "string" ? value.trim() : "";
+
+  if (!question) {
+    throw new ApiError(400, "question is required");
+  }
+
+  if (question.length > MAX_CHAT_QUESTION_LENGTH) {
+    throw new ApiError(
+      400,
+      `question must be ${MAX_CHAT_QUESTION_LENGTH} characters or fewer`,
+    );
+  }
+
+  return question;
 };

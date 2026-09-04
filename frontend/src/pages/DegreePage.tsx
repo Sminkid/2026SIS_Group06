@@ -123,6 +123,7 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
         requirements={detail.requirements}
         selectedComponents={selections}
         componentDetails={selectedComponentDetails.details}
+        componentDetailsStatus={selectedComponentDetails.status}
         degreeName={detail.degree.name}
         onSelectComponent={selectComponent}
       />

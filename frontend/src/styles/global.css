@@ -71,6 +71,7 @@ h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02
 .path-decision:last-child { padding-bottom: 0; }
 .pathway-selections { display: grid; gap: 1rem; }
 .pathway-selections h3 { margin: 0; font-size: 1rem; }
+.pathway-selection { min-width: 0; }
 .elective-allocation { padding: 1rem; border-left: 3px solid var(--blue); background: var(--soft); }
 .elective-allocation p { margin: .4rem 0 0; color: var(--muted); font-size: .8rem; line-height: 1.5; }
 .study-path__field { display: grid; grid-template-columns: minmax(10rem, .45fr) minmax(14rem, 1fr); gap: 1rem; align-items: center; }
@@ -81,6 +82,8 @@ h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02
 .selected-path-preview { margin-top: 1rem; border: 1px solid var(--line); background: var(--soft); }
 .selected-path-preview__heading { display: flex; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border-bottom: 1px solid var(--line); }
 .selected-path-preview__heading span { color: var(--muted); font-size: .78rem; }
+.selected-path-preview__empty, .selected-path-preview__state { margin: 0; padding: .9rem 1rem; color: var(--muted); font-size: .78rem; }
+.selected-path-preview__state { margin-top: .75rem; border: 1px solid var(--line); background: var(--soft); }
 .path-preview { border-bottom: 1px solid var(--line); background: var(--surface); }
 .path-preview:last-child { border-bottom: 0; }
 .path-preview summary { display: flex; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; cursor: pointer; }

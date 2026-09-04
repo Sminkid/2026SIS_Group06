@@ -28,6 +28,7 @@ interface Props {
   requirements: RequirementGroup[];
   selectedComponents: ComponentSelections;
   componentDetails: Record<string, ComponentDetailResponse>;
+  componentDetailsStatus: "idle" | "loading" | "ready" | "error";
   degreeName: string;
   onSelectComponent: (groupId: string, value: string, clearGroupIds?: string[]) => void;
 }
@@ -100,6 +101,7 @@ export const StudyPlansSection = ({
   requirements,
   selectedComponents,
   componentDetails,
+  componentDetailsStatus,
   degreeName,
   onSelectComponent,
 }: Props) => {
@@ -273,6 +275,7 @@ export const StudyPlansSection = ({
         degreeName={degreeName}
         requirements={requirements}
         componentDetails={componentDetails}
+        componentDetailsStatus={componentDetailsStatus}
         selections={selectedComponents}
         onSelect={onSelectComponent}
         planner={planner}

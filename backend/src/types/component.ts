@@ -9,6 +9,7 @@ export interface ComponentDetailResponse {
     type: ComponentType;
     originalType: string | null;
     creditPoints: number | null;
+    sourceUrl: string | null;
     handbookYear: number;
     university: {
       id: string;

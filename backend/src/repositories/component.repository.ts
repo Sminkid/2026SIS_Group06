@@ -1,7 +1,7 @@
 import { getPrisma } from "../db/prisma.js";
 
 export const findComponentDetailRecord = async (
-  componentCode: string,
+  componentIdentifier: string,
   universityCode: string,
   handbookYear: number,
 ) =>
@@ -17,7 +17,7 @@ export const findComponentDetailRecord = async (
         select: {
           year: true,
           Component: {
-            where: { code: componentCode },
+            where: { OR: [{ id: componentIdentifier }, { code: componentIdentifier.toUpperCase() }] },
             take: 1,
             select: {
               id: true,
@@ -26,6 +26,7 @@ export const findComponentDetailRecord = async (
               type: true,
               originalType: true,
               creditPoints: true,
+              sourceUrl: true,
               RequirementGroup: {
                 orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
                 select: {
@@ -34,6 +35,11 @@ export const findComponentDetailRecord = async (
                   title: true,
                   description: true,
                   logic: true,
+                  status: true,
+                  nodeType: true,
+                  sourcePath: true,
+                  sourceUrl: true,
+                  rawData: true,
                   requiredCreditPoints: true,
                   maximumCreditPoints: true,
                   sortOrder: true,

@@ -31,6 +31,38 @@ export interface RequirementComponentSummary {
   name: string;
   type: ComponentType;
   creditPoints: number | null;
+  creditPointsAvailability: "EXPLICIT_RELATIONSHIP" | "EXPLICIT_COMPONENT" | "DERIVED_REQUIREMENTS" | "UNAVAILABLE";
+  displayCode: string | null;
+}
+
+export interface DegreeRequirementPathwaySelection {
+  requirementGroupId: string;
+  selectionType: "COMPONENT" | "ELECTIVE_ALLOCATION";
+  requiredSelections: number;
+  requiredCreditPoints: number;
+}
+
+export interface DegreeRequirementPathway {
+  id: string;
+  title: string;
+  requiredCreditPoints: number;
+  selections: DegreeRequirementPathwaySelection[];
+}
+
+export type RequirementObligation = "REQUIRED" | "OPTIONAL" | "CONDITIONAL" | "INFORMATIONAL";
+
+export interface StudentRequirementSummary {
+  id: string;
+  title: string;
+  explanation: string | null;
+  obligation: RequirementObligation;
+  minimumCreditPoints: number | null;
+  maximumCreditPoints: number | null;
+  conditionLabel: string | null;
+  actionKind: "NONE" | "CHOOSE_COMPONENT" | "CHOOSE_SUBJECTS" | "CONFIRM_CONDITION";
+  sourceText: string | null;
+  sourceUrl: string | null;
+  requirementGroupId: string;
 }
 
 export interface DegreeRequirementItem {
@@ -54,9 +86,11 @@ export interface DegreeRequirementGroup {
   sortOrder: number | null;
   items: DegreeRequirementItem[];
   children: DegreeRequirementGroup[];
+  pathways: DegreeRequirementPathway[];
 }
 
 export interface DegreeDetailResponse {
   degree: DegreeDetail;
   requirements: DegreeRequirementGroup[];
+  completionSummary: StudentRequirementSummary[];
 }

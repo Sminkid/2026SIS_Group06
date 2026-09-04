@@ -15,14 +15,14 @@ export const App = () => {
 
   return (
     <div className="app-shell">
-      <div className="app-main">
-        <header className="site-header">
-          <button className="brand" type="button" onClick={() => setScreen({ name: "universities" })} aria-label="Degree planner home">
-            <span className="brand__mark" aria-hidden="true">DP</span>
-            <span>Degree planner</span>
-          </button>
-          <span className="site-header__note">University handbook explorer</span>
-        </header>
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+      <header className="site-header">
+        <button className="brand" type="button" onClick={() => setScreen({ name: "universities" })} aria-label="Degree planner home">
+          <span className="brand__mark" aria-hidden="true">DP</span>
+          <span>Degree planner</span>
+        </button>
+        <span className="site-header__note">University handbook explorer</span>
+      </header>
 
         {screen.name === "universities" && (
           <HomePage onSelectUniversity={(university) => setScreen({ name: "degrees", university })} />

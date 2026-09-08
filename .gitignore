@@ -27,4 +27,4 @@ test-results/
 # Machine-local extension indexing preference (not shared editor configuration)
 /.vscode/settings.json
 docs/
-/backend/scripts/
+backend/scripts/

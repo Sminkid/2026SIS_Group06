@@ -67,7 +67,7 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
     </div><div className="subject-result__actions">
       {(access?.hasConditions || subject.prerequisiteStatus === "HAS_CONDITIONS") && <button className="text-button" type="button" onClick={() => onOpenSubject(subject.code)}>View requirements</button>}
       {action.visible && <button className="secondary-button" type="button"
-        disabled={action.disabled}
+        disabled={action.disabled || subject.creditPoints === null || subject.creditPoints <= 0 || subject.creditPoints > (choiceItem.choiceOrigin?.maximumCreditPoints ?? choiceItem.choiceOrigin?.creditPoints ?? choiceItem.creditPoints ?? Infinity)}
         onClick={() => onSelect(subject, componentCode, quotaGroup?.id)}>
         {action.label}
       </button>}
@@ -93,6 +93,13 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       console.error("Roadmap choice provenance mismatch: the active slot and candidate requirement belong to different components.");
     }
   }, [choiceItem, scope.componentId]);
+  useEffect(() => {
+    if (!choiceItem) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = overflow; trigger?.focus(); };
+  }, [choiceItem?.id]);
   useEffect(() => { const dialog = dialogRef.current; if (choiceItem && dialog && !dialog.open) dialog.showModal(); if (!choiceItem && dialog?.open) dialog.close(); }, [choiceItem]);
   useEffect(() => {
     if (!choiceItem || codes.length === 0) { setAccessConditions({}); return; } const controller = new AbortController();
@@ -124,16 +131,19 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
     <header className="subject-dialog__header"><div><p className="eyebrow">Fill choice slot</p><h2 id="subject-dialog-title">Choose a subject</h2><p>{choiceItem.choiceOrigin?.title ?? choiceItem.title}</p></div>
       <button className="dialog-close" type="button" aria-label="Close subject selector" onClick={onClose}>×</button></header>
     <div className={`eligibility-note${scope.kind === "FORMAL" ? " eligibility-note--matched" : ""}`}>{scope.kind === "FORMAL" ? <><strong>From: {scope.label}</strong><br />Requirement match and access conditions are evaluated separately.</>
-      : scope.kind === "BROAD" ? <><strong>Broad choice: {scope.label}</strong><br />Search results are not automatically verified to count.</> : <>Use the unverified external search for this roadmap slot.</>}</div>
+      : scope.kind === "BROAD" ? <><strong>Broad choice: {scope.label}</strong><br />Search results are not automatically verified to count.</> : <>{scope.label ?? "No exact requirement mapping is available. Choose a pathway or component first; missing mappings need handbook verification."}</>}</div>
     <div className="subject-results subject-results--grouped" aria-live="polite">{scope.kind === "FORMAL" && pools.length === 0 && <AsyncState kind="empty" label="No verified subject list is available for this requirement. You may search other subjects, but eligibility must be confirmed." />}
       {pools.map(({ group, quotaGroup, subjects, selectable, requiredCore }) => <section className={`subject-pool${selectable ? " subject-pool--selectable" : " subject-pool--context"}`} key={group.id}>
         <header><div><span>{quotaGroup.title ?? group.title ?? "Requirement subjects"}</span><strong>{selectable ? "Options" : requiredCore ? "Core" : "Context"}</strong></div>
           <p>{progressText(quotaGroup, requiredCore)}</p></header>
+        {group.items.some((item) => item.itemType === "SUBJECT" && !item.subject) && <p className="candidate-access candidate-access--warning">
+          The imported requirement also references missing subject records: {group.items.filter((item) => item.itemType === "SUBJECT" && !item.subject).map((item) => item.rawCode ?? item.rawName ?? "Unresolved subject").join(", ")}. These cannot be selected until their handbook records are linked.
+        </p>}
         <SubjectResults {...resultProps} results={subjects} selectable={selectable} requiredCore={requiredCore} quotaGroup={quotaGroup} componentCode={scope.componentCode} /></section>)}</div>
     <details className="external-subject-search" open={scope.kind !== "FORMAL"}><summary>Can't find the subject? Search outside this requirement</summary><p>Results outside this requirement are not verified to count.</p>
       <form className="subject-search" onSubmit={submitSearch}><label htmlFor="subject-query">Search by subject code or name</label><div><input id="subject-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
         <button className="primary-button" type="submit">Search</button></div>{message && <p className="field-error" role="alert">{message}</p>}</form>
       <div aria-live="polite">{externalStatus === "loading" && <AsyncState kind="loading" label="Searching subjects" />}{externalStatus === "error" && <AsyncState kind="error" label="We couldn't search subjects." />}
-        {externalStatus === "ready" && externalResults.length === 0 && <AsyncState kind="empty" label="No matching subjects were found." />}{externalStatus === "ready" && <SubjectResults {...resultProps} results={externalResults} selectable requiredCore={false} quotaGroup={scope.groups?.[0]} />}</div></details>
+        {externalStatus === "ready" && externalResults.length === 0 && <AsyncState kind="empty" label="No matching subjects were found." />}{externalStatus === "ready" && <SubjectResults {...resultProps} results={externalResults} selectable={scope.kind === "BROAD"} requiredCore={false} quotaGroup={scope.kind === "BROAD" ? scope.groups?.[0] : undefined} />}</div></details>
   </div></dialog>;
 };

@@ -17,6 +17,8 @@ import type { ValidationResult } from "../types/validation";
 import { StudyPathSelector } from "./StudyPathSelector";
 import { resolveStudyPathChoiceScope } from "../domain/studyPathChoiceScope";
 import { readableText } from "../domain/readableText";
+import { reconcileStudyPlan } from "../domain/studyPlanSelection";
+import { expandRoadmapSlots } from "../domain/roadmapSlots";
 
 interface Props {
   degreeCode: string;
@@ -53,7 +55,7 @@ const PlanItemCard = ({
   const isFilledChoice = Boolean(item.choiceOrigin) && !isChoice && !isFixedComponentSubject;
   const isChoiceSlot = isChoice || isFilledChoice;
   const code = item.subject?.code ?? item.rawCode;
-  const name = item.subject?.name ?? item.title;
+  const name = readableText(item.subject?.name ?? item.title);
   const creditPoints = item.subject?.creditPoints ?? item.creditPoints;
 
   const content = <>
@@ -63,7 +65,9 @@ const PlanItemCard = ({
     </div>
     <h5>{name}</h5>
     {code && <p className="plan-item__code">{code}</p>}
+    {item.choiceOrigin?.parentAggregateItemId && <p className="plan-item__note">Within {item.choiceOrigin.parentAggregateTitle} ({item.choiceOrigin.parentAggregateCreditPoints} CP official block). Source: {item.choiceOrigin.sourceLabel}.</p>}
     {isFixedComponentSubject && <p className="plan-item__note">Required by the selected component.</p>}
+    {item.choiceOrigin?.candidateSourceType === "UNRESOLVED" && <p className="plan-item__note">{item.choiceOrigin.sourceLabel}</p>}
     {isPlacement && <p className="plan-item__note">Required professional placement. Sponsoring employer and enrolment details are confirmed through the course process.</p>}
     {isChoiceSlot && !isPlacement && <p className="plan-item__note">{editable
       ? isFilledChoice ? `From: ${item.choiceOrigin?.title} · Click to change` : "Click to choose a subject"
@@ -91,6 +95,15 @@ const PlanItemCard = ({
   </article>;
 };
 
+const roadmapBlocks = (items: StudyPlanItem[]) => {
+  const blocks = new Map<string, StudyPlanItem[]>();
+  items.forEach((item) => {
+    const key = item.choiceOrigin?.parentAggregateItemId ?? item.id;
+    blocks.set(key, [...(blocks.get(key) ?? []), item]);
+  });
+  return [...blocks.entries()];
+};
+
 export const StudyPlansSection = ({
   degreeCode,
   universityCode,
@@ -106,10 +119,16 @@ export const StudyPlansSection = ({
   onSelectComponent,
 }: Props) => {
   const [plans, setPlans] = useState<StudyPlan[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const variantStorageKey = `degree-planner:variant:${universityCode}:${handbookYear}:${degreeCode}`;
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(() => {
+    try { const saved: unknown = JSON.parse(localStorage.getItem(variantStorageKey) ?? "null");
+      return saved && typeof saved === "object" && "planId" in saved && typeof saved.planId === "string" ? saved.planId : "";
+    } catch { return ""; }
+  });
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
   const [activeChoice, setActiveChoice] = useState<StudyPlanItem | null>(null);
+  const [planNotice, setPlanNotice] = useState("");
   const retry = useCallback(() => setReloadKey((key) => key + 1), []);
 
   useEffect(() => {
@@ -127,15 +146,52 @@ export const StudyPlansSection = ({
     return () => controller.abort();
   }, [degreeCode, handbookYear, reloadKey, universityCode]);
 
-  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) ?? plans[0];
-  const pathwayGroups = useMemo(() => requirements.flatMap((group) => group.pathways.flatMap((pathway) =>
-    pathway.selections.map((selection) => selection.requirementGroupId))), [requirements]);
-  const activePathwayGroups = useMemo(() => requirements.flatMap((group) => {
+  const flattenRequirements = (groups: RequirementGroup[]): RequirementGroup[] => groups.flatMap((group) => [group, ...flattenRequirements(group.children)]);
+  const majorGroup = flattenRequirements(requirements).find((group) => group.pathways.length === 0
+    && group.items.filter((item) => item.component?.type === "MAJOR").length > 1);
+  const majorCode = majorGroup ? selectedComponents[majorGroup.id] : undefined;
+  const reconciledPlan = reconcileStudyPlan(plans, selectedPlanId, universityCode === "UTS" ? majorCode : undefined);
+  const selectedPlan = useMemo(() => expandRoadmapSlots(reconciledPlan.plan, universityCode, requirements, selectedComponents, componentDetails),
+    [reconciledPlan.plan, universityCode, requirements, selectedComponents, componentDetails]);
+  const selectPathComponent: Props["onSelectComponent"] = (groupId, value, clearIds = []) => {
+    setActiveChoice(null);
+    if (universityCode === "UTS" && groupId === majorGroup?.id) {
+      const result = reconcileStudyPlan(plans, selectedPlan?.id ?? selectedPlanId, value);
+      setSelectedPlanId(result.plan?.id ?? "");
+      const name = majorGroup.items.find((item) => item.component?.code === value)?.component?.name;
+      setPlanNotice(result.reason || `Study plan updated to match ${name ?? "the selected major"}.`);
+    }
+    onSelectComponent(groupId, value, clearIds);
+  };
+  const selectVariant = (id: string) => {
+    const plan = plans.find((candidate) => candidate.id === id);
+    if (!plan) return;
+    setActiveChoice(null);
+    if (universityCode === "UTS" && plan.major && majorGroup && plan.major.code !== majorCode) {
+      const oldDetail = majorCode ? componentDetails[majorCode] : undefined;
+      onSelectComponent(majorGroup.id, plan.major.code, oldDetail ? flattenRequirements(oldDetail.requirements).map((group) => group.id) : []);
+    }
+    setSelectedPlanId(id);
+    setPlanNotice("");
+  };
+  useEffect(() => { setActiveChoice(null); }, [selectedComponents, selectedPlan?.id]);
+  useEffect(() => {
+    if (!selectedPlan || (majorCode && selectedPlan.major?.code !== majorCode)) return;
+    setSelectedPlanId(selectedPlan.id);
+    try { localStorage.setItem(variantStorageKey, JSON.stringify({ planId: selectedPlan.id, majorCode: selectedPlan.major?.code ?? null })); } catch { /* Session editing remains available. */ }
+  }, [variantStorageKey, selectedPlan?.id, majorCode]);
+  const pathwayGroups = useMemo(() => flattenRequirements(requirements).flatMap((group) => [
+    ...group.pathways.flatMap((pathway) => pathway.selections.map((selection) => selection.requirementGroupId)),
+    ...flattenRequirements(group.children).map((child) => child.id),
+  ]), [requirements]);
+  const activePathwayGroups = useMemo(() => flattenRequirements(requirements).flatMap((group) => {
     const selected = selectedComponents[group.id];
     const pathway = selected?.startsWith("PATHWAY:")
       ? group.pathways.find((candidate) => candidate.id === selected.slice(8))
       : undefined;
-    return pathway?.selections.map((selection) => selection.requirementGroupId) ?? [];
+    const selectedBranch = selected?.startsWith("GROUP:") ? group.children.find((child) => child.id === selected.slice(6)) : undefined;
+    return [...(pathway?.selections.map((selection) => selection.requirementGroupId) ?? []),
+      ...(selectedBranch ? flattenRequirements([selectedBranch]).map((child) => child.id) : [])];
   }), [requirements, selectedComponents]);
   const plannerContext = useMemo<PlannerContext>(() => ({
     universityCode,
@@ -253,7 +309,7 @@ export const StudyPlansSection = ({
   );
   const chooseSubject = (subject: SubjectSearchResult, formalComponentCode?: string, formalRequirementGroupId?: string) => {
     if (!activeChoice) return;
-    selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId);
+    selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId, activeChoiceScope.componentId);
     setActiveChoice(null);
   };
   const hasLongPlanTitle = (selectedPlan?.title.length ?? 0) > 180;
@@ -269,7 +325,7 @@ export const StudyPlansSection = ({
     {status === "loading" && <AsyncState kind="loading" label="Loading official study plan" />}
     {status === "error" && <AsyncState kind="error" label="We couldn't load the official study plan." onRetry={retry} />}
     {status === "ready" && plans.length === 0 && <AsyncState kind="empty" label="No official recommended study plan is available for this degree." />}
-    {status === "ready" && selectedPlan && displayedPlan && <>
+    {status === "ready" && <>
       <StudyPathSelector
         universityCode={universityCode}
         degreeName={degreeName}
@@ -277,14 +333,18 @@ export const StudyPlansSection = ({
         componentDetails={componentDetails}
         componentDetailsStatus={componentDetailsStatus}
         selections={selectedComponents}
-        onSelect={onSelectComponent}
+        onSelect={selectPathComponent}
         planner={planner}
       />
       {plans.length > 1 && <label className="plan-selector"><span>Study plan variant</span>
-        <select value={selectedPlan.id} onChange={(event) => setSelectedPlanId(event.target.value)}>
+        <select value={selectedPlan?.id ?? ""} onChange={(event) => selectVariant(event.target.value)}>
+          <option value="" disabled>Choose an official variant</option>
           {plans.map((plan) => <option value={plan.id} key={plan.id}>{plan.title}</option>)}
         </select>
       </label>}
+      {(planNotice || reconciledPlan.reason) && <p className="selection-notice" role="status">{reconciledPlan.reason || planNotice}</p>}
+    </>}
+    {status === "ready" && selectedPlan && displayedPlan && <>
       <div className="plan-intro">
         <h3>{hasLongPlanTitle ? "Official recommended study plan" : selectedPlan.title}</h3>
         {hasLongPlanTitle && <details className="plan-source-title">
@@ -325,7 +385,13 @@ export const StudyPlansSection = ({
             {year.periods.map((period) => <section className="plan-period" key={period.id}>
               <div className="plan-period__heading"><h4>{period.name}</h4></div>
               {period.items.length === 0 ? <p className="plan-period__empty">No items listed</p> :
-                <div className="plan-items">{period.items.map((item) => (
+                <div className="plan-items">{roadmapBlocks(period.items).map(([blockId, blockItems]) => {
+                  const origin = blockItems[0].choiceOrigin;
+                  const required = origin?.parentAggregateCreditPoints;
+                  const points = blockItems.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0);
+                  return <div key={blockId} className={required ? "roadmap-aggregate" : "roadmap-single"}>
+                  {required !== undefined && <header><strong>{origin?.parentAggregateTitle}</strong><p>{points} / {required} CP selected · {Math.max(0, required - points)} CP remaining. Positions within this official block.</p></header>}
+                  <div className={required ? "plan-items" : undefined}>{blockItems.map((item) => (
                   <PlanItemCard
                     item={item}
                     editable={planner !== null}
@@ -335,7 +401,8 @@ export const StudyPlansSection = ({
                     onRestoreChoice={restoreChoiceSlot}
                     key={item.id}
                   />
-                ))}</div>}
+                ))}</div></div>;
+                })}</div>}
             </section>)}
           </div>
         </section>)}

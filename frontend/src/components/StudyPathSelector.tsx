@@ -68,7 +68,9 @@ const ExplicitPathwaySelector = ({ group, selections, onSelect, planner, compone
   const allSlotIds = group.pathways.flatMap((candidate) => candidate.selections.flatMap((selection) =>
     Array.from({ length: selection.requiredSelections }, (_, index) => `${candidate.id}:selection:${selection.requirementGroupId}:${index}`)));
   const choosePathway = (value: string) => {
-    const hasDependentSelections = allSlotIds.some((id) => selections[id]);
+    const hasDependentSelections = planner && [...planner.years.flatMap((year) => year.periods.flatMap((period) => period.items)), ...planner.unassignedItems]
+      .some((item) => item.subject && item.choiceOrigin?.componentRequirementKind !== "FIXED"
+        && group.pathways.some((candidate) => candidate.id === item.choiceOrigin?.selectedPathwayId));
     if (hasDependentSelections && !window.confirm("Changing pathway will clear its selected components and related personalised roadmap choices. Continue?")) return;
     onSelect(group.id, value, allSlotIds);
   };
@@ -82,8 +84,8 @@ const ExplicitPathwaySelector = ({ group, selections, onSelect, planner, compone
     : 0;
 
   return <section className="path-decision path-decision--explicit">
-    <label className="study-path__field"><span>Choose one {group.requiredCreditPoints ?? 48} CP option</span><select value={selectedValue ?? ""} onChange={(event) => choosePathway(event.target.value)}>
-      <option value="" disabled>Select a pathway</option>{group.pathways.map((candidate) => <option value={`PATHWAY:${candidate.id}`} key={candidate.id}>{pathwayLabel(candidate.title)}</option>)}
+    <label className="study-path__field"><span>Choose one {group.requiredCreditPoints ?? group.pathways[0]?.requiredCreditPoints ?? ""} CP pathway</span><select value={selectedValue ?? ""} onChange={(event) => choosePathway(event.target.value)}>
+      <option value="" disabled>Choose a pathway</option>{group.pathways.map((candidate) => <option value={`PATHWAY:${candidate.id}`} key={candidate.id}>{pathwayLabel(candidate.title)}</option>)}
     </select></label>
     {pathway && <div className="path-decision__detail pathway-selections"><h3>{pathwayLabel(pathway.title)}</h3>{pathway.selections.flatMap((selection) => {
       const sourceGroup = group.children.find((child) => child.id === selection.requirementGroupId);
@@ -98,11 +100,13 @@ const ExplicitPathwaySelector = ({ group, selections, onSelect, planner, compone
         const slotId = `${pathway.id}:selection:${selection.requirementGroupId}:${index}`;
         const current = selections[slotId] ?? "";
         const changeSelection = (value: string) => {
-          if (current && current !== value && !window.confirm("Changing this selection will remove related subjects from the personalised roadmap. Continue?")) return;
+          const dependent = planner && [...planner.years.flatMap((year) => year.periods.flatMap((period) => period.items)), ...planner.unassignedItems]
+            .some((item) => item.subject && item.choiceOrigin?.formalComponentCode === current && item.choiceOrigin.componentRequirementKind !== "FIXED");
+          if (dependent && current !== value && !window.confirm("Changing this selection will remove related subjects from the personalised roadmap. Continue?")) return;
           onSelect(slotId, value);
         };
         return <div className="pathway-selection" key={slotId}><label className="study-path__field"><span>{selection.requiredSelections > 1 ? `Sub-major ${index + 1}` : formatType(options[0]?.type ?? "component")}</span>
-          <select value={current} onChange={(event) => changeSelection(event.target.value)}><option value="" disabled>Select an option</option>
+          <select value={current} onChange={(event) => changeSelection(event.target.value)}><option value="">Choose a component</option>
             {options.filter((option) => option.code === current || !selectedInPathway.includes(option.code)).map((option) => <option value={option.code} key={option.id}>{option.name}</option>)}</select></label>
           {current && <SelectedPathwayComponentPreview componentCode={current} componentDetails={componentDetails} status={componentDetailsStatus}
             selections={selections} onSelect={onSelect} planned={planned} />}</div>;
@@ -121,8 +125,8 @@ export const StudyPathSelector = ({ universityCode, degreeName, requirements, co
     <p className="study-path__context">{universityCode} · {degreeName}</p><ExplicitPathwaySelector group={explicitPathwayGroup} selections={selections} onSelect={onSelect} planner={planner}
       componentDetails={componentDetails} componentDetailsStatus={componentDetailsStatus} planned={planned} /></section>;
   const majorCode = majorGroup ? selections[majorGroup.id] : undefined; const majorDetail = majorCode ? componentDetails[majorCode] : undefined;
-  const majorOptions = majorDetail?.requirements.find((group) => group.children.length > 1 && (group.logic === "ANY" || group.logic === "ONE_OF"));
-  const majorOption = majorOptions ? selectedGroup(majorOptions, selections) : undefined; const nestedComponentGroup = majorOption ? flattenGroups([majorOption]).find(componentDecision) : undefined;
+  const majorOptions = majorDetail?.requirements.find((group) => componentDecision(group) || (group.children.length > 1 && (group.logic === "ANY" || group.logic === "ONE_OF")));
+  const majorOption = majorOptions ? majorOptions.children.length ? selectedGroup(majorOptions, selections) : majorOptions : undefined; const nestedComponentGroup = majorOption ? flattenGroups([majorOption]).find(componentDecision) : undefined;
   const nestedComponentCode = nestedComponentGroup ? selections[nestedComponentGroup.id] : undefined; const nestedComponentDetail = nestedComponentCode ? componentDetails[nestedComponentCode] : undefined;
   const separatePath = requirements.find((group) => group.children.length > 1 && !components(group).some((component) => component.type === "MAJOR"));
   const separateSelection = separatePath ? selectedGroup(separatePath, selections) : undefined;
@@ -131,8 +135,8 @@ export const StudyPathSelector = ({ universityCode, degreeName, requirements, co
   return <section className="study-path study-path--planner" aria-labelledby="study-path-heading"><div><p className="step-label">Personalise your roadmap</p><h2 id="study-path-heading">Your study path</h2></div>
     <p className="study-path__context">{universityCode} · {degreeName}</p>
     {majorGroup && <section className="path-decision"><ComponentSelect group={majorGroup} label="Major" selections={selections} onSelect={onSelect} clearGroupIds={majorDetail ? flattenGroups(majorDetail.requirements).map((group) => group.id) : []} /></section>}
-    {majorOptions && <section className="path-decision"><label className="study-path__field"><span>Major options</span><select value={selections[majorOptions.id] ?? ""} onChange={(event) => onSelect(majorOptions.id, event.target.value, flattenGroups(majorOptions.children).map((group) => group.id))}>
-      <option value="" disabled>Select a pathway</option>{majorOptions.children.map((child) => <option value={`GROUP:${child.id}`} key={child.id}>{title(child)}</option>)}</select></label>
+    {majorOptions && <section className="path-decision">{majorOptions.children.length > 0 && <label className="study-path__field"><span>Major options</span><select value={selections[majorOptions.id] ?? ""} onChange={(event) => onSelect(majorOptions.id, event.target.value, flattenGroups(majorOptions.children).map((group) => group.id))}>
+      <option value="" disabled>Select a pathway</option>{majorOptions.children.map((child) => <option value={`GROUP:${child.id}`} key={child.id}>{title(child)}</option>)}</select></label>}
       {majorOption && <div className="path-decision__detail">{nestedComponentGroup ? <ComponentSelect group={nestedComponentGroup} label={components(nestedComponentGroup)[0]?.type.toLowerCase().replaceAll("_", " ") ?? title(nestedComponentGroup)} selections={selections} onSelect={onSelect} />
         : <GroupPreview group={majorOption} selections={selections} onSelect={onSelect} planned={planned} />}<ComponentPreview detail={nestedComponentDetail} selections={selections} onSelect={onSelect} planned={planned} /></div>}</section>}
     {separatePath && <section className="path-decision"><label className="study-path__field"><span>{title(separatePath)}</span><select value={selections[separatePath.id] ?? ""} onChange={(event) => onSelect(separatePath.id, event.target.value, flattenGroups(separatePath.children).map((group) => group.id))}>

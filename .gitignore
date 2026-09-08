@@ -6,5 +6,6 @@ dist/
 *.log
 .DS_Store
 frontend/.vite/
+frontend/test-results/
+frontend/playwright-report/
 backend/src/generated/prisma/
-

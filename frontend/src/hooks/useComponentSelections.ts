@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RequirementGroup } from "../types/handbook";
+import { reconcileDependentBranches } from "../domain/studyPathDependencies";
 
 export type ComponentSelections = Record<string, string>;
 
@@ -19,7 +20,7 @@ export const revalidateComponentSelections = (
       ...group.children.map((child) => `GROUP:${child.id}`),
       ...group.pathways.map((pathway) => `PATHWAY:${pathway.id}`),
     ]));
-    for (const pathway of group.pathways) {
+    for (const pathway of group.pathways.filter((candidate) => selections[group.id] === `PATHWAY:${candidate.id}`)) {
       for (const selection of pathway.selections) {
         const sourceGroup = groupsById.get(selection.requirementGroupId);
         const options = new Set(sourceGroup?.items.flatMap((item) => item.component ? [item.component.code] : []) ?? []);
@@ -29,8 +30,15 @@ export const revalidateComponentSelections = (
       }
     }
   }
-  return Object.fromEntries(Object.entries(selections).filter(([groupId, value]) =>
-    validValues.get(groupId)?.has(value)));
+  const seen = new Map<string, Set<string>>();
+  return reconcileDependentBranches(Object.fromEntries(Object.entries(selections).filter(([groupId, value]) => {
+    if (!validValues.get(groupId)?.has(value)) return false;
+    if (!groupId.includes(":selection:")) return true;
+    const pathway = groupId.split(":selection:")[0];
+    const used = seen.get(pathway) ?? new Set<string>();
+    if (used.has(value)) return false;
+    used.add(value); seen.set(pathway, used); return true;
+  })), requirements);
 };
 
 const readSelections = (storageKey: string): ComponentSelections => {
@@ -51,6 +59,7 @@ export const useComponentSelections = (
   universityCode: string,
   handbookYear: number,
   degreeCode: string,
+  requirements: RequirementGroup[] = [],
 ) => {
   const storageKey = useMemo(
     () => `degree-planner:components:${universityCode}:${handbookYear}:${degreeCode}`,
@@ -81,7 +90,7 @@ export const useComponentSelections = (
     setSelections((current) => {
       const next = { ...current, [requirementGroupId]: componentCode };
       clearGroupIds.forEach((groupId) => { if (groupId !== requirementGroupId) delete next[groupId]; });
-      return next;
+      return universityCode === "UTS" ? reconcileDependentBranches(next, requirements) : next;
     });
   };
 

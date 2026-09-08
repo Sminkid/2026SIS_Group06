@@ -241,12 +241,15 @@ h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02
 .unassigned-section > div:first-child { margin-bottom: 1rem; }
 .unassigned-section h3 { margin: 0 0 .4rem; }
 .unassigned-section > div:first-child > p:last-child { margin: 0; color: var(--muted); font-size: .78rem; }
-.subject-dialog { width: min(100% - 2rem, 52rem); max-width: none; height: min(90vh, 48rem); max-height: none; margin: auto 0 0 auto; padding: 0; border: 0; color: var(--navy); background: var(--surface); box-shadow: -.5rem 0 1.75rem rgba(20,33,61,.16); }
+.subject-dialog { width: min(100% - 2rem, 52rem); max-width: none; height: auto; max-height: 90vh; margin: auto; padding: 0; border: 0; color: var(--navy); background: var(--surface); box-shadow: -.5rem 0 1.75rem rgba(20,33,61,.16); }
 .subject-dialog::backdrop { background: rgba(14,24,43,.55); }
-.subject-dialog__panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
+.roadmap-aggregate { grid-column: 1 / -1; padding: .75rem; border: 1px solid var(--line); border-radius: .5rem; }
+.roadmap-aggregate > header p { font-size: .8rem; color: var(--muted); }
+.roadmap-single { min-width: 0; }
+.subject-dialog__panel { max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
 .subject-dialog__panel--eligible .subject-results { order: 1; }
 .subject-dialog__panel--eligible .subject-search { order: 2; flex: 0 0 auto; border-top: 1px solid var(--line); }
-.subject-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding: 1.5rem; border-bottom: 1px solid var(--line); }
+.subject-dialog__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; padding: 1.5rem; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); z-index: 1; }
 .subject-dialog__header h2 { margin-bottom: .45rem; }
 .subject-dialog__header p:last-child { margin: 0; color: var(--muted); font-size: .85rem; }
 .dialog-close { width: 2.5rem; height: 2.5rem; flex: 0 0 auto; border: 1px solid var(--line); background: var(--surface); font-size: 1.5rem; line-height: 1; cursor: pointer; }
@@ -348,7 +351,7 @@ h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02
   .plan-period__heading { align-items: flex-start; }
   .planner-toolbar { align-items: stretch; flex-direction: column; gap: 1rem; }
   .planner-toolbar__actions { justify-content: flex-start; }
-  .subject-dialog { width: 100%; height: 92vh; margin-top: auto; }
+  .subject-dialog { width: 100%; height: auto; max-height: 92vh; margin-top: auto; }
   .subject-result { grid-template-columns: 1fr; align-items: stretch; }
   .subject-result__actions { width: min(100%, 16rem); }
   .subject-detail-dialog { width: 100%; height: 94vh; margin: auto 0 0; }

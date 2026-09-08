@@ -1,4 +1,4 @@
-import type { StudyPlan } from "./handbook";
+import type { StudyPlan, StudyPlanItem } from "./handbook";
 
 export interface PlannerContext {
   universityCode: string;
@@ -24,17 +24,7 @@ export interface PlannerItem {
   title: string;
   creditPoints: number | null;
   numberOfPeriods: number | null;
-  choiceOrigin: {
-    officialChoiceItemId: string;
-    title: string;
-    rawCode: string | null;
-    creditPoints: number | null;
-    originalPeriodId: string;
-    formalComponentCode?: string;
-    formalComponentId?: string;
-    formalRequirementGroupId?: string;
-    componentRequirementKind?: "FIXED" | "SELECTIVE";
-  } | null;
+  choiceOrigin: StudyPlanItem["choiceOrigin"] | null;
   officialSortOrder: number | null;
 }
 
@@ -108,7 +98,7 @@ export const cloneOfficialPlan = (
           title: item.title,
           creditPoints: item.creditPoints,
           numberOfPeriods: item.numberOfPeriods,
-          choiceOrigin: item.itemType === "CHOICE"
+          choiceOrigin: item.choiceOrigin ?? (item.itemType === "CHOICE"
             ? {
                 officialChoiceItemId: item.id,
                 title: item.title,
@@ -116,7 +106,7 @@ export const cloneOfficialPlan = (
                 creditPoints: item.creditPoints,
                 originalPeriodId: period.id,
               }
-            : null,
+            : null),
           officialSortOrder: item.sortOrder,
         })),
       })),

@@ -32,6 +32,7 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
     university.code,
     degree.handbookYear,
     degree.code,
+    detail?.requirements ?? [],
   );
   const selectedComponentCodes = useMemo(
     () => [...new Set(Object.values(selections).filter((value) => !value.startsWith("GROUP:") && !value.startsWith("PATHWAY:")))].sort(),

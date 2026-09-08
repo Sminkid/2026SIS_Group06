@@ -421,3 +421,15 @@ h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.02
 @media (max-width: 720px) {
     .glossary-chat { position: fixed; inset: 0; width: 100vw; height: 100vh; }
 }
+/* A native modal keeps keyboard focus inside the schedule review. */
+.swap-dialog { width: min(760px, calc(100vw - 32px)); max-height: 88vh; border: 1px solid #cbd5e1; border-radius: 16px; padding: 0; color: inherit; }
+.swap-dialog::backdrop { background: #0f172a88; }
+.swap-dialog__content { padding: 24px; }
+.swap-targets { display: grid; gap: 8px; max-height: 38vh; overflow: auto; padding: 4px; }
+.swap-target { display: grid; gap: 4px; text-align: left; padding: 12px; border: 1px solid #a7b8cd; border-radius: 8px; background: #f8fafc; cursor: pointer; }
+.swap-target:disabled { opacity: .55; cursor: not-allowed; }
+.swap-target--selected { outline: 3px solid #2563eb; background: #eff6ff; }
+.swap-target span { font-size: .85rem; }
+.swap-error, .missing-subject { color: #9f1239; }
+.swap-warning { color: #854d0e; font-size: .9rem; }
+.required-pathway, .component-placement-progress { padding: 12px; background: #eff6ff; border-radius: 8px; }

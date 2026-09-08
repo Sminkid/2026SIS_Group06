@@ -87,7 +87,10 @@ export const expandRoadmapSlots = (plan: StudyPlan | undefined, universityCode: 
         };
         visit(detail.requirements);
         if (componentUnits.reduce((sum, unit) => sum + unit.cp, 0) !== capacity) supported = false;
-        units.push(...componentUnits);
+        // The formal groups determine capacity, not a student's study order.
+        units.push(...componentUnits.map((unit, index) => ({ ...unit, key: `${key}:position:${index}`,
+          subject: undefined, fixed: false, rawCode: undefined, groupId: undefined,
+          source: "FORMAL" as const, label: `${detail.component.name} subject` })));
       }
     }
     if (!supported || units.reduce((sum, unit) => sum + unit.cp, 0) !== total) {
@@ -108,15 +111,15 @@ export const expandRoadmapSlots = (plan: StudyPlan | undefined, universityCode: 
         if (unit.cp <= 0 || unit.cp > remaining) { supported = false; break; }
         remaining -= unit.cp;
         const id = `${plan.id}:${parent.id}:${unit.key}`;
-        const title = `${unit.label} · ${unit.cp} CP choice`;
+        const title = unit.component ? unit.label : `${unit.label} · ${unit.cp} CP choice`;
         children.push({ ...parent, id, itemType: unit.subject ? "SUBJECT" : "CHOICE", subject: unit.subject ?? null,
           title: unit.subject?.name ?? title, creditPoints: unit.cp, rawCode: unit.subject?.code ?? unit.rawCode ?? parent.rawCode,
           choiceOrigin: { officialChoiceItemId: parent.id, originalPeriodId: "", title, rawCode: parent.rawCode,
             creditPoints: unit.cp, maximumCreditPoints: unit.cp, parentAggregateItemId: parent.id,
             parentAggregateTitle: parent.title, parentAggregateCreditPoints: parent.creditPoints!, selectedPathwayId: unit.pathwayId,
-            degreeRequirementGroupId: unit.degreeGroupId, formalRequirementGroupId: unit.groupId,
+            degreeRequirementGroupId: unit.degreeGroupId, ...(unit.groupId ? { formalRequirementGroupId: unit.groupId } : {}),
             formalComponentCode: unit.component?.code, formalComponentId: unit.component?.id,
-            componentRequirementKind: unit.fixed ? "FIXED" : "SELECTIVE", candidateSourceType: unit.source, sourceLabel: unit.label },
+            componentRequirementKind: unit.component ? "COMPONENT" : "SELECTIVE", candidateSourceType: unit.source, sourceLabel: unit.component?.name ?? unit.label },
         });
       }
       pending.set(parent.id, children);

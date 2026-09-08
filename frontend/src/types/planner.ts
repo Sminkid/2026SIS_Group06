@@ -11,6 +11,10 @@ export interface PlannerContext {
 
 export interface PlannerItem {
   plannerItemId: string;
+  /** Allocation identity stays with this item; this identifies its current visual position. */
+  schedulePositionId?: string;
+  scheduleLocked?: boolean;
+  allowedPeriodIds?: string[];
   officialItemId: string;
   originalPeriodId: string;
   itemType: "SUBJECT" | "CHOICE";
@@ -34,6 +38,7 @@ export interface PlannerPeriod {
   name: string;
   officialSortOrder: number | null;
   items: PlannerItem[];
+  maximumCreditPoints?: number;
 }
 
 export interface PlannerYear {
@@ -83,6 +88,7 @@ export const cloneOfficialPlan = (
         officialSortOrder: period.sortOrder,
         items: period.items.map((item) => ({
           plannerItemId: `official:${item.id}`,
+          schedulePositionId: `official:${item.id}`,
           officialItemId: item.id,
           originalPeriodId: period.id,
           itemType: item.itemType,

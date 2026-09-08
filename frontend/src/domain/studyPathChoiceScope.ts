@@ -64,7 +64,7 @@ export const resolveStudyPathChoiceScope = (
       groups: group ? [group] : undefined, selectableGroupIds: group ? [group.id] : undefined };
   }
   if (origin?.formalComponentCode && details[origin.formalComponentCode]) {
-    return componentScope(details[origin.formalComponentCode], origin.formalRequirementGroupId);
+    return componentScope(details[origin.formalComponentCode], origin.componentRequirementKind === "COMPONENT" ? undefined : origin.formalRequirementGroupId);
   }
   if (origin?.formalRequirementGroupId) {
     const group = [...flatten(degreeRequirements), ...Object.values(details).flatMap((detail) => flatten(detail.requirements))]

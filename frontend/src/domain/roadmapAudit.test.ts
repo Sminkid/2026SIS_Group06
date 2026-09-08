@@ -57,13 +57,14 @@ test("Two sub-majors preserve their own groups and expose missing required subje
     for (const item of own.filter((candidate) => candidate.itemType === "CHOICE" && candidate.choiceOrigin?.componentRequirementKind !== "FIXED")) {
       const scope = resolveStudyPathChoiceScope(item, accounting.requirements, details, selections);
       assert.equal(scope.componentId, details[code].component.id);
-      assert.equal(scope.groups?.length, 1);
-      assert.equal(scope.groups?.[0].id, item.choiceOrigin?.formalRequirementGroupId);
+      assert.deepEqual(scope.groups, details[code].requirements);
+      assert.equal(item.choiceOrigin?.formalRequirementGroupId, undefined);
     }
   }
-  assert.equal(slots.filter((item) => item.choiceOrigin?.candidateSourceType === "UNRESOLVED").length, 1);
-  assert.equal(slots.find((item) => item.choiceOrigin?.candidateSourceType === "UNRESOLVED")?.rawCode, "21228");
-  assert.equal(slots.filter((item) => item.choiceOrigin?.componentRequirementKind === "SELECTIVE").length, 2);
+  assert.ok(slots.every((item) => !item.subject && item.choiceOrigin?.candidateSourceType === "FORMAL"));
+  const missing = details.SMJ08109.requirements.flatMap((group) => group.items).find((item) => item.rawCode === "21228");
+  assert.ok(missing && !missing.subject);
+  assert.equal(slots.filter((item) => item.choiceOrigin?.componentRequirementKind === "COMPONENT").length, 8);
 });
 
 test("Sub-major plus electives gives four empty elective slots and separate 24 CP component", () => {
@@ -76,11 +77,11 @@ test("Sub-major plus electives gives four empty elective slots and separate 24 C
   assert.equal(resolveStudyPathChoiceScope(electives[0], accounting.requirements, details, selections).kind, "BROAD");
 });
 
-test("Second major supplies 30 CP fixed core and 18 CP independent options", () => {
+test("Second major leaves all 48 CP unplaced, including 30 CP required Core", () => {
   const slots = children(expand(choose("second-major", ["MAJ08441"])));
   assert.equal(slots.length, 8);
-  assert.equal(slots.filter((item) => item.subject).length, 5);
-  assert.equal(slots.filter((item) => !item.subject).length, 3);
+  assert.equal(slots.filter((item) => item.subject).length, 0);
+  assert.equal(slots.filter((item) => !item.subject).length, 8);
   assert.equal(slots.reduce((sum, item) => sum + item.creditPoints!, 0), 48);
 });
 
@@ -101,14 +102,16 @@ test("Generated identities and provenance survive clone, reload and repeated exp
   assert.equal(new Set(items(expanded).map((item) => item.id)).size, items(expanded).length);
   const planner = cloneOfficialPlan(expanded, context);
   assert.deepEqual(children(plannerToStudyPlan(JSON.parse(JSON.stringify(planner)), expanded)).map((item) => item.choiceOrigin), children(expanded).map((item) => item.choiceOrigin));
-  assert.deepEqual(rebasePlannerSlots(planner, expanded, context), planner);
+  assert.deepEqual(JSON.parse(JSON.stringify(rebasePlannerSlots(planner, expanded, context))), JSON.parse(JSON.stringify(planner)));
 });
 
 test("Changing one sub-major preserves the other's selected option and removes only dependent capacity", () => {
   const expanded = expand(choose("two-sub-majors", ["SMJ08109", "SMJ08138"]));
   const planner = cloneOfficialPlan(expanded, context);
   const option = planner.years.flatMap((year) => year.periods.flatMap((period) => period.items)).find((item) => item.itemType === "CHOICE" && item.choiceOrigin?.formalComponentCode === "SMJ08138")!;
-  const subject = flattenRequirements(details.SMJ08138.requirements).find((candidate) => candidate.id === option.choiceOrigin?.formalRequirementGroupId)!.items.find((item) => item.subject)!.subject!;
+  const pool = flattenRequirements(details.SMJ08138.requirements).find((candidate) => candidate.title === "Options")!;
+  const subject = pool.items.find((item) => item.subject)!.subject!;
+  option.choiceOrigin!.formalRequirementGroupId = pool.id;
   option.subject = { officialSubjectId: subject.id, code: subject.code, name: subject.name, creditPoints: subject.creditPoints };
   option.itemType = "SUBJECT";
   const next = rebasePlannerSlots(planner, expand(choose("two-sub-majors", ["", "SMJ08138"])), context);

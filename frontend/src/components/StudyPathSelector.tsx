@@ -3,6 +3,8 @@ import type { ComponentDetailResponse, RequirementGroup } from "../types/handboo
 import type { PlannerState } from "../types/planner";
 import { readableText } from "../domain/readableText";
 import { selectedComponentPreview, type SelectedComponentPreviewStatus } from "../domain/selectedComponentPreview";
+import { requiredBranch } from "../domain/studyPathDependencies";
+import { componentPlacementProgress, isRequiredCore } from "../domain/componentPlacement";
 
 interface Props { universityCode: string; degreeName: string; requirements: RequirementGroup[]; componentDetails: Record<string, ComponentDetailResponse>;
   componentDetailsStatus: SelectedComponentPreviewStatus;
@@ -20,29 +22,38 @@ const ComponentSelect = ({ group, label, selections, onSelect, clearGroupIds = [
 
 const GroupPreview = ({ group, selections, onSelect, planned, readOnly = false }: { group: RequirementGroup; selections: ComponentSelections; onSelect: Props["onSelect"]; planned: Map<string, string>; readOnly?: boolean }) => {
   const subjectItems = group.items.filter((item) => item.subject); const componentItems = components(group);
-  const broad = subjectItems.length === 0 && componentItems.length === 0 && group.children.length === 0;
+  const broad = group.items.length === 0 && componentItems.length === 0 && group.children.length === 0;
   return <details className="path-preview" open={group.children.length <= 2}><summary><span>{title(group)}</span>
     <strong>{group.logic === "ALL" ? `CORE · Complete all${group.requiredCreditPoints !== null ? ` · ${group.requiredCreditPoints} CP` : ""}` : group.requiredCreditPoints !== null ? `OPTIONS · Choose ${group.requiredCreditPoints} CP` : group.logic.replace("_", " ")}</strong></summary>
     <div className="path-preview__body">{group.description && <p>{readableText(group.description)}</p>}{broad && <p className="broad-requirement">Broad subject choice. Searched subjects are not automatically verified to count.</p>}
       {!readOnly && componentDecision(group) && <ComponentSelect group={group} label={componentItems[0]?.type.toLowerCase().replaceAll("_", " ") ?? title(group)} selections={selections} onSelect={onSelect} />}
       {subjectItems.length > 0 && <ul className="path-preview__subjects">{subjectItems.map((item) => <li key={item.id}>
         <strong>{group.logic === "ALL" ? planned.has(item.subject!.code) ? "✓" : "⚠" : ""} {item.subject!.code}</strong><span>{item.subject!.name}</span>
-        <small>{readOnly
+        <small>{isRequiredCore(group) ? `Required Core · ${planned.has(item.subject!.code) ? "Already placed in roadmap" : "Not yet placed"} · ${item.subject!.creditPoints ?? item.creditPoints ?? "Unknown"} CP` : readOnly
           ? (item.subject!.creditPoints ?? item.creditPoints) !== null ? `${item.subject!.creditPoints ?? item.creditPoints} CP` : "Credit points unavailable"
           : group.logic === "ALL" ? planned.has(item.subject!.code) ? `Planned — ${planned.get(item.subject!.code)}` : "Not currently planned" : (item.subject!.creditPoints ?? item.creditPoints) !== null ? `${item.subject!.creditPoints ?? item.creditPoints} CP` : "Credit points unavailable"}</small>
-      </li>)}</ul>}{group.children.map((child) => <GroupPreview group={child} selections={selections} onSelect={onSelect} planned={planned} readOnly={readOnly} key={child.id} />)}</div></details>;
+      </li>)}</ul>}{group.items.filter((item) => item.itemType === "SUBJECT" && !item.subject).map((item) => <p key={item.id} className="missing-subject">{isRequiredCore(group) ? "Required Core: " : "Option: "}Data unavailable for {item.rawCode ?? "subject"}. This requirement cannot currently be verified.</p>)}{group.children.map((child) => <GroupPreview group={child} selections={selections} onSelect={onSelect} planned={planned} readOnly={readOnly} key={child.id} />)}</div></details>;
 };
 const ComponentPreview = ({ detail, selections, onSelect, planned, readOnly = false }: { detail?: ComponentDetailResponse; selections: ComponentSelections; onSelect: Props["onSelect"]; planned: Map<string, string>; readOnly?: boolean }) => detail ?
   <div className="selected-path-preview"><div className="selected-path-preview__heading"><strong>{detail.component.name}</strong>{detail.component.creditPoints !== null && <span>{detail.component.creditPoints} CP</span>}</div>
     {detail.requirements.length === 0 ? <p className="selected-path-preview__empty">No verified component structure is available.</p>
       : detail.requirements.map((group) => <GroupPreview group={group} selections={selections} onSelect={onSelect} planned={planned} readOnly={readOnly} key={group.id} />)}</div> : null;
 
-const SelectedPathwayComponentPreview = ({ componentCode, componentDetails, status, selections, onSelect, planned }: {
+const SelectedPathwayComponentPreview = ({ componentCode, componentDetails, status, selections, onSelect, planned, planner }: {
   componentCode: string; componentDetails: Record<string, ComponentDetailResponse>; status: Props["componentDetailsStatus"];
   selections: ComponentSelections; onSelect: Props["onSelect"]; planned: Map<string, string>;
+  planner: PlannerState | null;
 }) => {
   const preview = selectedComponentPreview(componentCode, componentDetails, status);
-  if (preview.detail) return <ComponentPreview detail={preview.detail} selections={selections} onSelect={onSelect} planned={planned} readOnly />;
+  if (preview.detail) {
+    const progress = componentPlacementProgress(preview.detail, planner);
+    const ownPlanned = new Map<string, string>();
+    planner?.years.forEach((year) => year.periods.forEach((period) => period.items.forEach((item) => {
+      if (item.subject && item.choiceOrigin?.formalComponentId === preview.detail!.component.id && item.choiceOrigin.formalRequirementGroupId) ownPlanned.set(item.subject.code, `${year.name} ${period.name}`);
+    })));
+    return <><p className="component-placement-progress">Requirement completion: {progress.points} / {preview.detail.component.creditPoints} CP selected · Roadmap placement: {progress.filled} / {progress.positions} positions filled · Required Core remaining: {progress.remainingCore.length} · {progress.complete ? "Component requirements placed" : "Component requirements outstanding"}</p>
+      <ComponentPreview detail={preview.detail} selections={selections} onSelect={onSelect} planned={ownPlanned} readOnly /></>;
+  }
   if (preview.state === "error") return <p className="selected-path-preview__state" role="alert">We couldn’t load this component’s structure.</p>;
   if (preview.state === "empty") return <p className="selected-path-preview__state" role="status">No verified component structure is available.</p>;
   return <p className="selected-path-preview__state" role="status">Loading component structure…</p>;
@@ -109,7 +120,7 @@ const ExplicitPathwaySelector = ({ group, selections, onSelect, planner, compone
           <select value={current} onChange={(event) => changeSelection(event.target.value)}><option value="">Choose a component</option>
             {options.filter((option) => option.code === current || !selectedInPathway.includes(option.code)).map((option) => <option value={option.code} key={option.id}>{option.name}</option>)}</select></label>
           {current && <SelectedPathwayComponentPreview componentCode={current} componentDetails={componentDetails} status={componentDetailsStatus}
-            selections={selections} onSelect={onSelect} planned={planned} />}</div>;
+            selections={selections} onSelect={onSelect} planned={planned} planner={planner} />}</div>;
       });
     })}</div>}
   </section>;
@@ -130,6 +141,15 @@ export const StudyPathSelector = ({ universityCode, degreeName, requirements, co
   const nestedComponentCode = nestedComponentGroup ? selections[nestedComponentGroup.id] : undefined; const nestedComponentDetail = nestedComponentCode ? componentDetails[nestedComponentCode] : undefined;
   const separatePath = requirements.find((group) => group.children.length > 1 && !components(group).some((component) => component.type === "MAJOR"));
   const separateSelection = separatePath ? selectedGroup(separatePath, selections) : undefined;
+  const mandatedBranch = separatePath && universityCode === "UTS" ? requiredBranch(separatePath, selections, requirements) : undefined;
+  const requiresMajor = !majorCode && /must complete the aligned/i.test(separatePath?.description ?? "");
+  const chooseSeparatePath = (value: string) => {
+    if (!separatePath || value === selections[separatePath.id]) return;
+    const oldGroups = new Set(separateSelection ? flattenGroups([separateSelection]).map(group => group.id) : []);
+    const hasDependentSubjects = planner?.years.some(year => year.periods.some(period => period.items.some(item => item.subject && item.choiceOrigin?.formalRequirementGroupId && oldGroups.has(item.choiceOrigin.formalRequirementGroupId))));
+    if (hasDependentSubjects && !window.confirm("Changing this pathway will clear its related subject selections. Continue?")) return;
+    onSelect(separatePath.id, value, [...oldGroups]);
+  };
   const separateComponentDetails = separateSelection ? flattenGroups([separateSelection]).flatMap((group) => { const code = selections[group.id]; return code && !code.startsWith("GROUP:") && componentDetails[code] ? [componentDetails[code]] : []; }) : [];
   if (!majorGroup && !separatePath) return null;
   return <section className="study-path study-path--planner" aria-labelledby="study-path-heading"><div><p className="step-label">Personalise your roadmap</p><h2 id="study-path-heading">Your study path</h2></div>
@@ -139,8 +159,8 @@ export const StudyPathSelector = ({ universityCode, degreeName, requirements, co
       <option value="" disabled>Select a pathway</option>{majorOptions.children.map((child) => <option value={`GROUP:${child.id}`} key={child.id}>{title(child)}</option>)}</select></label>}
       {majorOption && <div className="path-decision__detail">{nestedComponentGroup ? <ComponentSelect group={nestedComponentGroup} label={components(nestedComponentGroup)[0]?.type.toLowerCase().replaceAll("_", " ") ?? title(nestedComponentGroup)} selections={selections} onSelect={onSelect} />
         : <GroupPreview group={majorOption} selections={selections} onSelect={onSelect} planned={planned} />}<ComponentPreview detail={nestedComponentDetail} selections={selections} onSelect={onSelect} planned={planned} /></div>}</section>}
-    {separatePath && <section className="path-decision"><label className="study-path__field"><span>{title(separatePath)}</span><select value={selections[separatePath.id] ?? ""} onChange={(event) => onSelect(separatePath.id, event.target.value, flattenGroups(separatePath.children).map((group) => group.id))}>
-      <option value="" disabled>Select a pathway</option>{separatePath.children.map((child) => <option value={`GROUP:${child.id}`} key={child.id}>{title(child)}</option>)}</select></label>
+    {separatePath && <section className="path-decision">{requiresMajor ? <p>Choose your major to see its required pathway.</p> : mandatedBranch ? <p className="required-pathway"><strong>Required pathway: {title(mandatedBranch)}</strong><br />The course rule requires this pathway for your selected major. Other specialist streams are unavailable.</p> : <label className="study-path__field"><span>{title(separatePath)}</span><select value={selections[separatePath.id] ?? ""} onChange={(event) => chooseSeparatePath(event.target.value)}>
+      <option value="" disabled>Select a pathway</option>{separatePath.children.map((child) => <option value={`GROUP:${child.id}`} key={child.id}>{title(child)}</option>)}</select></label>}
       {separatePath.description && <p className="path-condition">{readableText(separatePath.description)}</p>}{separateSelection && <div className="path-decision__detail"><GroupPreview group={separateSelection} selections={selections} onSelect={onSelect} planned={planned} />
         {separateComponentDetails.map((detail) => <ComponentPreview detail={detail} selections={selections} onSelect={onSelect} planned={planned} key={detail.component.code} />)}</div>}</section>}
   </section>;

@@ -108,7 +108,8 @@ export interface StudyPlanItem {
     formalComponentCode?: string;
     formalComponentId?: string;
     formalRequirementGroupId?: string;
-    componentRequirementKind?: "FIXED" | "SELECTIVE";
+    componentRequirementKind?: "FIXED" | "SELECTIVE" | "COMPONENT";
+    allocatedGroupLabel?: string;
     parentAggregateItemId?: string;
     parentAggregateTitle?: string;
     parentAggregateCreditPoints?: number;

@@ -19,6 +19,7 @@ import { resolveStudyPathChoiceScope } from "../domain/studyPathChoiceScope";
 import { readableText } from "../domain/readableText";
 import { reconcileStudyPlan } from "../domain/studyPlanSelection";
 import { expandRoadmapSlots } from "../domain/roadmapSlots";
+import { SwapPositionDialog } from "./SwapPositionDialog";
 
 interface Props {
   degreeCode: string;
@@ -41,6 +42,8 @@ const PlanItemCard = ({
   onOpenSubject,
   issues,
   onRestoreChoice,
+  onSwap,
+  scheduled,
 }: {
   item: StudyPlanItem;
   editable: boolean;
@@ -48,6 +51,8 @@ const PlanItemCard = ({
   onOpenSubject: (subjectCode: string) => void;
   issues: ValidationResult[];
   onRestoreChoice: (plannerItemId: string) => void;
+  onSwap?: (plannerItemId: string) => void;
+  scheduled?: string;
 }) => {
   const isChoice = item.itemType === "CHOICE";
   const isPlacement = isChoice && /\b(internship|placement|practicum|professional experience)\b/i.test(item.title);
@@ -65,7 +70,9 @@ const PlanItemCard = ({
     </div>
     <h5>{name}</h5>
     {code && <p className="plan-item__code">{code}</p>}
-    {item.choiceOrigin?.parentAggregateItemId && <p className="plan-item__note">Within {item.choiceOrigin.parentAggregateTitle} ({item.choiceOrigin.parentAggregateCreditPoints} CP official block). Source: {item.choiceOrigin.sourceLabel}.</p>}
+    {scheduled && <p className="plan-item__note">Scheduled: {scheduled}</p>}
+    {item.choiceOrigin && <p className="plan-item__note">Counts toward: {item.choiceOrigin.sourceLabel ?? item.choiceOrigin.title} {item.choiceOrigin.allocatedGroupLabel}</p>}
+    {isChoice && item.choiceOrigin?.componentRequirementKind === "COMPONENT" && <p className="plan-item__note">Choose a required Core or eligible Option</p>}
     {isFixedComponentSubject && <p className="plan-item__note">Required by the selected component.</p>}
     {item.choiceOrigin?.candidateSourceType === "UNRESOLVED" && <p className="plan-item__note">{item.choiceOrigin.sourceLabel}</p>}
     {isPlacement && <p className="plan-item__note">Required professional placement. Sponsoring employer and enrolment details are confirmed through the course process.</p>}
@@ -87,6 +94,7 @@ const PlanItemCard = ({
         ? <button className="plan-item__main-action" type="button" onClick={() => onOpenSubject(code)} aria-label={`View ${code} ${name}`}>{content}</button>
         : <div className="plan-item__main-action">{content}</div>}
     {((isFilledChoice && !isFixedComponentSubject) || (code && issues.length > 0)) && <div className="plan-item__controls">
+      {isFilledChoice && !isPlacement && onSwap && <button className="text-button" type="button" onClick={() => onSwap(item.id)}>Swap position</button>}
       {code && issues.length > 0 && <button className="text-button" type="button" onClick={() => onOpenSubject(code)}>View requirements</button>}
       {isFilledChoice && !isFixedComponentSubject && <button className="plan-item__restore" type="button" onClick={() => onRestoreChoice(item.id)}>
         Remove subject &amp; restore choice
@@ -128,6 +136,7 @@ export const StudyPlansSection = ({
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
   const [activeChoice, setActiveChoice] = useState<StudyPlanItem | null>(null);
+  const [swapSourceId, setSwapSourceId] = useState<string | null>(null);
   const [planNotice, setPlanNotice] = useState("");
   const retry = useCallback(() => setReloadKey((key) => key + 1), []);
 
@@ -174,7 +183,7 @@ export const StudyPlansSection = ({
     setSelectedPlanId(id);
     setPlanNotice("");
   };
-  useEffect(() => { setActiveChoice(null); }, [selectedComponents, selectedPlan?.id]);
+  useEffect(() => { setActiveChoice(null); setSwapSourceId(null); }, [selectedComponents, selectedPlan?.id]);
   useEffect(() => {
     if (!selectedPlan || (majorCode && selectedPlan.major?.code !== majorCode)) return;
     setSelectedPlanId(selectedPlan.id);
@@ -208,6 +217,7 @@ export const StudyPlansSection = ({
     clear,
     selectSubject,
     restoreChoiceSlot,
+    swapPositions,
   } = usePlannerState(selectedPlan, plannerContext);
   const displayedPlan = useMemo(
     () => planner && selectedPlan ? plannerToStudyPlan(planner, selectedPlan) : selectedPlan,
@@ -309,7 +319,8 @@ export const StudyPlansSection = ({
   );
   const chooseSubject = (subject: SubjectSearchResult, formalComponentCode?: string, formalRequirementGroupId?: string) => {
     if (!activeChoice) return;
-    selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId, activeChoiceScope.componentId);
+    const groupLabel = flattenRequirements(activeChoiceScope.groups ?? []).find((group) => group.id === formalRequirementGroupId)?.title ?? undefined;
+    selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId, activeChoiceScope.componentId, groupLabel);
     setActiveChoice(null);
   };
   const hasLongPlanTitle = (selectedPlan?.title.length ?? 0) > 180;
@@ -383,14 +394,14 @@ export const StudyPlansSection = ({
           <h3>{year.name}</h3>
           <div className="plan-periods">
             {year.periods.map((period) => <section className="plan-period" key={period.id}>
-              <div className="plan-period__heading"><h4>{period.name}</h4></div>
+              <div className="plan-period__heading"><h4>{period.name}</h4><span>{period.items.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0)} CP scheduled</span></div>
               {period.items.length === 0 ? <p className="plan-period__empty">No items listed</p> :
                 <div className="plan-items">{roadmapBlocks(period.items).map(([blockId, blockItems]) => {
                   const origin = blockItems[0].choiceOrigin;
                   const required = origin?.parentAggregateCreditPoints;
                   const points = blockItems.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0);
                   return <div key={blockId} className={required ? "roadmap-aggregate" : "roadmap-single"}>
-                  {required !== undefined && <header><strong>{origin?.parentAggregateTitle}</strong><p>{points} / {required} CP selected · {Math.max(0, required - points)} CP remaining. Positions within this official block.</p></header>}
+                  {required !== undefined && <header><strong>{origin?.sourceLabel ?? origin?.parentAggregateTitle}</strong><p>{points} CP scheduled here</p></header>}
                   <div className={required ? "plan-items" : undefined}>{blockItems.map((item) => (
                   <PlanItemCard
                     item={item}
@@ -399,6 +410,8 @@ export const StudyPlansSection = ({
                     onOpenSubject={onOpenSubject}
                     issues={item.subject && item.choiceOrigin ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
                     onRestoreChoice={restoreChoiceSlot}
+                    onSwap={setSwapSourceId}
+                    scheduled={`${year.name} ${period.name}`}
                     key={item.id}
                   />
                 ))}</div></div>;
@@ -434,6 +447,8 @@ export const StudyPlansSection = ({
         onClose={() => setActiveChoice(null)}
         onSelect={chooseSubject}
       />
+      {planner && swapSourceId && <SwapPositionDialog key={swapSourceId} planner={planner} sourceId={swapSourceId}
+        universityCode={universityCode} handbookYear={handbookYear} onClose={() => setSwapSourceId(null)} onConfirm={swapPositions} />}
     </>}
   </section>;
 };

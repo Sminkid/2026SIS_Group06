@@ -1,3 +1,6 @@
+import { trapDialogFocus } from "./ui/dialog";
+import { lockPageScroll } from "./ui/pageScroll";
+import { appUi } from "./ui";
 import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { fetchSubjectAccessConditionsBatch, searchSubjects } from "../api/subjects";
 import { validateSubjectCandidate } from "../domain/plannerValidation";
@@ -19,6 +22,7 @@ const requiredPoints = (group: RequirementGroup) => group.requiredCreditPoints ?
   ? group.items.reduce((total, item) => total + (item.creditPoints ?? item.subject?.creditPoints ?? 0), 0)
   : null);
 
+/** Lists candidate subjects with independent requirement-match, access and selection states. */
 const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner, choiceItem, accessConditions, componentCode, onOpenSubject, onSelect }: {
   results: SubjectSearchResult[]; selectable: boolean; requiredCore: boolean; planner: PlannerState | null; choiceItem: StudyPlanItem;
   quotaGroup?: RequirementGroup; accessConditions: Record<string, SubjectAccessConditions>; componentCode?: string; onOpenSubject: Props["onOpenSubject"]; onSelect: Props["onSelect"];
@@ -38,7 +42,7 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
       ? (item.subject.creditPoints ?? item.creditPoints ?? 0) : 0);
   }, 0) : 0;
   const maximumPoints = quotaGroup?.maximumCreditPoints ?? quotaRequired;
-  return <div className="subject-result-list">{results.map((subject) => {
+  return <div className={appUi.subjectResultList}>{results.map((subject) => {
     const access = accessConditions[subject.code];
     const actionableIssues = (planner ? validateSubjectCandidate(planner, choiceItem.id, subject, access) : []).filter((issue) => issue.severity !== "info");
     const duplicate = planned.has(subject.code) && choiceItem.subject?.code !== subject.code;
@@ -52,17 +56,17 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
       candidateCreditPoints: subject.creditPoints ?? 0,
       replacingCurrent: currentBelongsToGroup && Boolean(choiceItem.subject),
     });
-    return <article className="subject-result" key={subject.id}><div className="subject-result__main">
-      <span className="subject-result__code">{subject.code}</span><h3>{subject.name}</h3><div className="subject-result__meta">
-        <span>{subject.creditPoints === null ? "CP not listed" : `${subject.creditPoints} CP`}</span>{(componentCode || quotaGroup) && <span className="match-badge">Requirement match ✓</span>}</div>
-      {requiredCore && <p className="candidate-access"><strong>Required Core</strong></p>}
-      {requiredCore && <p className={`candidate-access candidate-access--${placements.has(subject.code) ? "satisfied" : "warning"}`}>
+    return <article className={appUi.subjectResult} key={subject.id}><div className={appUi.subjectResultMain}>
+      <span className={appUi.subjectResultCode}>{subject.code}</span><h3>{subject.name}</h3><div className={appUi.subjectResultMeta}>
+        <span>{subject.creditPoints === null ? "CP not listed" : `${subject.creditPoints} CP`}</span>{(componentCode || quotaGroup) && <span className={appUi.matchBadge}>Requirement match ✓</span>}</div>
+      {requiredCore && <p className={appUi.candidateAccess}><strong>Required Core</strong></p>}
+      {requiredCore && <p className={placements.has(subject.code) ? appUi.candidateAccessSatisfied : appUi.candidateAccessWarning}>
         {placements.has(subject.code) ? `✓ Planned — ${placements.get(subject.code)}` : planned.has(subject.code) ? "✓ Planned — not yet assigned to a period" : "⚠ Not currently planned"}</p>}
-      {!requiredCore && duplicate && <p className="candidate-access candidate-access--warning">⚠ Already planned elsewhere.</p>}
-      {!duplicate && actionableIssues.map((issue, index) => <p className="candidate-access candidate-access--warning" key={`${issue.code}-${index}`}>⚠ {issue.message}</p>)}
-    </div><div className="subject-result__actions">
-      {(access?.hasConditions || subject.prerequisiteStatus === "HAS_CONDITIONS") && <button className="text-button" type="button" onClick={() => onOpenSubject(subject.code)}>View requirements</button>}
-      {action.visible && <button className="secondary-button" type="button"
+      {!requiredCore && duplicate && <p className={appUi.candidateAccessWarning}>⚠ Already planned elsewhere.</p>}
+      {!duplicate && actionableIssues.map((issue, index) => <p className={appUi.candidateAccessWarning} key={`${issue.code}-${index}`}>⚠ {issue.message}</p>)}
+    </div><div className={appUi.subjectResultActions}>
+      {(access?.hasConditions || subject.prerequisiteStatus === "HAS_CONDITIONS") && <button className={appUi.textButton} type="button" onClick={() => onOpenSubject(subject.code)}>View requirements</button>}
+      {action.visible && <button className={appUi.secondaryButton} type="button"
         disabled={action.disabled || subject.creditPoints === null || subject.creditPoints <= 0 || subject.creditPoints > (choiceItem.choiceOrigin?.maximumCreditPoints ?? choiceItem.choiceOrigin?.creditPoints ?? choiceItem.creditPoints ?? Infinity)}
         onClick={() => onSelect(subject, componentCode, quotaGroup?.id)}>
         {action.label}
@@ -71,6 +75,7 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
   })}</div>;
 };
 
+/** Shows verified component pools or broad search in a keyboard-accessible native dialog. */
 export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, scope, planner, onClose, onOpenSubject, onSelect }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null); const requestRef = useRef<AbortController | null>(null);
   const [query, setQuery] = useState(""); const [externalResults, setExternalResults] = useState<SubjectSearchResult[]>([]);
@@ -92,9 +97,8 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
   useEffect(() => {
     if (!choiceItem) return;
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = overflow; trigger?.focus(); };
+    const unlockScroll = lockPageScroll();
+    return () => { unlockScroll(); trigger?.focus(); };
   }, [choiceItem?.id]);
   useEffect(() => { const dialog = dialogRef.current; if (choiceItem && dialog && !dialog.open) dialog.showModal(); if (!choiceItem && dialog?.open) dialog.close(); }, [choiceItem]);
   useEffect(() => {
@@ -111,7 +115,7 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       setExternalResults(subjects); setExternalStatus("ready");
     }).catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) setExternalStatus("error"); });
   };
-  if (!choiceItem) return <dialog className="subject-dialog" ref={dialogRef} />;
+  if (!choiceItem) return <dialog onKeyDown={trapDialogFocus} className={appUi.subjectDialog} ref={dialogRef} />;
   const resultProps = { planner, choiceItem, accessConditions, onOpenSubject, onSelect };
   const progressText = (group: RequirementGroup) => {
     const required = requiredPoints(group); if (required === null) return group.logic.replaceAll("_", " ");
@@ -120,23 +124,23 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
     const points = items.reduce((total, item) => !item.subject ? total : total + (item.choiceOrigin?.formalRequirementGroupId && ids.has(item.choiceOrigin.formalRequirementGroupId) ? (item.subject.creditPoints ?? item.creditPoints ?? 0) : 0), 0);
     return `${Math.min(points, required)} / ${required} CP${points >= required ? " · Complete" : ` · ${required - points} CP remaining`}`;
   };
-  return <dialog className="subject-dialog" ref={dialogRef} aria-labelledby="subject-dialog-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onClose={onClose}
-    onClick={(event: MouseEvent<HTMLDialogElement>) => { if (event.target === event.currentTarget) onClose(); }}><div className="subject-dialog__panel">
-    <header className="subject-dialog__header"><div><p className="eyebrow">Fill choice slot</p><h2 id="subject-dialog-title">Choose a subject</h2><p>{choiceItem.choiceOrigin?.title ?? choiceItem.title}</p></div>
-      <button className="dialog-close" type="button" aria-label="Close subject selector" onClick={onClose}>×</button></header>
-    <div className={`eligibility-note${scope.kind === "FORMAL" ? " eligibility-note--matched" : ""}`}>{scope.kind === "FORMAL" ? <><strong>From: {scope.label}</strong><br />Requirement match and access conditions are evaluated separately.</>
+  return <dialog onKeyDown={trapDialogFocus} className={appUi.subjectDialog} ref={dialogRef} aria-labelledby="subject-dialog-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onClose={onClose}
+    onClick={(event: MouseEvent<HTMLDialogElement>) => { if (event.target === event.currentTarget) onClose(); }}><div className={appUi.subjectDialogPanel}>
+    <header className={appUi.subjectDialogHeader}><div><p className={appUi.eyebrow}>Fill choice slot</p><h2 id="subject-dialog-title">Choose a subject</h2><p>{choiceItem.choiceOrigin?.title ?? choiceItem.title}</p></div>
+      <button className={appUi.dialogClose} type="button" aria-label="Close subject selector" onClick={onClose}>×</button></header>
+    <div className={scope.kind === "FORMAL" ? appUi.eligibilityNoteMatched : appUi.eligibilityNote}>{scope.kind === "FORMAL" ? <><strong>From: {scope.label}</strong><br />Requirement match and access conditions are evaluated separately.</>
       : scope.kind === "BROAD" ? <><strong>Broad choice: {scope.label}</strong><br />Search results are not automatically verified to count.</> : <>{scope.label ?? "No exact requirement mapping is available. Choose a pathway or component first; missing mappings need handbook verification."}</>}</div>
-    <div className="subject-results subject-results--grouped" aria-live="polite">{scope.kind === "FORMAL" && pools.length === 0 && <AsyncState kind="empty" label="No verified subject list is available for this requirement. This requirement cannot currently be verified." />}
-      {pools.map(({ group, quotaGroup, subjects, selectable, requiredCore }) => <section className={`subject-pool${selectable ? " subject-pool--selectable" : " subject-pool--context"}`} key={group.id}>
+    <div className={appUi.subjectResultsGrouped} aria-live="polite">{scope.kind === "FORMAL" && pools.length === 0 && <AsyncState kind="empty" label="No verified subject list is available for this requirement. This requirement cannot currently be verified." />}
+      {pools.map(({ group, quotaGroup, subjects, selectable, requiredCore }) => <section className={selectable ? appUi.subjectPoolSelectable : appUi.subjectPoolContext} key={group.id}>
         <header><div><span>{quotaGroup.title ?? group.title ?? "Requirement subjects"}</span><strong>{selectable ? "Options" : requiredCore ? "Core" : "Context"}</strong></div>
           <p>{progressText(quotaGroup)}</p></header>
-        {group.items.some((item) => item.itemType === "SUBJECT" && !item.subject) && <p className="candidate-access candidate-access--warning">
+        {group.items.some((item) => item.itemType === "SUBJECT" && !item.subject) && <p className={appUi.candidateAccessWarning}>
           Data unavailable for {requiredCore ? "required subject" : "option subject"} {group.items.filter((item) => item.itemType === "SUBJECT" && !item.subject).map((item) => item.rawCode ?? "Unknown code").join(", ")}. This requirement cannot currently be verified.
         </p>}
         <SubjectResults {...resultProps} results={subjects} selectable={selectable} requiredCore={requiredCore} quotaGroup={quotaGroup} componentCode={scope.componentCode} /></section>)}</div>
-    {scope.kind === "BROAD" && <details className="external-subject-search" open><summary>Search electives</summary><p>Results outside this requirement are not verified to count.</p>
-      <form className="subject-search" onSubmit={submitSearch}><label htmlFor="subject-query">Search by subject code or name</label><div><input id="subject-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
-        <button className="primary-button" type="submit">Search</button></div>{message && <p className="field-error" role="alert">{message}</p>}</form>
+    {scope.kind === "BROAD" && <details className={appUi.externalSubjectSearch} open><summary>Search electives</summary><p>Results outside this requirement are not verified to count.</p>
+      <form className={appUi.subjectSearch} onSubmit={submitSearch}><label htmlFor="subject-query">Search by subject code or name</label><div><input id="subject-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
+        <button className={appUi.primaryButton} type="submit">Search</button></div>{message && <p className={appUi.fieldError} role="alert">{message}</p>}</form>
       <div aria-live="polite">{externalStatus === "loading" && <AsyncState kind="loading" label="Searching subjects" />}{externalStatus === "error" && <AsyncState kind="error" label="We couldn't search subjects." />}
         {externalStatus === "ready" && externalResults.length === 0 && <AsyncState kind="empty" label="No matching subjects were found." />}{externalStatus === "ready" && <SubjectResults {...resultProps} results={externalResults} selectable={scope.kind === "BROAD"} requiredCore={false} quotaGroup={scope.kind === "BROAD" ? scope.groups?.[0] : undefined} />}</div></details>
     }</div></dialog>;

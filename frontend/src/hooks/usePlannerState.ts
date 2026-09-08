@@ -218,9 +218,14 @@ const restorePlanner = (
   }
 };
 
+/**
+ * Restores and edits a personal plan. Rebuilding generated slots must wait for
+ * selected component details, otherwise a partial roadmap can erase saved allocations.
+ */
 export const usePlannerState = (
   officialPlan: StudyPlan | undefined,
   context: PlannerContext,
+  canRebase = true,
 ) => {
   const storageKey = useMemo(
     () => createPlannerStorageKey(context, officialPlan?.id ?? "NO-PLAN"),
@@ -269,8 +274,8 @@ export const usePlannerState = (
     if (stored.storageKey !== storageKey || !stored.planner) return null;
     const generated = officialPlan?.years.some((year) => year.periods.some((period) => period.items.some((item) => item.choiceOrigin?.parentAggregateItemId)))
       || stored.planner.years.some((year) => year.periods.some((period) => period.items.some((item) => item.choiceOrigin?.parentAggregateItemId)));
-    return generated && officialPlan ? rebasePlannerSlots(stored.planner, officialPlan, context) : stored.planner;
-  }, [stored, storageKey, officialPlan, context]);
+    return generated && officialPlan && canRebase ? rebasePlannerSlots(stored.planner, officialPlan, context) : stored.planner;
+  }, [stored, storageKey, officialPlan, context, canRebase]);
   useEffect(() => {
     if (planner && planner !== stored.planner && JSON.stringify(planner) !== JSON.stringify(stored.planner)) setStored({ storageKey, planner });
   }, [planner, stored.planner, storageKey]);

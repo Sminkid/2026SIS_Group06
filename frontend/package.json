@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "tsx --test src/domain/*.test.ts",
+    "test": "tsx --tsconfig tsconfig.app.json --test src/domain/*.test.ts",
     "test:e2e": "playwright test",
     "typecheck": "tsc -b --pretty false",
     "preview": "vite preview"
@@ -19,9 +19,11 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "@types/node": "^24.10.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.13.3",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }

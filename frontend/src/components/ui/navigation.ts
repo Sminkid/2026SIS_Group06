@@ -1,0 +1,67 @@
+import { cn } from "./cn";
+
+/** Static Tailwind recipes preserve the handbook's navigation appearance and responsive states. */
+export const navigationUi = {
+  appShell: "flex flex-col [min-height:100vh]",
+  siteHeader: cn(
+    "site-header sticky [z-index:20] top-0 h-18 flex items-center justify-between",
+    "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] [border-bottom:1px_solid_var(--line)] bg-[var(--surface)]",
+  ),
+  brand: "inline-flex items-center gap-3 p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
+  brandMark: "grid w-9 h-9 place-items-center text-[white] bg-[var(--navy)] text-[length:.72rem] [letter-spacing:.08em]",
+  siteHeaderNote: "text-[var(--muted)] text-[length:.85rem] [@media(max-width:720px)]:hidden",
+  breadcrumbs: cn(
+    "mt-1 [&_ol]:flex [&_ol]:flex-wrap [&_ol]:[gap:.45rem] [&_ol]:items-center [&_ol]:p-0 [&_ol]:m-0",
+    "[&_ol]:list-none [&_ol]:text-[var(--muted)] [&_ol]:text-[length:.84rem]",
+    "[&_li:not(:last-child)]:after:content-['/'] [&_li:not(:last-child)::after]:[margin-left:.45rem]",
+    "[&_li:not(:last-child)::after]:text-[#a3aab7] [&_button]:p-0 [&_button]:border-0",
+    "[&_button]:text-[var(--blue)] [&_button]:bg-transparent [&_button]:cursor-pointer [&_button:hover]:underline",
+  ),
+  page: "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
+  degreeHero: "degree-hero [margin:3rem_0_clamp(4rem,_8vw,_7rem)] [&_h1]:[max-width:18ch]",
+  degreeHeroCode: "[margin-bottom:.8rem] text-[var(--blue)] text-[length:.9rem] [font-weight:850] [letter-spacing:.1em]",
+  degreeFacts: cn(
+    "flex flex-wrap mt-8 text-[var(--muted)] [&_span]:[padding:.4rem_1.5rem]",
+    "[&_span]:[border-left:1px_solid_var(--line)] [&_span:first-child]:[padding-left:0]",
+    "[&_span:first-child]:[border-left:0] [&_strong]:text-[var(--navy)] [@media(max-width:720px)]:grid",
+    "[@media(max-width:720px)]:[gap:.65rem] [@media(max-width:720px)]:[&_span]:p-0",
+    "[@media(max-width:720px)]:[&_span]:border-0 [@media(max-width:720px)]:[&_span:first-child]:p-0",
+    "[@media(max-width:720px)]:[&_span:first-child]:border-0",
+  ),
+  degreeDescription: "max-w-216 mt-8 text-[#4d596d] [line-height:1.75]",
+  resultCount: "text-[var(--muted)] text-[length:.88rem] whitespace-nowrap",
+  pageIntroCompact: "max-w-216 [margin:2.5rem_0_3.5rem]",
+  searchField: cn(
+    "[width:min(100%,_25rem)] flex items-center [gap:.65rem] [padding:0_1rem] border-[1px] border-solid",
+    "border-[color:#bfc6d1] bg-[var(--surface)] [&_input]:w-full [&_input]:[padding:.85rem_0] [&_input]:border-0",
+    "[&_input]:outline-none [&:focus-within]:outline-[3px] [&:focus-within]:outline-[#78a4e5]",
+    "[&:focus-within]:outline-offset-2 [&_input]:bg-transparent [@media(max-width:720px)]:w-full",
+  ),
+  degreeList: "[border-top:1px_solid_var(--line)]",
+  resultSummary: "mb-3 text-[var(--muted)] text-[length:.82rem]",
+  degreeRow: cn(
+    "degree-row w-full grid [grid-template-columns:6rem_minmax(0,1fr)_7rem_1rem] gap-5 items-center",
+    "[padding:1.25rem_.75rem] border-0 [border-bottom:1px_solid_var(--line)] text-left bg-transparent",
+    "cursor-pointer [&:hover]:bg-[var(--surface)]",
+    "[@media(max-width:720px)]:[grid-template-columns:5.25rem_minmax(0,1fr)_auto] [@media(max-width:720px)]:gap-3",
+  ),
+  degreeRowCode: "text-[var(--blue)] text-[length:.88rem] font-extrabold",
+  degreeRowName: "[font-weight:650]",
+  degreeRowCp: "text-[var(--muted)] text-[length:.85rem] text-right [@media(max-width:720px)]:[grid-column:2] [@media(max-width:720px)]:text-left",
+  degreeRowArrow: "text-[var(--blue)] [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
+  pageLanding: cn(
+    "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem]",
+    "[padding-top:clamp(3.5rem,_8vw,_7rem)] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
+  ),
+  pageIntro: "max-w-216 [margin-bottom:clamp(3rem,_7vw,_5.5rem)]",
+  universityGrid: "grid [grid-template-columns:repeat(auto-fit,_minmax(17rem,_1fr))] gap-4",
+  universityCard: cn(
+    "university-card min-h-56 flex flex-col items-start p-7 text-left border-[1px] border-solid",
+    "border-[color:var(--line)] bg-[var(--surface)] cursor-pointer",
+    "[transition:border-color_160ms,_transform_160ms] motion-reduce:transition-none motion-reduce:transform-none",
+    "[&:hover]:[border-color:var(--navy)] [&:hover]:[transform:translateY(-2px)]",
+  ),
+  universityCardCode: "mb-10 text-[var(--blue)] text-[length:.8rem] font-extrabold [letter-spacing:.12em]",
+  universityCardName: "max-w-72 text-[length:1.25rem] font-bold [line-height:1.35]",
+  cardAction: "mt-auto pt-6 text-[var(--muted)] text-[length:.88rem] [font-weight:650]",
+} as const;

@@ -1,3 +1,4 @@
+import { appUi } from "./ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchDegreeStudyPlans } from "../api/degrees";
 import { usePlannerState } from "../hooks/usePlannerState";
@@ -16,6 +17,10 @@ import { usePlannerValidation } from "../hooks/usePlannerValidation";
 import type { ValidationResult } from "../types/validation";
 import { StudyPathSelector } from "./StudyPathSelector";
 import { resolveStudyPathChoiceScope } from "../domain/studyPathChoiceScope";
+import { RoadmapCard } from "./planner/RoadmapCard";
+import { plannerUi } from "./planner/ui";
+import { SubjectDetailsDialog } from "./SubjectDetailsDialog";
+import { getPrerequisiteDisplayState } from "../domain/prerequisiteDisplay";
 import { readableText } from "../domain/readableText";
 import { reconcileStudyPlan } from "../domain/studyPlanSelection";
 import { expandRoadmapSlots } from "../domain/roadmapSlots";
@@ -35,74 +40,7 @@ interface Props {
   degreeName: string;
   onSelectComponent: (groupId: string, value: string, clearGroupIds?: string[]) => void;
 }
-const PlanItemCard = ({
-  item,
-  editable,
-  onChoose,
-  onOpenSubject,
-  issues,
-  onRestoreChoice,
-  onSwap,
-  scheduled,
-}: {
-  item: StudyPlanItem;
-  editable: boolean;
-  onChoose: (item: StudyPlanItem) => void;
-  onOpenSubject: (subjectCode: string) => void;
-  issues: ValidationResult[];
-  onRestoreChoice: (plannerItemId: string) => void;
-  onSwap?: (plannerItemId: string) => void;
-  scheduled?: string;
-}) => {
-  const isChoice = item.itemType === "CHOICE";
-  const isPlacement = isChoice && /\b(internship|placement|practicum|professional experience)\b/i.test(item.title);
-  const isFixedComponentSubject = item.choiceOrigin?.componentRequirementKind === "FIXED";
-  const isFilledChoice = Boolean(item.choiceOrigin) && !isChoice && !isFixedComponentSubject;
-  const isChoiceSlot = isChoice || isFilledChoice;
-  const code = item.subject?.code ?? item.rawCode;
-  const name = readableText(item.subject?.name ?? item.title);
-  const creditPoints = item.subject?.creditPoints ?? item.creditPoints;
-
-  const content = <>
-    <div className="plan-item__top">
-      <span className="plan-item__kind">{isPlacement ? "Professional placement" : isFilledChoice ? "Selected subject" : isChoice ? "Choice" : "Subject"}</span>
-      {creditPoints !== null && <span className="plan-item__cp">{creditPoints} CP</span>}
-    </div>
-    <h5>{name}</h5>
-    {code && <p className="plan-item__code">{code}</p>}
-    {scheduled && <p className="plan-item__note">Scheduled: {scheduled}</p>}
-    {item.choiceOrigin && <p className="plan-item__note">Counts toward: {item.choiceOrigin.sourceLabel ?? item.choiceOrigin.title} {item.choiceOrigin.allocatedGroupLabel}</p>}
-    {isChoice && item.choiceOrigin?.componentRequirementKind === "COMPONENT" && <p className="plan-item__note">Choose a required Core or eligible Option</p>}
-    {isFixedComponentSubject && <p className="plan-item__note">Required by the selected component.</p>}
-    {item.choiceOrigin?.candidateSourceType === "UNRESOLVED" && <p className="plan-item__note">{item.choiceOrigin.sourceLabel}</p>}
-    {isPlacement && <p className="plan-item__note">Required professional placement. Sponsoring employer and enrolment details are confirmed through the course process.</p>}
-    {isChoiceSlot && !isPlacement && <p className="plan-item__note">{editable
-      ? isFilledChoice ? `From: ${item.choiceOrigin?.title} · Click to change` : "Click to choose a subject"
-      : "Customize the plan to choose a subject"}</p>}
-    {issues.length > 0 && <div className="plan-item__issues">
-      {issues.map((issue, index) => <span className={`plan-item__issue plan-item__issue--${issue.severity}`} key={`${issue.code}-${index}`}>{issue.message}</span>)}
-    </div>}
-  </>;
-
-  const className = `plan-item${isChoiceSlot && !isPlacement ? " plan-item--choice" : ""}${isFilledChoice ? " plan-item--filled" : ""}`;
-  if (!editable) return <article className={className}>{content}</article>;
-
-  return <article className={className}>
-    {isPlacement ? <div className="plan-item__main-action">{content}</div> : isChoiceSlot
-      ? <button className="plan-item__main-action" type="button" onClick={() => onChoose(item)}>{content}</button>
-      : code
-        ? <button className="plan-item__main-action" type="button" onClick={() => onOpenSubject(code)} aria-label={`View ${code} ${name}`}>{content}</button>
-        : <div className="plan-item__main-action">{content}</div>}
-    {((isFilledChoice && !isFixedComponentSubject) || (code && issues.length > 0)) && <div className="plan-item__controls">
-      {isFilledChoice && !isPlacement && onSwap && <button className="text-button" type="button" onClick={() => onSwap(item.id)}>Swap position</button>}
-      {code && issues.length > 0 && <button className="text-button" type="button" onClick={() => onOpenSubject(code)}>View requirements</button>}
-      {isFilledChoice && !isFixedComponentSubject && <button className="plan-item__restore" type="button" onClick={() => onRestoreChoice(item.id)}>
-        Remove subject &amp; restore choice
-      </button>}
-    </div>}
-  </article>;
-};
-
+/** Groups allocations by their formal aggregate without changing their schedule order. */
 const roadmapBlocks = (items: StudyPlanItem[]) => {
   const blocks = new Map<string, StudyPlanItem[]>();
   items.forEach((item) => {
@@ -112,6 +50,7 @@ const roadmapBlocks = (items: StudyPlanItem[]) => {
   return [...blocks.entries()];
 };
 
+/** Coordinates the official roadmap, student draft and their existing selection workflows. */
 export const StudyPlansSection = ({
   degreeCode,
   universityCode,
@@ -126,6 +65,7 @@ export const StudyPlansSection = ({
   degreeName,
   onSelectComponent,
 }: Props) => {
+  const [requirementDetail, setRequirementDetail] = useState<{ code: string; issues: ValidationResult[] } | null>(null);
   const [plans, setPlans] = useState<StudyPlan[]>([]);
   const variantStorageKey = `degree-planner:variant:${universityCode}:${handbookYear}:${degreeCode}`;
   const [selectedPlanId, setSelectedPlanId] = useState<string>(() => {
@@ -218,13 +158,14 @@ export const StudyPlansSection = ({
     selectSubject,
     restoreChoiceSlot,
     swapPositions,
-  } = usePlannerState(selectedPlan, plannerContext);
+  } = usePlannerState(selectedPlan, plannerContext, selectedComponentCodes.length === 0
+    || (componentDetailsStatus === "ready" && selectedComponentCodes.every(code => Boolean(componentDetails[code]))));
   const displayedPlan = useMemo(
     () => planner && selectedPlan ? plannerToStudyPlan(planner, selectedPlan) : selectedPlan,
     [planner, selectedPlan],
   );
   const displayedSessionNames = useMemo(() => [...new Set(displayedPlan?.years.flatMap((year) => year.periods.map((period) => period.name)) ?? [])], [displayedPlan]);
-  const { validation } = usePlannerValidation({
+  const { validation, accessConditions, status: validationStatus } = usePlannerValidation({
     planner,
     degreeCreditPoints,
     requirements,
@@ -308,7 +249,7 @@ export const StudyPlansSection = ({
   const combinedIssuesBySubject = useMemo(() => {
     const index = new Map<string, ValidationResult[]>();
     for (const issue of combinedValidation?.results ?? []) {
-      if (!issue.subjectCode || issue.severity === "info") continue;
+      if (!issue.subjectCode) continue;
       index.set(issue.subjectCode, [...(index.get(issue.subjectCode) ?? []), issue]);
     }
     return index;
@@ -325,14 +266,14 @@ export const StudyPlansSection = ({
   };
   const hasLongPlanTitle = (selectedPlan?.title.length ?? 0) > 180;
 
-  return <section className="study-plans-section" aria-labelledby="study-plan-heading">
-    <div className="section-heading">
-      <div><p className="step-label">Official roadmap and personal planner</p><h2 id="study-plan-heading">Study plan</h2></div>
-      <span className={`read-only-label${planner ? " read-only-label--custom" : ""}`}>
+  return <section className={appUi.studyPlansSection} aria-labelledby="study-plan-heading">
+    <div className={appUi.sectionHeading}>
+      <div><p className={appUi.stepLabel}>Official roadmap and personal planner</p><h2 id="study-plan-heading">Study plan</h2></div>
+      <span className={planner ? appUi.readOnlyLabelCustom : appUi.readOnlyLabel}>
         {planner ? "My plan" : "Official roadmap"}
       </span>
     </div>
-    <p className="section-note">This is the university's recommended sequence, not the formal degree requirement definition.</p>
+    <p className={appUi.sectionNote}>This is the university's recommended sequence, not the formal degree requirement definition.</p>
     {status === "loading" && <AsyncState kind="loading" label="Loading official study plan" />}
     {status === "error" && <AsyncState kind="error" label="We couldn't load the official study plan." onRetry={retry} />}
     {status === "ready" && plans.length === 0 && <AsyncState kind="empty" label="No official recommended study plan is available for this degree." />}
@@ -347,68 +288,69 @@ export const StudyPlansSection = ({
         onSelect={selectPathComponent}
         planner={planner}
       />
-      {plans.length > 1 && <label className="plan-selector"><span>Study plan variant</span>
+      {plans.length > 1 && <label className={appUi.planSelector}><span>Study plan variant</span>
         <select value={selectedPlan?.id ?? ""} onChange={(event) => selectVariant(event.target.value)}>
           <option value="" disabled>Choose an official variant</option>
           {plans.map((plan) => <option value={plan.id} key={plan.id}>{plan.title}</option>)}
         </select>
       </label>}
-      {(planNotice || reconciledPlan.reason) && <p className="selection-notice" role="status">{reconciledPlan.reason || planNotice}</p>}
+      {(planNotice || reconciledPlan.reason) && <p className={appUi.selectionNotice} role="status">{reconciledPlan.reason || planNotice}</p>}
     </>}
     {status === "ready" && selectedPlan && displayedPlan && <>
-      <div className="plan-intro">
+      <div className={appUi.planIntro}>
         <h3>{hasLongPlanTitle ? "Official recommended study plan" : selectedPlan.title}</h3>
-        {hasLongPlanTitle && <details className="plan-source-title">
+        {hasLongPlanTitle && <details className={appUi.planSourceTitle}>
           <summary>View official plan title and variants</summary>
           <p>{selectedPlan.title}</p>
         </details>}
         {selectedPlan.description && <p>{readableText(selectedPlan.description)}</p>}
       </div>
-      <div className={`planner-toolbar${planner ? " planner-toolbar--active" : ""}`}>
+      <div className={planner ? appUi.plannerToolbarActive : appUi.plannerToolbar}>
         <div>
           <strong>{planner ? "Custom planner active" : "Want to experiment?"}</strong>
           <p>{planner
             ? "Your draft is separate from the official handbook and saved automatically on this device."
             : "Create a private editable copy of this official plan. The handbook data will stay unchanged."}</p>
         </div>
-        <div className="planner-toolbar__actions">
+        <div className={appUi.plannerToolbarActions}>
           {planner ? <>
-            <button className="secondary-button" type="button" onClick={reset}>Reset to official plan</button>
-            <button className="text-button text-button--danger" type="button" onClick={clear}>Clear custom changes</button>
-          </> : <button className="primary-button" type="button" onClick={customize}>Customize plan</button>}
+            <button className={appUi.secondaryButton} type="button" onClick={reset}>Reset to official plan</button>
+            <button className={appUi.textButtonDanger} type="button" onClick={clear}>Clear custom changes</button>
+          </> : <button className={appUi.primaryButton} type="button" onClick={customize}>Customize plan</button>}
         </div>
       </div>
-      {planner && <div className="roadmap-basis" role="status">
+      {planner && <div className={appUi.roadmapBasis} role="status">
         <strong>Roadmap based on: {selectedPlan.title}</strong>
         {Object.values(componentDetails).length > 0 && <span>Personalised with: {Object.values(componentDetails).map((detail) => detail.component.name).join(" · ")}</span>}
       </div>}
-      <div className="planner-study-layout">
-      <div className="planner-plan-column">
-      {displayedSessionNames.some((name) => /session 1|autumn|spring/i.test(name)) && <details className="session-help"><summary>Understanding teaching sessions</summary><dl>
+      <div>
+      <div className={appUi.plannerPlanColumn}>
+      {displayedSessionNames.some((name) => /session 1|autumn|spring/i.test(name)) && <details className={appUi.sessionHelp}><summary>Understanding teaching sessions</summary><dl>
         {displayedSessionNames.filter((name) => /autumn/i.test(name)).length > 0 && <div><dt>Autumn</dt><dd>Main first-half teaching session.</dd></div>}
         {displayedSessionNames.filter((name) => /spring/i.test(name)).length > 0 && <div><dt>Spring</dt><dd>Main second-half teaching session.</dd></div>}
         {displayedSessionNames.filter((name) => /session 1/i.test(name)).length > 0 && <div><dt>Session 1</dt><dd>A separate teaching or placement period used by this course calendar; it is not assumed to be Autumn.</dd></div>}
       </dl><p>Exact dates are not stored in this planner. Check the university academic calendar before enrolling.</p></details>}
-      <div className="plan-years">
-        {displayedPlan.years.map((year) => <section className="plan-year" key={year.id}>
-          <h3>{year.name}</h3>
-          <div className="plan-periods">
-            {year.periods.map((period) => <section className="plan-period" key={period.id}>
-              <div className="plan-period__heading"><h4>{period.name}</h4><span>{period.items.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0)} CP scheduled</span></div>
-              {period.items.length === 0 ? <p className="plan-period__empty">No items listed</p> :
-                <div className="plan-items">{roadmapBlocks(period.items).map(([blockId, blockItems]) => {
+      <div className="plan-years grid items-start gap-10">
+        {displayedPlan.years.map((year) => <section className="plan-year min-w-0 scroll-mt-4" key={year.id}>
+          <h3 className="mb-4 mt-0 border-0 border-b border-solid border-slate-400 pb-3 text-2xl">{year.name}</h3>
+          <div className="grid items-start gap-7">
+            {year.periods.map((period) => <section className="plan-period min-w-0" key={period.id}>
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600"><h4 className="m-0 text-sm font-bold uppercase tracking-wide">{period.name}</h4><span>{period.items.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0)} CP scheduled</span></div>
+              {period.items.length === 0 ? <p className={appUi.planPeriodEmpty}>No items listed</p> :
+                <div className={plannerUi.grid}>{roadmapBlocks(period.items).map(([blockId, blockItems]) => {
                   const origin = blockItems[0].choiceOrigin;
                   const required = origin?.parentAggregateCreditPoints;
                   const points = blockItems.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0);
-                  return <div key={blockId} className={required ? "roadmap-aggregate" : "roadmap-single"}>
-                  {required !== undefined && <header><strong>{origin?.sourceLabel ?? origin?.parentAggregateTitle}</strong><p>{points} CP scheduled here</p></header>}
-                  <div className={required ? "plan-items" : undefined}>{blockItems.map((item) => (
-                  <PlanItemCard
+                  return <div key={blockId} className={required ? "roadmap-aggregate col-span-full min-w-0 border-0 border-y border-solid border-slate-200 py-3" : "min-w-0"}>
+                  {required !== undefined && <header className="mb-3 text-sm"><strong>{origin?.sourceLabel ?? origin?.parentAggregateTitle}</strong><p className="mb-0 mt-1 text-xs text-slate-600">{points} CP scheduled here</p></header>}
+                  <div className={required ? plannerUi.grid : undefined}>{blockItems.map((item) => (
+                  <RoadmapCard
                     item={item}
                     editable={planner !== null}
                     onChoose={setActiveChoice}
-                    onOpenSubject={onOpenSubject}
-                    issues={item.subject && item.choiceOrigin ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
+                    onOpenSubject={(code, issues) => setRequirementDetail({ code, issues })}
+                    issues={item.subject ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
+                    prerequisite={planner && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], combinedIssuesBySubject.get(item.subject.code), { loading: validationStatus === "loading", hasPlan: true }) : undefined}
                     onRestoreChoice={restoreChoiceSlot}
                     onSwap={setSwapSourceId}
                     scheduled={`${year.name} ${period.name}`}
@@ -420,16 +362,17 @@ export const StudyPlansSection = ({
           </div>
         </section>)}
       </div>
-      {planner && unassignedItems.length > 0 && <section className="unassigned-section" aria-labelledby="unassigned-heading">
-        <div><p className="step-label">Custom plan holding area</p><h3 id="unassigned-heading">Unscheduled subjects</h3>
+      {planner && unassignedItems.length > 0 && <section className={appUi.unassignedSection} aria-labelledby="unassigned-heading">
+        <div><p className={appUi.stepLabel}>Custom plan holding area</p><h3 id="unassigned-heading">Unscheduled subjects</h3>
           <p>Move these subjects into a study period when you are ready.</p></div>
-        <div className="plan-items">
-          {unassignedItems.map((item) => <PlanItemCard
+        <div className={plannerUi.grid}>
+          {unassignedItems.map((item) => <RoadmapCard
             item={item}
             editable
             onChoose={setActiveChoice}
-            onOpenSubject={onOpenSubject}
-            issues={item.subject && item.choiceOrigin ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
+            onOpenSubject={(code, issues) => setRequirementDetail({ code, issues })}
+            issues={item.subject ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
+                    prerequisite={planner && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], combinedIssuesBySubject.get(item.subject.code), { loading: validationStatus === "loading", hasPlan: true }) : undefined}
             onRestoreChoice={restoreChoiceSlot}
             key={item.id}
           />)}
@@ -437,6 +380,8 @@ export const StudyPlansSection = ({
       </section>}
       </div>
       </div>
+      <SubjectDetailsDialog subjectCode={requirementDetail?.code ?? null} universityCode={universityCode} handbookYear={handbookYear}
+        planIssues={requirementDetail?.issues} hasPlan={Boolean(planner)} onClose={() => setRequirementDetail(null)} />
       <SubjectChoiceDialog
         choiceItem={activeChoice}
         universityCode={universityCode}

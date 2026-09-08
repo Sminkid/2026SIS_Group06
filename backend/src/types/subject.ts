@@ -18,6 +18,7 @@ export interface SubjectDetailResponse {
   creditPoints: number | null;
   description: string | null;
   offerings: unknown;
+  sourceUrl?: string | null;
   prerequisiteStatus: PrerequisiteStatus;
   accessConditions: null | {
     hasConditions: boolean;

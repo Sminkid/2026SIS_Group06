@@ -335,6 +335,7 @@ model RiasecCategory {
   updatedAt         DateTime
   RiasecSubcategory RiasecSubcategory[]
   RiasecScore       RiasecScore[]
+  Question          Question[]
 }
 
 model RiasecSubcategory {
@@ -347,9 +348,54 @@ model RiasecSubcategory {
   updatedAt              DateTime
   RiasecCategory         RiasecCategory           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   RiasecSubcategoryScore RiasecSubcategoryScore[]
+  Question               Question[]
 
   @@unique([categoryId, code])
   @@index([categoryId])
+}
+
+model Question {
+  id                 String              @id
+  stage              AssessmentStage
+  categoryId         String
+  subcategoryId      String?
+  text               String
+  sortOrder          Int?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime
+  RiasecCategory      RiasecCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  RiasecSubcategory   RiasecSubcategory?  @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+  AssessmentResponse  AssessmentResponse[]
+
+  @@index([categoryId])
+  @@index([subcategoryId])
+  @@index([stage])
+}
+
+model AssessmentSession {
+  id                 String               @id
+  stage              AssessmentStage      @default(SCREENING)
+  topCategoryIds     String[]
+  expiresAt          DateTime
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  AssessmentResponse AssessmentResponse[]
+
+  @@index([expiresAt])
+}
+
+model AssessmentResponse {
+  id                String            @id
+  sessionId         String
+  questionId        String
+  value             Int
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  AssessmentSession AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  Question          Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, questionId])
+  @@index([questionId])
 }
 
 model RiasecScore {
@@ -432,4 +478,10 @@ enum RiasecCode {
   SOCIAL
   ENTERPRISING
   CONVENTIONAL
+}
+
+enum AssessmentStage {
+  SCREENING
+  DRILL_DOWN
+  COMPLETED
 }

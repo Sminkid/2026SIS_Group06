@@ -23,6 +23,8 @@ model Component {
   RequirementGroup     RequirementGroup[]
   RequirementItem      RequirementItem[]
   SubjectRequisiteItem SubjectRequisiteItem[]
+  RiasecScore            RiasecScore[]
+  RiasecSubcategoryScore RiasecSubcategoryScore[]
 
   @@unique([handbookVersionId, code])
   @@index([code])
@@ -44,6 +46,8 @@ model Degree {
   RequirementGroup     RequirementGroup[]
   StudyPlan            StudyPlan[]
   SubjectRequisiteItem SubjectRequisiteItem[]
+  RiasecScore            RiasecScore[]
+  RiasecSubcategoryScore RiasecSubcategoryScore[]
 
   @@unique([handbookVersionId, code])
   @@index([code])
@@ -322,6 +326,66 @@ model UnresolvedReference {
   @@index([targetCode])
 }
 
+model RiasecCategory {
+  id                String              @id
+  code              RiasecCode          @unique
+  name              String
+  description       String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  RiasecSubcategory RiasecSubcategory[]
+  RiasecScore       RiasecScore[]
+}
+
+model RiasecSubcategory {
+  id                     String                   @id
+  categoryId             String
+  code                   String
+  name                   String
+  description            String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  RiasecCategory         RiasecCategory           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  RiasecSubcategoryScore RiasecSubcategoryScore[]
+
+  @@unique([categoryId, code])
+  @@index([categoryId])
+}
+
+model RiasecScore {
+  id             String         @id
+  degreeId       String?
+  componentId    String?
+  categoryId     String
+  score          Float
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime
+  Degree         Degree?        @relation(fields: [degreeId], references: [id], onDelete: Cascade)
+  Component      Component?     @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  RiasecCategory RiasecCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([degreeId, componentId, categoryId])
+  @@index([componentId])
+  @@index([categoryId])
+}
+
+model RiasecSubcategoryScore {
+  id                String            @id
+  degreeId          String?
+  componentId       String?
+  subcategoryId     String
+  score             Float
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  Degree            Degree?           @relation(fields: [degreeId], references: [id], onDelete: Cascade)
+  Component         Component?        @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  RiasecSubcategory RiasecSubcategory @relation(fields: [subcategoryId], references: [id], onDelete: Cascade)
+
+  @@unique([degreeId, componentId, subcategoryId])
+  @@index([componentId])
+  @@index([subcategoryId])
+}
+
 enum ComponentType {
   MAJOR
   MINOR
@@ -359,4 +423,13 @@ enum RequisiteGroupType {
 enum StudyPlanItemType {
   SUBJECT
   CHOICE
+}
+
+enum RiasecCode {
+  REALISTIC
+  INVESTIGATIVE
+  ARTISTIC
+  SOCIAL
+  ENTERPRISING
+  CONVENTIONAL
 }

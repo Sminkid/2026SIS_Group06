@@ -1,0 +1,112 @@
+[
+  {
+    "targetType": "degree",
+    "targetId": "cmszs1z2i0003kwtz9wryvv9e",
+    "code": "C10347",
+    "name": "Bachelor of Advanced Science",
+    "scores": {
+      "REALISTIC": 0.4,
+      "INVESTIGATIVE": 0.85,
+      "ARTISTIC": 0.1,
+      "SOCIAL": 0.3,
+      "ENTERPRISING": 0.2,
+      "CONVENTIONAL": 0.45
+    },
+    "rationale": {
+      "REALISTIC": "Laboratory work and practical experience with specimens and equipment provide some hands-on engagement, though the focus is primarily theoretical rather than tool-based work.",
+      "INVESTIGATIVE": "The course heavily emphasizes research, analysis, and understanding scientific principles across medicine, pharmaceuticals, and quantum technology, with advanced research opportunities and investigation of how biological and physical systems work.",
+      "ARTISTIC": "Creative expression is minimally relevant; the course focuses on analytical and technical scientific knowledge rather than original artistic self-expression.",
+      "SOCIAL": "While communication skills are mentioned, the primary focus is not on helping or teaching people, making this category only moderately relevant to the degree's core content.",
+      "ENTERPRISING": "Leadership and organizational management are not emphasized; the course prepares students for professional roles rather than entrepreneurial or managerial positions.",
+      "CONVENTIONAL": "Structured procedures, organized data analysis, and systematic learning through prescribed curriculum are present, though less emphasized than investigative and analytical components."
+    }
+  },
+  {
+    "targetType": "degree",
+    "targetId": "cmszs1z2i0004kwtzu3b3kvdt",
+    "code": "C10352",
+    "name": "Bachelor of Advanced Science Bachelor of Creative Intelligence and Innovation",
+    "scores": {
+      "REALISTIC": 0.6,
+      "INVESTIGATIVE": 0.9,
+      "ARTISTIC": 0.5,
+      "SOCIAL": 0.4,
+      "ENTERPRISING": 0.6,
+      "CONVENTIONAL": 0.5
+    },
+    "rationale": {
+      "REALISTIC": "Hands-on laboratory work, practical placements, and work with physical specimens and high-tech equipment in medicine and quantum technology provide realistic application of scientific knowledge.",
+      "INVESTIGATIVE": "The degree heavily emphasizes research, analysis, understanding how things work (especially in pharmaceutical sciences and quantum technology), and research-informed teaching methods.",
+      "ARTISTIC": "Creative intelligence and innovation components require critical and creative thinking, original problem-solving, and transdisciplinary creative approaches to real-world challenges.",
+      "SOCIAL": "While the course mentions communication skills and collaboration, the primary focus is not on helping or teaching others but rather on scientific advancement and technical expertise.",
+      "ENTERPRISING": "The degree includes entrepreneurship development, innovation focus, leadership preparation, and real-world industry partnerships that align with enterprising career paths.",
+      "CONVENTIONAL": "Although some organized structure exists in course delivery and procedures, the emphasis on innovation, creative thinking, and unstructured problem-solving reduces alignment with conventional interests."
+    }
+  },
+  {
+    "targetType": "degree",
+    "targetId": "cmszs1z2i0005kwtzvtpclgju",
+    "code": "C10474",
+    "name": "Bachelor of Artificial Intelligence",
+    "scores": {
+      "REALISTIC": 0.3,
+      "INVESTIGATIVE": 0.9,
+      "ARTISTIC": 0.2,
+      "SOCIAL": 0.4,
+      "ENTERPRISING": 0.5,
+      "CONVENTIONAL": 0.6
+    },
+    "rationale": {
+      "REALISTIC": "While AI involves some practical implementation with tools and technologies, the focus is primarily theoretical and computational rather than hands-on work with physical objects or machines.",
+      "INVESTIGATIVE": "The degree heavily emphasizes research, analysis, problem-solving, understanding how systems work through deep learning and reinforcement learning, and inquiry-based learning activities.",
+      "ARTISTIC": "Creative expression is minimally relevant; the course focuses on technical solution development rather than original artistic or unstructured creative work.",
+      "SOCIAL": "Collaborative learning, teamwork, and interpersonal skills are mentioned as development areas, but the core focus remains technical rather than people-centered.",
+      "ENTERPRISING": "The course prepares graduates for innovation and business applications, with emphasis on career advancement in industry roles and driving organizational innovation.",
+      "CONVENTIONAL": "Mathematical foundations, structured data handling, systematic software development processes, and organized problem-solving from conceptualization to validation align well with conventional interests."
+    }
+  },
+  {
+    "targetType": "degree",
+    "targetId": "cmszs1z2i0006kwtzu6cllauw",
+    "code": "C10487",
+    "name": "Bachelor of Artificial Intelligence (Offshore)",
+    "scores": {
+      "REALISTIC": 0.3,
+      "INVESTIGATIVE": 0.9,
+      "ARTISTIC": 0.1,
+      "SOCIAL": 0.4,
+      "ENTERPRISING": 0.5,
+      "CONVENTIONAL": 0.6
+    },
+    "rationale": {
+      "REALISTIC": "While AI involves some practical implementation, the focus is primarily on abstract problem-solving rather than hands-on work with physical tools or machines.",
+      "INVESTIGATIVE": "The degree strongly emphasizes research, analysis, and understanding how AI systems work through deep learning, reinforcement learning, and mathematical foundations.",
+      "ARTISTIC": "Creative expression is minimally relevant; the program focuses on technical solutions rather than original artistic or design-oriented work.",
+      "SOCIAL": "Collaborative learning and teamwork are mentioned, and AI professionals may work with diverse teams, but the primary focus is not on helping or teaching others.",
+      "ENTERPRISING": "The program emphasizes innovation, management abilities for AI challenges, and preparing students for industry roles, suggesting moderate entrepreneurial relevance.",
+      "CONVENTIONAL": "Structured learning, clear procedures in software development, IT skills, and organized problem-solving approaches align with conventional interests, though creativity is also valued."
+    }
+  },
+  {
+    "targetType": "degree",
+    "targetId": "cmszs1z2i0002kwtz3ohiuuyh",
+    "code": "C10235",
+    "name": "Bachelor of Accounting",
+    "scores": {
+      "REALISTIC": 0.3,
+      "INVESTIGATIVE": 0.7,
+      "ARTISTIC": 0.1,
+      "SOCIAL": 0.4,
+      "ENTERPRISING": 0.8,
+      "CONVENTIONAL": 0.9
+    },
+    "rationale": {
+      "REALISTIC": "Accounting involves some practical application but is primarily desk-based and analytical rather than hands-on work with physical tools or machines.",
+      "INVESTIGATIVE": "The program emphasizes analyzing financial data, understanding accounting principles, and researching business problems to inform decisions.",
+      "ARTISTIC": "Accounting has minimal creative or unstructured expression, focusing instead on established frameworks and standard procedures.",
+      "SOCIAL": "While accounting involves some client and team interaction, it is not primarily people-focused compared to teaching or counseling professions.",
+      "ENTERPRISING": "The course explicitly targets future business leaders and emphasizes leadership roles, competitive advantage, and career advancement in business.",
+      "CONVENTIONAL": "Accounting is fundamentally organized around structured procedures, standardized rules, precise data management, and established compliance frameworks."
+    }
+  }
+]

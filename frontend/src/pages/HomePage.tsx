@@ -23,7 +23,7 @@ export const HomePage = ({ onSelectUniversity }: HomePageProps) => {
   }, [reloadKey]);
 
   return (
-    <main className="page page--landing">
+    <main className="page page--landing" id="main-content">
       <section className="page-intro">
         <p className="eyebrow">Build a clearer path through university</p>
         <h1>Choose your university</h1>

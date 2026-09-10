@@ -35,7 +35,7 @@ export const DegreeSelectionPage = ({ university, onBack, onSelectDegree }: Prop
   }, [degrees, query]);
 
   return (
-    <main className="page">
+    <main className="page" id="main-content">
       <Breadcrumbs items={[{ label: "Universities", onClick: onBack }, { label: university.code }]} />
       <section className="page-intro page-intro--compact">
         <p className="eyebrow">{university.name}</p><h1>Choose a degree</h1>

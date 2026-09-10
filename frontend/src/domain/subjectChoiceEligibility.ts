@@ -15,7 +15,7 @@ export const collectRequirementPoolContexts = (
 ): RequirementPoolContext[] => groups.flatMap((group) => {
   const selectableGroup = inheritedSelectable ?? (selectableGroupIds.has(group.id) ? group : undefined);
   const coreGroup = selectableGroup ? undefined : inheritedCore ?? (group.logic === "ALL" ? group : undefined);
-  const context = group.items.some((item) => item.subject) ? [{
+  const context = group.items.some((item) => item.itemType === "SUBJECT") ? [{
     group,
     quotaGroup: selectableGroup ?? coreGroup ?? group,
     selectable: Boolean(selectableGroup),

@@ -1,3 +1,4 @@
+import { appUi } from "./ui";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { askGlossaryQuestion } from "../api/chat";
 import { ApiRequestError } from "../api/client";
@@ -10,6 +11,7 @@ interface ChatMessage {
   content: string;
 }
 
+/** Provides terminology help with explicit user, assistant, pending and error styles. */
 export const GlossaryChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState("");
@@ -17,12 +19,31 @@ export const GlossaryChatWidget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => () => controllerRef.current?.abort(), []);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    bottomRef.current?.scrollIntoView({ behavior: reducedMotion ? "instant" : "smooth", block: "end" });
   }, [messages, isLoading]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    inputRef.current?.focus();
+    return () => toggleRef.current?.focus();
+  }, [isOpen]);
+
+  /** Keeps keyboard focus within the full-screen mobile assistant and supports Escape. */
+  const handlePanelKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") { event.preventDefault(); setIsOpen(false); return; }
+    if (event.key !== "Tab" || !window.matchMedia("(max-width: 720px)").matches) return;
+    const controls = event.currentTarget.querySelectorAll<HTMLElement>("button:not(:disabled), textarea");
+    const first = controls[0], last = controls[controls.length - 1];
+    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+  };
 
   const submitQuestion = (trimmed: string) => {
     controllerRef.current?.abort();
@@ -66,7 +87,8 @@ export const GlossaryChatWidget = () => {
       {!isOpen && (
         <button
           type="button"
-          className="glossary-chat__toggle"
+          ref={toggleRef}
+          className={appUi.glossaryChatToggle}
           onClick={() => setIsOpen(true)}
           aria-label="Open assistant"
         >
@@ -75,39 +97,40 @@ export const GlossaryChatWidget = () => {
       )}
 
       {isOpen && (
-        <aside className="glossary-chat" aria-label="Assistant">
-          <div className="glossary-chat__header">
+        <aside className={appUi.glossaryChat} aria-label="Assistant" onKeyDown={handlePanelKeyDown}>
+          <div className={appUi.glossaryChatHeader}>
             <h2>Assistant</h2>
-            <button type="button" className="glossary-chat__close" onClick={() => setIsOpen(false)} aria-label="Close assistant">
+            <button type="button" className={appUi.glossaryChatClose} onClick={() => setIsOpen(false)} aria-label="Close assistant">
               ×
             </button>
           </div>
 
-          <div className="glossary-chat__messages">
+          <div className={appUi.glossaryChatMessages}>
             {messages.length === 0 && (
-              <p className="glossary-chat__empty">
+              <p className={appUi.glossaryChatEmpty}>
                 Ask about general terms like &quot;what is a credit point&quot; or &quot;semester vs trimester&quot;.
               </p>
             )}
             {messages.map((message) => (
-              <div key={message.id} className={`glossary-chat__message glossary-chat__message--${message.role}`}>
-                <span className="glossary-chat__message-role">
+              <div key={message.id} className={message.role === "user" ? appUi.glossaryMessageUser : message.role === "error" ? appUi.glossaryMessageError : appUi.glossaryMessageAssistant}>
+                <span className={appUi.glossaryChatMessageRole}>
                   {message.role === "user" ? "You" : message.role === "assistant" ? "Assistant" : "Error"}
                 </span>
                 <p>{message.content}</p>
               </div>
             ))}
             {isLoading && (
-              <div className="glossary-chat__message glossary-chat__message--assistant glossary-chat__message--pending">
-                <span className="glossary-chat__message-role">Assistant</span>
-                <p className="glossary-chat__typing" aria-live="polite">Thinking…</p>
+              <div className={appUi.glossaryMessagePending}>
+                <span className={appUi.glossaryChatMessageRole}>Assistant</span>
+                <p aria-live="polite">Thinking…</p>
               </div>
             )}
             <div ref={bottomRef} />
           </div>
 
-          <form className="glossary-chat__form" onSubmit={handleSubmit}>
+          <form className={appUi.glossaryChatForm} onSubmit={handleSubmit}>
             <textarea
+              ref={inputRef}
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={handleKeyDown}
@@ -117,12 +140,12 @@ export const GlossaryChatWidget = () => {
             />
             <button
               type="submit"
-              className="glossary-chat__send"
+              className={appUi.glossaryChatSend}
               disabled={isLoading || !question.trim()}
               aria-label={isLoading ? "Sending question" : "Send question"}
             >
               {isLoading ? (
-                <span className="glossary-chat__spinner" aria-hidden="true" />
+                <span className={appUi.glossaryChatSpinner} aria-hidden="true" />
               ) : (
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="12" y1="19" x2="12" y2="5" />

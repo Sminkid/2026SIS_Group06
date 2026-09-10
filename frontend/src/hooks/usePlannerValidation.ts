@@ -15,6 +15,7 @@ interface Args {
   handbookYear: number;
 }
 
+/** Loads access rules once per subject set, then reevaluates them when schedule placement changes. */
 export const usePlannerValidation = ({
   planner,
   degreeCreditPoints,
@@ -83,5 +84,5 @@ export const usePlannerValidation = ({
     });
   }, [accessConditions, degreeCreditPoints, planner, requirements, selectedComponents, status]);
 
-  return { validation, status };
+  return { validation, status, accessConditions };
 };

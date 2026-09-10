@@ -1,3 +1,4 @@
+import { appUi } from "./components/ui";
 import { useState } from "react";
 import type { DegreeSummary, University } from "./types/handbook";
 import { DegreePage } from "./pages/DegreePage";
@@ -10,37 +11,38 @@ type Screen =
   | { name: "degrees"; university: University }
   | { name: "degree"; university: University; degree: DegreeSummary };
 
+/** Coordinates the university, degree and handbook screens within the shared navigation shell. */
 export const App = () => {
   const [screen, setScreen] = useState<Screen>({
     name: "universities",
   });
 
   return (
-    <div className="app-shell">
-      <a className="skip-link" href="#main-content">
+    <div className={appUi.appShell}>
+      <a className={appUi.skipLink} href="#main-content">
         Skip to main content
       </a>
 
-            <div className="app-main">
-        <header className="site-header">
+      <div className={appUi.appMain}>
+        <header className={appUi.siteHeader}>
           <button
-            className="brand"
+            className={appUi.brand}
             type="button"
             onClick={() => setScreen({ name: "universities" })}
             aria-label="Degree planner home"
           >
-            <span className="brand__mark" aria-hidden="true">
+            <span className={appUi.brandMark} aria-hidden="true">
               DP
             </span>
             <span>Degree planner</span>
           </button>
 
-          <span className="site-header__note">
+          <span className={appUi.siteHeaderNote}>
             University handbook explorer
           </span>
         </header>
 
-        <main id="main-content">
+        <main id="main-content" className="min-w-0">
           {screen.name === "universities" && (
             <HomePage
               onSelectUniversity={(university) =>

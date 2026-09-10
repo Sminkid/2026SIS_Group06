@@ -1,0 +1,151 @@
+import { cn } from "./cn";
+
+const componentChoiceBase = cn(
+    "grid gap-4 items-center min-h-18 border-solid [&:hover]:[border-color:#9ba9bd]",
+    "[&:focus-within]:[outline:3px_solid_rgba(36,87,167,.22)] [&:focus-within]:[outline-offset:1px]",
+    "[&_input]:[width:1.05rem] [&_input]:[height:1.05rem] [&_input]:[accent-color:var(--blue)]",
+    "[@media(max-width:720px)]:[grid-template-columns:auto_minmax(0,1fr)]",
+  );
+const obligationRequiredBase = "text-[length:.65rem] font-extrabold [letter-spacing:.06em] uppercase";
+
+/** Static Tailwind recipes preserve the handbook's requirements appearance and responsive states. */
+export const requirementsUi = {
+  completionOverview: "grid gap-6",
+  completionOverviewTotal: cn(
+    "flex justify-between gap-4 [padding:1.1rem_1.25rem] [border-left:4px_solid_var(--navy)] bg-[var(--soft)]",
+    "[&_span]:[font-weight:750] [@media(max-width:720px)]:items-start [@media(max-width:720px)]:flex-col",
+  ),
+  completionSection: "[&_h3]:[margin:0_0_.75rem] [&_h3]:text-[length:1rem]",
+  completionCards: "grid [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))] [gap:.7rem]",
+  completionCard: cn(
+    "grid [gap:.6rem] p-4 border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
+    "[&_h4]:[margin:.35rem_0_0] [&_h4]:text-[length:.92rem] [&_h4]:[line-height:1.4] [&_p]:m-0",
+    "[&_p]:text-[var(--muted)] [&_p]:text-[length:.78rem] [&_p]:[line-height:1.5] [&_small]:text-[var(--navy)]",
+    "[&_small]:[font-weight:750]",
+  ),
+  obligationRequired: cn(obligationRequiredBase, "text-[#2457a7]"),
+  obligationOptional: cn(obligationRequiredBase, "text-[#72510c]"),
+  obligationConditional: cn(obligationRequiredBase, "text-[#7a3e00]"),
+  obligationInformational: cn(obligationRequiredBase, "text-[var(--muted)]"),
+  completionAction: cn(
+    "[&_h3]:[margin:0_0_.75rem] [&_h3]:text-[length:1rem] grid [gap:.8rem] p-4 border-[1px] border-solid",
+    "border-[color:var(--line)] bg-[#fbfcfe] [&_>_label]:grid",
+    "[&_>_label]:[grid-template-columns:minmax(14rem,.5fr)_minmax(14rem,1fr)] [&_>_label]:gap-4",
+    "[&_>_label]:items-center [&_>_label]:[font-weight:750] [&_select]:min-w-0 [&_select]:w-full",
+    "[&_select]:[padding:.7rem] [&_select]:border-[1px] [&_select]:border-solid [&_select]:border-[color:#bfc6d1]",
+    "[&_select]:bg-[var(--surface)] [@media(max-width:720px)]:[&_>_label]:[grid-template-columns:1fr]",
+    "[@media(max-width:720px)]:[&_>_label]:[gap:.4rem]",
+  ),
+  completionActionNote: "m-0 text-[var(--muted)] text-[length:.8rem]",
+  tableHelp: cn(
+    "[&_h3]:[margin:0_0_.75rem] [&_h3]:text-[length:1rem] [padding:1rem_1.25rem] border-[1px] border-solid",
+    "border-[color:#bfd0e8] bg-[#f4f7fc] [&_dl]:grid [&_dl]:[gap:.55rem] [&_dl]:m-0 [&_dl_div]:grid",
+    "[&_dl_div]:[grid-template-columns:5rem_1fr] [&_dl_div]:gap-3 [&_dt]:font-extrabold [&_dd]:m-0",
+    "[&_dd]:text-[var(--muted)] [&_dd]:text-[length:.78rem] [&_dd]:[line-height:1.5] [&_p]:m-0",
+    "[&_p]:text-[var(--muted)] [&_p]:text-[length:.78rem] [&_p]:[line-height:1.5] [&_p]:[margin-top:.8rem]",
+  ),
+  officialWording: cn(
+    "[&_summary]:text-[var(--blue)] [&_summary]:[font-weight:750] [&_summary]:cursor-pointer",
+    "[&_blockquote]:[margin:.8rem_0] [&_blockquote]:[padding:.75rem_1rem]",
+    "[&_blockquote]:[border-left:3px_solid_var(--line)] [&_blockquote]:text-[var(--muted)]",
+    "[&_blockquote]:text-[length:.8rem] [&_blockquote]:[line-height:1.55]",
+  ),
+  requirementRowInteractive: cn(
+    "grid [grid-template-columns:7rem_minmax(0,1fr)_auto] gap-4 items-center min-h-14 [padding:.8rem_1rem]",
+    "border-[1px] border-solid border-[color:var(--line)] bg-[var(--soft)] w-full text-[inherit] text-left",
+    "cursor-pointer [&:hover]:[border-color:var(--blue)] [&:hover]:bg-[#eef3fb]",
+    "[@media(max-width:720px)]:[grid-template-columns:1fr_auto] [@media(max-width:720px)]:[gap:.4rem_1rem]",
+  ),
+  requirementRowCode: "text-[var(--blue)] text-[length:.82rem] font-extrabold [@media(max-width:720px)]:[grid-column:1]",
+  requirementRowName: "text-[length:.9rem] [line-height:1.4] [@media(max-width:720px)]:[grid-column:1]",
+  requirementRowCp: cn(
+    "text-[var(--muted)] text-[length:.8rem] whitespace-nowrap [@media(max-width:720px)]:[grid-column:2]",
+    "[@media(max-width:720px)]:[grid-row:2_/_span_2]",
+  ),
+  requirementRowComponent: cn(
+    "grid [grid-template-columns:6.5rem_6rem_minmax(0,1fr)_auto] gap-4 items-center min-h-14 [padding:.8rem_1rem]",
+    "border-[1px] border-solid border-[color:var(--line)] bg-[var(--soft)] [border-left:3px_solid_var(--blue)]",
+    "[@media(max-width:720px)]:[grid-template-columns:1fr_auto] [@media(max-width:720px)]:[gap:.4rem_1rem]",
+    "[@media(max-width:720px)]:[&_>_span:first-child]:[grid-column:1_/_-1]",
+  ),
+  typeBadge: "text-[var(--blue)] text-[length:.68rem] font-extrabold [letter-spacing:.06em] uppercase",
+  requirementRowOther: cn(
+    "grid [grid-template-columns:auto_auto_minmax(0,1fr)_auto] gap-4 items-center min-h-14 [padding:.8rem_1rem]",
+    "border-[1px] border-solid border-[color:var(--line)] bg-[var(--soft)]",
+    "[@media(max-width:720px)]:[grid-template-columns:1fr_auto] [@media(max-width:720px)]:[gap:.4rem_1rem]",
+    "[@media(max-width:720px)]:[&_>_span:first-child]:[grid-column:1_/_-1]",
+  ),
+  selectedComponent: "selected-component mt-5 border-[1px] border-solid border-[color:#aebbd0] bg-[#fbfcfe]",
+  selectedComponentHeader: cn(
+    "flex items-center justify-between gap-4 p-5 [border-bottom:1px_solid_var(--line)] [&_h4]:m-0",
+    "[&_h4]:text-[length:1rem] [&_>_span]:text-[var(--muted)] [&_>_span]:text-[length:.8rem]",
+    "[&_>_span]:whitespace-nowrap",
+  ),
+  selectedComponentLabel: "[margin-bottom:.35rem] text-[#216e4e] text-[length:.7rem] font-extrabold [letter-spacing:.09em] uppercase",
+  selectedComponentSummary: "flex flex-wrap [gap:0.5rem_1rem] [margin:0.6rem_0] text-[var(--muted)] text-[length:0.9rem]",
+  selectedComponentEmpty: "m-0 p-5 text-[var(--muted)]",
+  componentRequirements: "grid [gap:.65rem] p-5 [&_h5]:[margin:0_0_.25rem] [&_h5]:text-[length:.85rem]",
+  requirementGroupNested: "border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)] [border-left:3px_solid_#aebbd0]",
+  requirementGroup: "border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
+  requirementGroupTrigger: cn(
+    "w-full flex justify-between gap-4 items-center [padding:1.35rem_1.5rem] border-0 text-left",
+    "bg-[var(--surface)] cursor-pointer [&:hover:not(:disabled)]:bg-[var(--soft)] [&:disabled]:cursor-default",
+    "[@media(max-width:720px)]:[padding-left:1rem] [@media(max-width:720px)]:[padding-right:1rem]",
+  ),
+  requirementGroupHeading: "grid [gap:.4rem]",
+  requirementGroupTitle: "text-[length:1.05rem] [font-weight:750]",
+  requirementGroupMeta: "flex flex-wrap [gap:.65rem] text-[var(--muted)] text-[length:.8rem]",
+  logicLabel: "text-[var(--blue)] text-[length:.68rem] font-extrabold [letter-spacing:.06em] uppercase",
+  selectionSummary: "text-[#216e4e] font-bold",
+  chevron: "text-[var(--blue)] text-[length:1.4rem]",
+  requirementGroupContent: cn(
+    "[padding:0_1.5rem_1.5rem] [border-top:1px_solid_var(--line)] [@media(max-width:720px)]:[padding-left:1rem]",
+    "[@media(max-width:720px)]:[padding-right:1rem]",
+  ),
+  officialRequirement: cn(
+    "[margin:1rem_0] text-[var(--muted)] [&_summary]:w-fit [&_summary]:text-[var(--blue)]",
+    "[&_summary]:text-[length:.8rem] [&_summary]:[font-weight:750] [&_summary]:cursor-pointer",
+  ),
+  groupDescription: "max-w-208 [margin:1.25rem_0] text-[var(--muted)] [line-height:1.65]",
+  componentChoices: "grid [gap:.6rem] [margin:1rem_0_0] p-0 border-0 [&_legend]:mb-3 [&_legend]:text-[length:.85rem] [&_legend]:[font-weight:750]",
+  componentChoicesTools: cn(
+    "flex justify-between gap-4 items-end mb-1 text-[var(--muted)] text-[length:.75rem] [&_label]:grid",
+    "[&_label]:flex-1 [&_label]:max-w-112 [&_label]:[gap:.35rem] [&_label]:text-[var(--navy)] [&_label]:font-bold",
+    "[&_input]:min-w-0 [&_input]:w-full [&_input]:[padding:.65rem_.75rem] [&_input]:border-[1px]",
+    "[&_input]:border-solid [&_input]:border-[color:#bfc6d1] [&_input]:bg-[var(--surface)]",
+    "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col",
+  ),
+  componentChoiceUnavailable: cn(componentChoiceBase, cn(
+    "[grid-template-columns:auto_auto_minmax(0,1fr)] [padding:.85rem_1rem] border-[1px] border-[color:var(--line)]",
+    "bg-[var(--soft)] cursor-not-allowed text-[var(--muted)]",
+  )),
+  componentChoiceSelected: cn(componentChoiceBase, cn(
+    "[grid-template-columns:auto_minmax(0,1fr)_auto] [padding:calc(.85rem_-_1px)_calc(1rem_-_1px)] border-[2px]",
+    "border-[color:var(--blue)] bg-[#f4f7fc] cursor-pointer",
+  )),
+  componentChoice: cn(componentChoiceBase, cn(
+    "[grid-template-columns:auto_minmax(0,1fr)_auto] [padding:.85rem_1rem] border-[1px] border-[color:var(--line)]",
+    "bg-[var(--soft)] cursor-pointer",
+  )),
+  componentChoiceBody: cn(
+    "min-w-0 grid [gap:.35rem] [&_>_strong]:min-w-0 [&_>_strong]:text-[var(--navy)]",
+    "[&_>_strong]:text-[length:.9rem] [&_>_strong]:[line-height:1.4] [&_>_strong]:[overflow-wrap:anywhere]",
+  ),
+  componentChoiceMeta: "flex flex-wrap [gap:.55rem] items-center text-[var(--muted)] text-[length:.72rem]",
+  componentChoiceCp: cn(
+    "text-[var(--muted)] text-[length:.8rem] whitespace-nowrap [@media(max-width:720px)]:[grid-column:2]",
+    "[@media(max-width:720px)]:whitespace-normal [@media(max-width:720px)]:text-left",
+  ),
+  componentChoiceCpUnknown: cn(
+    "text-[var(--muted)] text-[length:.8rem] whitespace-normal max-w-32 text-right [line-height:1.3]",
+    "[@media(max-width:720px)]:[grid-column:2] [@media(max-width:720px)]:whitespace-normal",
+    "[@media(max-width:720px)]:text-left",
+  ),
+  componentChoicesEmpty: "p-4 text-[var(--muted)] text-center bg-[var(--soft)]",
+  requirementItems: "grid gap-2 mt-4",
+  nestedRequirements: "grid [gap:.65rem] mt-4",
+  missingSubject: "missing-subject text-[#9f1239]",
+  requirementsSection: "requirements-section pt-8 [border-top:2px_solid_var(--navy)]",
+  requirementsList: "grid [gap:.85rem]",
+  requirementSectionLabel: "[margin:1.25rem_0_.15rem] text-[var(--navy)] text-[length:1rem] [&:first-child]:mt-0",
+} as const;

@@ -21,61 +21,63 @@ export const App = () => {
         Skip to main content
       </a>
 
-      <header className="site-header">
-        <button
-          className="brand"
-          type="button"
-          onClick={() => setScreen({ name: "universities" })}
-          aria-label="Degree planner home"
-        >
-          <span className="brand__mark" aria-hidden="true">
-            DP
+            <div className="app-main">
+        <header className="site-header">
+          <button
+            className="brand"
+            type="button"
+            onClick={() => setScreen({ name: "universities" })}
+            aria-label="Degree planner home"
+          >
+            <span className="brand__mark" aria-hidden="true">
+              DP
+            </span>
+            <span>Degree planner</span>
+          </button>
+
+          <span className="site-header__note">
+            University handbook explorer
           </span>
-          <span>Degree planner</span>
-        </button>
+        </header>
 
-        <span className="site-header__note">
-          University handbook explorer
-        </span>
-      </header>
+        <main id="main-content">
+          {screen.name === "universities" && (
+            <HomePage
+              onSelectUniversity={(university) =>
+                setScreen({ name: "degrees", university })
+              }
+            />
+          )}
 
-      <main id="main-content">
-        {screen.name === "universities" && (
-          <HomePage
-            onSelectUniversity={(university) =>
-              setScreen({ name: "degrees", university })
-            }
-          />
-        )}
+          {screen.name === "degrees" && (
+            <DegreeSelectionPage
+              university={screen.university}
+              onBack={() => setScreen({ name: "universities" })}
+              onSelectDegree={(degree) =>
+                setScreen({
+                  name: "degree",
+                  university: screen.university,
+                  degree,
+                })
+              }
+            />
+          )}
 
-        {screen.name === "degrees" && (
-          <DegreeSelectionPage
-            university={screen.university}
-            onBack={() => setScreen({ name: "universities" })}
-            onSelectDegree={(degree) =>
-              setScreen({
-                name: "degree",
-                university: screen.university,
-                degree,
-              })
-            }
-          />
-        )}
-
-        {screen.name === "degree" && (
-          <DegreePage
-            university={screen.university}
-            degree={screen.degree}
-            onBack={() =>
-              setScreen({
-                name: "degrees",
-                university: screen.university,
-              })
-            }
-            onHome={() => setScreen({ name: "universities" })}
-          />
-        )}
-      </main>
+          {screen.name === "degree" && (
+            <DegreePage
+              university={screen.university}
+              degree={screen.degree}
+              onBack={() =>
+                setScreen({
+                  name: "degrees",
+                  university: screen.university,
+                })
+              }
+              onHome={() => setScreen({ name: "universities" })}
+            />
+          )}
+        </main>
+      </div>
 
       <GlossaryChatWidget />
     </div>

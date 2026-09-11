@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { StudyPlan } from "../types/handbook";
 import type { SubjectSearchResult } from "../types/subject";
+import { plannerItems, proposeSwap, type SwapFacts } from "../domain/plannerSwap";
 import {
   cloneOfficialPlan,
   type PlannerContext,
@@ -86,7 +87,7 @@ export const reconcilePlannerComponentSelections = (
     const stalePathway = origin?.formalRequirementGroupId
       && knownPathwayGroups.has(origin.formalRequirementGroupId)
       && !activePathwayGroups.has(origin.formalRequirementGroupId);
-    if (!item.subject || !origin || (!staleComponent && !stalePathway)) {
+    if (!origin || (!staleComponent && !stalePathway)) {
       return item;
     }
     const {
@@ -116,6 +117,54 @@ export const reconcilePlannerComponentSelections = (
       })),
     })),
     unassignedItems: planner.unassignedItems.map(reconcileItem),
+  };
+};
+
+/** Rebase generated capacity against stable source identities. */
+export const rebasePlannerSlots = (planner: PlannerState, plan: StudyPlan, context: PlannerContext): PlannerState => {
+  const fresh = cloneOfficialPlan(plan, context);
+  const previous = [...plannerItems(planner), ...planner.unassignedItems];
+  const used = new Set<string>();
+  const definitions = plannerItems(fresh);
+  const allocations = definitions.map((item) => {
+    const compatible = (old: typeof item) => !used.has(old.plannerItemId)
+      && old.choiceOrigin?.formalComponentId === item.choiceOrigin?.formalComponentId
+      && old.choiceOrigin?.selectedPathwayId === item.choiceOrigin?.selectedPathwayId;
+    const old = previous.find((candidate) => candidate.plannerItemId === item.plannerItemId && compatible(candidate))
+      ?? (item.choiceOrigin?.parentAggregateItemId ? previous.find((candidate) => compatible(candidate) && candidate.subject
+        && candidate.choiceOrigin?.componentRequirementKind !== "FIXED"
+        && candidate.choiceOrigin?.parentAggregateItemId === item.choiceOrigin?.parentAggregateItemId) : undefined);
+    if (!old) return item;
+    used.add(old.plannerItemId);
+    // Legacy generated FIXED subjects were auto-scheduled, not student choices.
+    if (old.choiceOrigin?.parentAggregateItemId && old.choiceOrigin.componentRequirementKind === "FIXED") return item;
+    return { ...item, schedulePositionId: old.schedulePositionId ?? item.plannerItemId,
+      ...(old.scheduleLocked !== undefined ? { scheduleLocked: old.scheduleLocked } : {}),
+      ...(old.allowedPeriodIds ? { allowedPeriodIds: old.allowedPeriodIds } : {}),
+      ...(old.subject && old.choiceOrigin ? { subject: old.subject, title: old.title, rawCode: old.rawCode,
+        creditPoints: old.creditPoints, itemType: old.itemType,
+        choiceOrigin: { ...item.choiceOrigin!, formalRequirementGroupId: old.choiceOrigin.formalRequirementGroupId,
+          formalComponentCode: old.choiceOrigin.formalComponentCode, formalComponentId: old.choiceOrigin.formalComponentId,
+          allocatedGroupLabel: old.choiceOrigin.allocatedGroupLabel } } : {}),
+    };
+  });
+  const positions = new Map<string, typeof definitions[number]>();
+  const available = new Set(definitions.map((item) => item.plannerItemId));
+  // Official fixed locations cannot be claimed by a stale/custom allocation.
+  for (const item of allocations.filter((item) => !item.choiceOrigin)) {
+    positions.set(item.plannerItemId, item); available.delete(item.plannerItemId);
+  }
+  for (const item of allocations.filter((item) => item.choiceOrigin).sort((a, b) => Number(b.schedulePositionId !== b.plannerItemId) - Number(a.schedulePositionId !== a.plannerItemId))) {
+    const position = available.has(item.schedulePositionId ?? "") ? item.schedulePositionId!
+      : available.has(item.plannerItemId) ? item.plannerItemId : [...available][0];
+    if (!position) continue;
+    positions.set(position, { ...item, schedulePositionId: position }); available.delete(position);
+  }
+  return { ...fresh, createdAt: planner.createdAt, updatedAt: planner.updatedAt,
+    years: fresh.years.map((year) => ({ ...year, periods: year.periods.map((period) => ({ ...period,
+      maximumCreditPoints: planner.years.flatMap((oldYear) => oldYear.periods).find((old) => old.plannerPeriodId === period.plannerPeriodId)?.maximumCreditPoints,
+      items: period.items.map((item) => positions.get(item.plannerItemId) ?? item),
+    })) })), unassignedItems: planner.unassignedItems.filter((item) => !used.has(item.plannerItemId) && !definitions.some((definition) => definition.plannerItemId === item.plannerItemId)),
   };
 };
 
@@ -162,16 +211,21 @@ const restorePlanner = (
     );
     return {
       storageKey,
-      planner: isPlannerState(value, context, sourcePlanId) ? value : null,
+      planner: isPlannerState(value, context, sourcePlanId) ? reconcilePlannerComponentSelections(value, context) : null,
     };
   } catch {
     return { storageKey, planner: null };
   }
 };
 
+/**
+ * Restores and edits a personal plan. Rebuilding generated slots must wait for
+ * selected component details, otherwise a partial roadmap can erase saved allocations.
+ */
 export const usePlannerState = (
   officialPlan: StudyPlan | undefined,
   context: PlannerContext,
+  canRebase = true,
 ) => {
   const storageKey = useMemo(
     () => createPlannerStorageKey(context, officialPlan?.id ?? "NO-PLAN"),
@@ -216,7 +270,15 @@ export const usePlannerState = (
     }
   }, [storageKey, stored]);
 
-  const planner = stored.storageKey === storageKey ? stored.planner : null;
+  const planner = useMemo(() => {
+    if (stored.storageKey !== storageKey || !stored.planner) return null;
+    const generated = officialPlan?.years.some((year) => year.periods.some((period) => period.items.some((item) => item.choiceOrigin?.parentAggregateItemId)))
+      || stored.planner.years.some((year) => year.periods.some((period) => period.items.some((item) => item.choiceOrigin?.parentAggregateItemId)));
+    return generated && officialPlan && canRebase ? rebasePlannerSlots(stored.planner, officialPlan, context) : stored.planner;
+  }, [stored, storageKey, officialPlan, context, canRebase]);
+  useEffect(() => {
+    if (planner && planner !== stored.planner && JSON.stringify(planner) !== JSON.stringify(stored.planner)) setStored({ storageKey, planner });
+  }, [planner, stored.planner, storageKey]);
 
   const customize = () => {
     if (!officialPlan) return;
@@ -238,9 +300,17 @@ export const usePlannerState = (
     subject: SubjectSearchResult,
     formalComponentCode?: string,
     formalRequirementGroupId?: string,
+    formalComponentId?: string,
+    allocatedGroupLabel?: string,
   ) => {
     setStored((current) => {
       if (current.storageKey !== storageKey || !current.planner) return current;
+      const items = current.planner.years.flatMap((year) => year.periods.flatMap((period) => period.items)).concat(current.planner.unassignedItems);
+      const target = items.find((item) => item.plannerItemId === plannerItemId);
+      if (!target?.choiceOrigin || target.choiceOrigin.componentRequirementKind === "FIXED"
+        || items.some((item) => item.plannerItemId !== plannerItemId && item.subject?.code === subject.code)
+        || subject.creditPoints === null || subject.creditPoints <= 0
+        || subject.creditPoints > (target.choiceOrigin.maximumCreditPoints ?? target.choiceOrigin.creditPoints ?? Infinity)) return current;
       return {
         storageKey,
         planner: {
@@ -255,7 +325,7 @@ export const usePlannerState = (
                 return {
                   ...item,
                   choiceOrigin: item.choiceOrigin
-                    ? { ...item.choiceOrigin, formalComponentCode, formalRequirementGroupId }
+                    ? { ...item.choiceOrigin, formalComponentCode: formalComponentCode ?? item.choiceOrigin.formalComponentCode, formalComponentId: formalComponentId ?? item.choiceOrigin.formalComponentId, formalRequirementGroupId: formalRequirementGroupId ?? item.choiceOrigin.formalRequirementGroupId, allocatedGroupLabel }
                     : item.choiceOrigin,
                   itemType: "SUBJECT",
                   subject: {
@@ -329,55 +399,26 @@ export const usePlannerState = (
   const restoreChoiceSlot = (plannerItemId: string) => {
     setStored((current) => {
       if (current.storageKey !== storageKey || !current.planner) return current;
-      let choiceItem = current.planner.unassignedItems.find(
-        (item) => item.plannerItemId === plannerItemId,
-      );
-      const yearsWithoutItem = current.planner.years.map((year) => ({
-        ...year,
-        periods: year.periods.map((period) => ({
-          ...period,
-          items: period.items.filter((item) => {
-            if (item.plannerItemId !== plannerItemId) return true;
-            choiceItem = item;
-            return false;
+      return { ...current, planner: { ...current.planner, updatedAt: new Date().toISOString(),
+        years: current.planner.years.map((year) => ({ ...year, periods: year.periods.map((period) => ({ ...period,
+          items: period.items.map((item) => {
+            if (item.plannerItemId !== plannerItemId || !item.choiceOrigin) return item;
+            const origin = item.choiceOrigin;
+            return { ...item, itemType: "CHOICE" as const, subject: null, rawCode: origin.rawCode,
+              title: origin.title, creditPoints: origin.creditPoints,
+              choiceOrigin: { ...origin, allocatedGroupLabel: undefined,
+                formalRequirementGroupId: origin.componentRequirementKind === "COMPONENT" ? undefined : origin.formalRequirementGroupId } };
           }),
-        })),
-      }));
-      if (!choiceItem?.choiceOrigin) return current;
-      const origin = choiceItem.choiceOrigin;
-      const restoredItem = {
-        ...choiceItem,
-        itemType: "CHOICE" as const,
-        subject: null,
-        rawCode: origin.rawCode,
-        title: origin.title,
-        creditPoints: origin.creditPoints,
-      };
-      let restored = false;
-      const years = yearsWithoutItem.map((year) => ({
-        ...year,
-        periods: year.periods.map((period) => {
-          if (period.officialPeriodId !== origin.originalPeriodId) return period;
-          restored = true;
-          return {
-            ...period,
-            items: [...period.items, restoredItem].sort((left, right) =>
-              (left.officialSortOrder ?? Number.MAX_SAFE_INTEGER)
-              - (right.officialSortOrder ?? Number.MAX_SAFE_INTEGER)),
-          };
-        }),
-      }));
-      return {
-        storageKey,
-        planner: {
-          ...current.planner,
-          updatedAt: new Date().toISOString(),
-          years,
-          unassignedItems: restored
-            ? current.planner.unassignedItems.filter((item) => item.plannerItemId !== plannerItemId)
-            : [...current.planner.unassignedItems.filter((item) => item.plannerItemId !== plannerItemId), restoredItem],
-        },
-      };
+        })) })),
+      } };
+    });
+  };
+
+  const swapPositions = (sourceId: string, targetId: string, facts: SwapFacts) => {
+    setStored((current) => {
+      if (current.storageKey !== storageKey || !current.planner) return current;
+      const proposal = proposeSwap(current.planner, sourceId, targetId, facts);
+      return proposal.errors.length ? current : { ...current, planner: { ...proposal.plan, updatedAt: new Date().toISOString() } };
     });
   };
 
@@ -418,6 +459,7 @@ export const usePlannerState = (
     selectSubject,
     moveItem,
     restoreChoiceSlot,
+    swapPositions,
     clearPeriod,
   };
 };

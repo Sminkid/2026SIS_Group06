@@ -17,6 +17,7 @@ export interface SubjectDetail {
   prerequisiteStatus: PrerequisiteStatus;
   description: string | null;
   offerings: unknown;
+  sourceUrl?: string | null;
   accessConditions: null | {
     hasConditions: boolean;
     groups: SubjectAccessConditionGroup[];

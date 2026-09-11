@@ -4,6 +4,7 @@ const subjectAccessSelect = {
   select: { hasConditions: true },
 } as const;
 
+/** Searches imported subjects with optional component or requirement-group constraints. */
 export const findSubjectSearchRecord = async (
   universityCode: string,
   handbookYear: number,
@@ -56,6 +57,7 @@ export const findSubjectSearchRecord = async (
   },
 });
 
+/** Reads a handbook-scoped subject, its source URL and the original requisite references. */
 export const findSubjectDetailRecord = async (
   universityCode: string,
   handbookYear: number,
@@ -77,6 +79,7 @@ export const findSubjectDetailRecord = async (
             creditPoints: true,
             description: true,
             offerings: true,
+            sourceUrl: true,
             SubjectAccessCondition: {
               select: {
                 hasConditions: true,
@@ -112,6 +115,7 @@ export const findSubjectDetailRecord = async (
   },
 });
 
+/** Reads access-condition records for a set of subjects in one handbook-scoped request. */
 export const findSubjectAccessConditionsBatchRecord = async (
   universityCode: string,
   handbookYear: number,

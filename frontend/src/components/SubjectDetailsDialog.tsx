@@ -1,10 +1,17 @@
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { trapDialogFocus } from "./ui/dialog";
+import { lockPageScroll } from "./ui/pageScroll";
+import { appUi, cn } from "./ui";
+import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { fetchSubjectAccessConditions, fetchSubjectDetail } from "../api/subjects";
 import type {
   SubjectAccessConditionGroup,
   SubjectAccessConditions,
   SubjectDetail,
 } from "../types/subject";
+import type { ValidationResult } from "../types/validation";
+import { getPrerequisiteDisplayState, requirementIssueText } from "../domain/prerequisiteDisplay";
+import { RequirementWarning } from "./planner/RequirementWarning";
+import { plannerUi as ui } from "./planner/ui";
 import { AsyncState } from "./AsyncState";
 
 interface Props {
@@ -12,8 +19,11 @@ interface Props {
   universityCode: string;
   handbookYear: number;
   onClose: () => void;
+  planIssues?: ValidationResult[];
+  hasPlan?: boolean;
 }
 
+/** Resolves a readable label without exposing storage identifiers. */
 const referencedLabel = (
   item: SubjectAccessConditionGroup["items"][number],
 ): string | null => {
@@ -23,6 +33,7 @@ const referencedLabel = (
   return null;
 };
 
+/** Preserves the imported rule expression and each condition in full. */
 const ConditionGroups = ({
   groups,
   emptyLabel,
@@ -30,22 +41,22 @@ const ConditionGroups = ({
   groups: SubjectAccessConditionGroup[];
   emptyLabel: string;
 }) => groups.length === 0
-  ? <p className="condition-empty">{emptyLabel}</p>
-  : <div className="condition-groups">{groups.map((group) => (
-      <section className="condition-group" key={group.id}>
-        <div className="condition-rule">
+  ? <p className="m-0 text-sm text-slate-600">{emptyLabel}</p>
+  : <div className="condition-groups grid gap-3">{groups.map((group) => (
+      <section className="overflow-hidden rounded border border-solid border-slate-200" key={group.id}>
+        <div className="grid gap-2 border-0 border-b border-solid border-slate-200 bg-slate-50 p-3 text-sm [overflow-wrap:anywhere]">
           <span>Logical rule</span>
           <code>{group.rule ?? "No machine-readable rule supplied"}</code>
         </div>
-        <dl className="condition-items">
+        <dl className="m-0">
           {group.items.map((item) => {
             const reference = referencedLabel(item);
-            return <div className="condition-item" key={item.id}>
-              <dt>{item.itemKey}</dt>
-              <dd>
-                {item.requisiteType && <span className="condition-type">{item.requisiteType}</span>}
-                <p>{item.details}</p>
-                {reference && <small>Resolved reference: {reference}</small>}
+            return <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] border-0 border-b border-solid border-slate-200 last:border-0" key={item.id}>
+              <dt className="bg-slate-50 p-3 text-center text-sm font-bold text-blue-800">{item.itemKey}</dt>
+              <dd className="m-0 min-w-0 p-3 text-sm leading-6 [overflow-wrap:anywhere]">
+                {item.requisiteType && <span className="text-xs font-bold text-blue-800">{item.requisiteType}</span>}
+                <p className="mb-0 mt-1">{item.details}</p>
+                {reference && <small className="mt-2 block text-slate-600">Resolved reference: {reference}</small>}
               </dd>
             </div>;
           })}
@@ -54,6 +65,7 @@ const ConditionGroups = ({
     ))}</div>;
 
 interface OfferingView { key: string; fields: Array<{ label: string; value: string }> }
+/** Selects human-readable offering fields while leaving imported content unchanged. */
 const offeringViews = (offerings: unknown): OfferingView[] => {
   if (!Array.isArray(offerings)) return [];
   const labels: Array<[string, string]> = [
@@ -74,16 +86,21 @@ const offeringViews = (offerings: unknown): OfferingView[] => {
   });
 };
 
+/** Adds data-quality context while retaining the full subject, rule and offering details. */
 export const SubjectDetailsDialog = ({
   subjectCode,
   universityCode,
   handbookYear,
   onClose,
+  planIssues = [],
+  hasPlan = false,
 }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   const [detail, setDetail] = useState<SubjectDetail | null>(null);
   const [conditions, setConditions] = useState<SubjectAccessConditions | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const prerequisite = getPrerequisiteDisplayState(conditions, planIssues, { loading: status === "loading", hasPlan });
   const readableOfferings = offeringViews(detail?.offerings);
 
   useEffect(() => {
@@ -98,8 +115,9 @@ export const SubjectDetailsDialog = ({
     setStatus("loading"); setDetail(null); setConditions(null);
     void Promise.all([
       fetchSubjectDetail(subjectCode, universityCode, handbookYear, controller.signal),
-      fetchSubjectAccessConditions(subjectCode, universityCode, handbookYear, controller.signal),
+      fetchSubjectAccessConditions(subjectCode, universityCode, handbookYear, controller.signal).catch(() => null),
     ]).then(([subject, accessConditions]) => {
+      if (controller.signal.aborted) return;
       setDetail(subject); setConditions(accessConditions); setStatus("ready");
     }).catch((error: unknown) => {
       if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
@@ -107,40 +125,55 @@ export const SubjectDetailsDialog = ({
     return () => controller.abort();
   }, [handbookYear, subjectCode, universityCode]);
 
+  useEffect(() => {
+    if (!subjectCode) return;
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const unlockScroll = lockPageScroll();
+    return () => { unlockScroll(); trigger?.focus(); };
+  }, [subjectCode]);
+
   const closeFromBackdrop = (event: MouseEvent<HTMLDialogElement>) => {
     if (event.target === event.currentTarget) onClose();
   };
 
-  return <dialog
-    className="subject-detail-dialog"
+  return <dialog onKeyDown={trapDialogFocus}
+    className={cn("subject-detail-dialog", ui.dialog)}
     ref={dialogRef}
-    aria-labelledby="subject-detail-title"
+    aria-labelledby={titleId}
     onCancel={(event) => { event.preventDefault(); onClose(); }}
     onClose={onClose}
     onClick={closeFromBackdrop}
   >
-    <div className="subject-detail-dialog__panel">
-      <header className="subject-detail-dialog__header">
-        <div><p className="eyebrow">Subject details</p><h2 id="subject-detail-title">{detail?.name ?? subjectCode}</h2>
+    <div className="flex max-h-[88dvh] flex-col">
+      <header className={cn(ui.header, "flex items-start justify-between gap-3")}>
+        <div><p className={appUi.eyebrow}>Subject details</p><h2 className={ui.title} id={titleId}>{detail?.name ?? subjectCode}</h2>
           {detail && <p><strong>{detail.code}</strong>{detail.creditPoints !== null && ` · ${detail.creditPoints} CP`}</p>}</div>
-        <button className="dialog-close" type="button" aria-label="Close subject details" onClick={onClose}>×</button>
+        <button className={cn(ui.action, "shrink-0 text-xl")} type="button" aria-label="Close subject details" onClick={onClose}>×</button>
       </header>
-      <div className="subject-detail-dialog__body">
+      <div className="min-h-0 space-y-5 overflow-y-auto p-4 sm:p-5">
         {status === "loading" && <AsyncState kind="loading" label="Loading subject details" />}
         {status === "error" && <AsyncState kind="error" label="We couldn't load this subject's details." />}
-        {status === "ready" && detail && conditions && <>
-          <section className="subject-detail-section"><h3>About this subject</h3>
+        {status === "error" && <RequirementWarning state={prerequisite} year={handbookYear} university={universityCode} />}
+        {status === "ready" && detail && <>
+          {planIssues.filter(issue => !["PREREQUISITE_TIMING", "COREQUISITE_TIMING"].includes(issue.code) && issue.severity !== "info").map((issue, index) =>
+            <p className={ui.warning} key={`${issue.code}-${index}`}>{requirementIssueText(issue.message)}</p>)}
+          <section className={ui.section}><h3 className="m-0 text-base font-bold">About this subject</h3>
             <p>{detail.description ?? "No description is available in this handbook."}</p></section>
-          <section className="subject-detail-section"><h3>Prerequisite and corequisite conditions</h3>
-            <p className="condition-guidance">Rules are shown exactly as supplied. Item keys map to the condition details below; no AND/OR logic has been simplified.</p>
-            <ConditionGroups groups={conditions.requisiteGroups} emptyLabel="No requisite groups are listed." />
+          <section className={ui.section}><h3 className="m-0 text-base font-bold">Prerequisite and corequisite conditions</h3>
+            <RequirementWarning state={prerequisite} year={handbookYear} university={universityCode} sourceUrl={detail.sourceUrl} />
+            {(prerequisite.kind === "unmet" || prerequisite.kind === "late") && <aside className={cn("requirement-unmet", ui.warning)}><strong>{prerequisite.label}</strong>
+              {planIssues.filter(issue => issue.code.includes("REQUISITE")).map((issue, index) => <p className="mb-0 mt-2" key={`${issue.code}-${index}`}>{requirementIssueText(issue.message)}</p>)}
+            </aside>}
+            {prerequisite.kind === "satisfied" && <p className="m-0 text-sm text-emerald-800">Prerequisites satisfied</p>}
+            <p className="m-0 rounded bg-blue-50 p-3 text-sm leading-6 text-slate-700">Rules are shown exactly as supplied. Item keys map to the condition details below; no AND/OR logic has been simplified.</p>
+            <ConditionGroups groups={conditions?.requisiteGroups ?? []} emptyLabel="No requisite groups are listed." />
           </section>
-          <section className="subject-detail-section"><h3>Anti-requisites and exclusions</h3>
-            <ConditionGroups groups={conditions.antiRequisiteGroups} emptyLabel="No anti-requisites or exclusions are listed." />
+          <section className={ui.section}><h3 className="m-0 text-base font-bold">Anti-requisites and exclusions</h3>
+            <ConditionGroups groups={conditions?.antiRequisiteGroups ?? []} emptyLabel="No anti-requisites or exclusions are listed." />
           </section>
-          <section className="subject-detail-section"><h3>Offering information</h3>
+          <section className={ui.section}><h3 className="m-0 text-base font-bold">Offering information</h3>
             {readableOfferings.length > 0
-              ? <div className="offering-list">{readableOfferings.map((offering) => <dl key={offering.key}>{offering.fields.map((field) => <div key={field.label}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>)}</div>
+              ? <div className="grid gap-3">{readableOfferings.map((offering) => <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] rounded border border-solid border-slate-200 bg-slate-50" key={offering.key}>{offering.fields.map((field) => <div className="p-3" key={field.label}><dt className="text-xs font-semibold text-slate-600">{field.label}</dt><dd className="m-0 min-w-0 p-3 text-sm leading-6 [overflow-wrap:anywhere]">{field.value}</dd></div>)}</dl>)}</div>
               : <p>No offering information is available in this handbook.</p>}
           </section>
         </>}

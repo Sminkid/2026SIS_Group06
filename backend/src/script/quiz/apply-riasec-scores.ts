@@ -2,7 +2,7 @@ import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaClient } from "../../generated/prisma/client.js";
 
 // Usage: tsx prisma/apply-riasec-scores.ts
 //

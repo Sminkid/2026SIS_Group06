@@ -4,7 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { PrismaClient } from "../src/generated/prisma/client.js";
+import { PrismaClient } from "../../generated/prisma/client.js";
 
 // Usage:
 //   tsx prisma/generate-riasec-scores.ts [--university=USYD] [--limit=N] [--degrees-only] [--components-only]

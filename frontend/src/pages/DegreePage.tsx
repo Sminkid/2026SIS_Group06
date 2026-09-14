@@ -10,6 +10,7 @@ import { SubjectDetailsDialog } from "../components/SubjectDetailsDialog";
 import { useSelectedComponentDetails } from "../hooks/useSelectedComponentDetails";
 import { DegreeCompletionOverview } from "../components/DegreeCompletionOverview";
 import { readableText } from "../domain/readableText";
+import { estimateCourseFees, formatCourseFee } from "../domain/courseFees";
 
 interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; }
 const componentIndex = (groups: RequirementGroup[]) => {
@@ -73,6 +74,9 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
   const pathwayRequirements = detail?.requirements.filter((group) => group.pathways.length > 0) ?? [];
   const compulsoryRequirements = detail?.requirements.filter((group) => group.pathways.length === 0) ?? [];
   const hasSemanticOverview = detail?.completionSummary.some((summary) => summary.obligation === "OPTIONAL" || summary.obligation === "CONDITIONAL" || summary.obligation === "INFORMATIONAL") ?? false;
+  const estimatedCourseFees = detail
+    ? estimateCourseFees(detail.degree.university.code, detail.degree.handbookYear, detail.degree.name, detail.degree.creditPoints)
+    : [];
 
   return <main className="page degree-page" id="main-content">
     <Breadcrumbs items={[{ label: "Universities", onClick: onHome }, { label: university.code, onClick: onBack }, { label: degree.code }]} />
@@ -87,6 +91,19 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
           <span><strong>{detail.degree.university.code}</strong> {detail.degree.university.name}</span>
         </div>
         {detail.degree.description && !hasSemanticOverview && <p className="degree-description">{readableText(detail.degree.description)}</p>}
+        {estimatedCourseFees.length > 0 && (
+          <section className="tuition-fees" aria-label="Estimated tuition fees">
+            <h2>Estimated tuition fees</h2>
+            <div className="tuition-fees__list">
+              {estimatedCourseFees.map((fee) => (
+                <div className="tuition-fees__item" key={fee.studentType}>
+                  <span>{fee.studentType}</span>
+                  <strong>{formatCourseFee(fee)}</strong>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </header>
       <section className="requirements-section" aria-labelledby="requirements-heading">
         <div className="section-heading"><div><p className="step-label">Step 3 of 3</p><h2 id="requirements-heading">Course structure</h2></div><span className="result-count">{detail.requirements.length} sections</span></div>

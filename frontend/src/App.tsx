@@ -5,6 +5,7 @@ import { DegreePage } from "./pages/DegreePage";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
+import logo from "./components/ui/icons/Logo.png";
 
 type Screen =
   | { name: "universities" }
@@ -30,10 +31,7 @@ export const App = () => {
           onClick={() => setScreen({ name: "universities" })}
           aria-label="Degree planner home"
         >
-          <span className={appUi.brandMark} aria-hidden="true">
-            DP
-          </span>
-          <span>Degree planner</span>
+          <img src={logo} className={appUi.brandMark}/>
         </button>
 
         <span className={appUi.siteHeaderNote}>

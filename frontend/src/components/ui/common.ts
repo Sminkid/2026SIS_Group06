@@ -28,13 +28,13 @@ export const commonUi = {
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
   primaryButton: cn(
-    "[padding:.7rem_1rem] border-[1px] border-solid border-[color:var(--navy)] text-[white] bg-[var(--navy)]",
-    "font-bold cursor-pointer [&:hover]:bg-[#23365f]",
+    "[padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
+    "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
   ),
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
   eyebrow: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   lead: "max-w-168 text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
-  contentSection: "pt-8 [border-top:2px_solid_var(--navy)]",
+  contentSection: "pt-8 [border-top:2px_solid_var(--line)]",
   degreeTools: cn(
     "flex items-center justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
     "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",

@@ -2,6 +2,8 @@ import { appUi } from "./ui";
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { askGlossaryQuestion } from "../api/chat";
 import { ApiRequestError } from "../api/client";
+import chatButton from "./ui/icons/chat-button.png";
+import chatHover from "./ui/icons/chat-hover.png";
 
 type MessageRole = "user" | "assistant" | "error";
 
@@ -92,7 +94,8 @@ export const GlossaryChatWidget = () => {
           onClick={() => setIsOpen(true)}
           aria-label="Open assistant"
         >
-          Assistant
+          <img src={chatButton} className={appUi.glossaryChatToggleIcon}/>
+          <img src={chatHover} className={appUi.glossaryChatToggleIconHover}/>
         </button>
       )}
 

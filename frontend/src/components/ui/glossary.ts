@@ -8,15 +8,17 @@ const glossaryMessageAssistantBase = cn(
 /** Static Tailwind recipes preserve the handbook's glossary appearance and responsive states. */
 export const glossaryUi = {
   glossaryChatToggle: cn(
-    "glossary-chat__toggle fixed [right:1.5rem] [bottom:1.5rem] [z-index:60] [padding:.85rem_1.35rem] border-[1px]",
-    "border-solid border-[color:var(--navy)] text-[#fff] bg-[var(--navy)] [font-weight:750] cursor-pointer",
-    "[box-shadow:0_8px_20px_rgba(20,33,61,.25)] [&:hover]:bg-[var(--blue)] [&:hover]:[border-color:var(--blue)]",
+    "glossary-chat__toggle fixed [right:1.5rem] [bottom:1.5rem] [z-index:60] ",
+    "group border-none bg-transparent cursor-pointer",
   ),
+  glossaryChatToggleIcon: "block w-18 h-18 transition-opacity duration-150 group-hover:opacity-0",
+  glossaryChatToggleIconHover: "absolute inset-0 m-auto w-18 h-18 opacity-0 transition-opacity duration-150 group-hover:opacity-100",
   glossaryChat: cn(
-    "z-30 sticky top-0 self-start [height:100vh] shrink-0 [width:min(24rem,_100vw)] flex flex-col",
-    "[border-left:1px_solid_var(--line)] bg-[var(--surface)] [box-shadow:-12px_0_32px_rgba(20,33,61,.14)]",
-    "[@media(max-width:720px)]:fixed [@media(max-width:720px)]:inset-0 [@media(max-width:720px)]:[width:100vw]",
-    "[@media(max-width:720px)]:h-dvh",
+    "fixed [right:1.5rem] [bottom:1.5rem] [z-index:60] [height:min(32rem,calc(100vh-3rem))] [width:min(24rem,_100vw)]",
+    "flex flex-col rounded-2xl overflow-hidden",
+    "border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)] [box-shadow:0_12px_32px_rgba(20,33,61,.18)]",
+    "[@media(max-width:720px)]:inset-0 [@media(max-width:720px)]:[width:100vw] [@media(max-width:720px)]:[height:100dvh]",
+    "[@media(max-width:720px)]:rounded-none",
   ),
   glossaryChatHeader: cn(
     "flex items-start justify-between gap-4 [padding:1.25rem_1.25rem_1rem] [border-bottom:1px_solid_var(--line)]",
@@ -37,7 +39,7 @@ export const glossaryUi = {
     "flex items-center [gap:.6rem] [padding:1rem_1.25rem] [border-top:1px_solid_var(--line)] bg-[var(--surface)]",
     "[&_textarea]:min-w-0 [&_textarea]:flex-1 [&_textarea]:resize-none [&_textarea]:[padding:.65rem_.75rem]",
     "[&_textarea]:border-[1px] [&_textarea]:border-solid [&_textarea]:border-[color:#bfc6d1]",
-    "[&_textarea]:text-[var(--navy)] [&_textarea]:bg-[var(--soft)] [&_textarea]:[font:inherit]",
+    "[&_textarea]:[&_textarea]:bg-[var(--soft)] [&_textarea]:[font:inherit]",
   ),
   glossaryChatSend: cn(
     "grid place-items-center shrink-0 w-10 h-10 border-[1px] border-solid border-[color:var(--navy)] rounded-full",

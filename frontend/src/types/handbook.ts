@@ -108,9 +108,24 @@ export interface StudyPlanItem {
     formalComponentCode?: string;
     formalComponentId?: string;
     formalRequirementGroupId?: string;
-    componentRequirementKind?: "FIXED" | "SELECTIVE";
+    componentRequirementKind?: "FIXED" | "SELECTIVE" | "COMPONENT";
+    allocatedGroupLabel?: string;
+    parentAggregateItemId?: string;
+    parentAggregateTitle?: string;
+    parentAggregateCreditPoints?: number;
+    selectedPathwayId?: string;
+    degreeRequirementGroupId?: string;
+    candidateSourceType?: "FORMAL" | "BROAD" | "UNRESOLVED";
+    maximumCreditPoints?: number;
+    sourceLabel?: string;
   };
 }
 export interface StudyPlanPeriod { id: string; name: string; sortOrder: number | null; items: StudyPlanItem[]; }
 export interface StudyPlanYear { id: string; name: string; sortOrder: number | null; periods: StudyPlanPeriod[]; }
-export interface StudyPlan { id: string; title: string; description: string | null; sourceUrl: string | null; years: StudyPlanYear[]; }
+export interface StudyPlan {
+  id: string; title: string; description: string | null; sourceUrl: string | null; years: StudyPlanYear[];
+  major?: { id: string; code: string; name: string } | null;
+  relationshipBasis?: "SOURCE_TITLE_AND_SUBJECT_IDS" | null;
+  commencement?: string | null;
+  attendance?: string | null;
+}

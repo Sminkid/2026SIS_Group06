@@ -1,10 +1,30 @@
+# Dependencies
 node_modules/
+
+# Production builds and generated Prisma client
 dist/
+build/
+backend/src/generated/prisma/
+
+# TypeScript incremental build metadata and Vite caches
+*.tsbuildinfo
+.vite/
+
+# Test, coverage and browser automation output
+coverage/
+playwright-report/
+test-results/
+
+# Local logs and operating-system metadata
+*.log
+.DS_Store
+
+# Local environment variables; retain shared setup templates
 .env
 .env.*
 !.env.example
-*.log
-.DS_Store
-frontend/.vite/
-backend/src/generated/prisma/
 
+# Machine-local extension indexing preference (not shared editor configuration)
+/.vscode/settings.json
+docs/
+backend/scripts/

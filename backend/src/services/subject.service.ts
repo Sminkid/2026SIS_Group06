@@ -12,6 +12,7 @@ import type {
 } from "../types/subject.js";
 import { ApiError } from "../utils/api-error.js";
 
+/** Preserves UNKNOWN when no access-condition record was imported. */
 const prerequisiteStatus = (
   accessCondition: { hasConditions: boolean } | null,
 ): PrerequisiteStatus => accessCondition === null
@@ -22,6 +23,7 @@ type AccessConditionRecord = NonNullable<
   NonNullable<Awaited<ReturnType<typeof findSubjectDetailRecord>>>["HandbookVersion"][number]["Subject"][number]["SubjectAccessCondition"]
 >;
 
+/** Maps imported rule text and references without simplifying enrolment logic. */
 const mapAccessGroup = (
   group: AccessConditionRecord["SubjectRequisiteGroup"][number],
 ): SubjectAccessConditionGroup => ({
@@ -42,6 +44,7 @@ const mapAccessGroup = (
   })),
 });
 
+/** Resolves a subject in the requested university and handbook, with specific not-found errors. */
 const resolveSubjectRecord = async (
   universityCode: string,
   handbookYear: number,
@@ -56,6 +59,7 @@ const resolveSubjectRecord = async (
   return subject;
 };
 
+/** Searches subjects within the requested handbook and optional formal requirement scope. */
 export const searchSubjects = async (
   universityCode: string,
   handbookYear: number,
@@ -88,6 +92,7 @@ export const searchSubjects = async (
   }));
 };
 
+/** Returns subject details and the imported source link for handbook verification. */
 export const getSubjectDetail = async (
   universityCode: string,
   handbookYear: number,
@@ -102,6 +107,7 @@ export const getSubjectDetail = async (
     creditPoints: subject.creditPoints,
     description: subject.description,
     offerings: subject.offerings,
+    sourceUrl: subject.sourceUrl,
     prerequisiteStatus: prerequisiteStatus(access),
     accessConditions: access
       ? {
@@ -112,6 +118,7 @@ export const getSubjectDetail = async (
   };
 };
 
+/** Returns full access rules, distinguishing absent data from explicitly absent conditions. */
 export const getSubjectAccessConditions = async (
   universityCode: string,
   handbookYear: number,
@@ -128,6 +135,7 @@ export const getSubjectAccessConditions = async (
   };
 };
 
+/** Loads access rules for planner subjects while preserving unknown-data status. */
 export const getSubjectAccessConditionsBatch = async (
   universityCode: string,
   handbookYear: number,

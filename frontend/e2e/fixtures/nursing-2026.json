@@ -1,0 +1,1598 @@
+{
+  "degree": {
+    "degree": {
+      "id": "cmszs1z2j003skwtzqj8xgaka",
+      "code": "C10122",
+      "name": "Bachelor of Nursing",
+      "creditPoints": 144,
+      "handbookYear": 2026,
+      "university": {
+        "id": "cmszs1wd10000kwtzioh7965j",
+        "code": "UTS",
+        "name": "University of Technology Sydney"
+      },
+      "description": "<p>UTS Bachelor of Nursing prepares you for the exciting and challenging role of the Registered Nurse. This course offers you a comprehensive range of theoretical and clinical nursing subjects that together provide the knowledge, skills and professional values graduates require to provide safe, effective and compassionate nursing care. You will be well prepared for clinical practice and highly sought after for employment in a wide range of healthcare settings across Australia and internationally.</p>\n<p>The course is three years full-time (or equivalent part-time), consisting of both theoretical and practical components. Clinical learning is a key element of the course and clinical placements in health care settings begin in the first session of your first year and will continue every session thereafter. Simulation-based learning opportunities are integral to the course and are designed to assist you in preparing for clinical placements and your future role as a Registered Nurse. In your final year of study you can choose a specialty elective, for example paediatrics, critical care, peri operative, or mental health nursing to align your education with future career aspirations.</p>"
+    },
+    "requirements": [
+      {
+        "id": "cmszsfunu0643kwtznfitntel",
+        "title": "Program choice",
+        "description": "Select 144 credit points from the following programs:",
+        "logic": "ANY",
+        "requiredCreditPoints": 144,
+        "maximumCreditPoints": null,
+        "sortOrder": 0,
+        "items": [
+          {
+            "id": "cmszsfv030644kwtzgicrpejm",
+            "itemType": "COMPONENT",
+            "subject": null,
+            "component": {
+              "id": "cmszs24uf00j7kwtzkywufkea",
+              "code": "STM91997",
+              "displayCode": "STM91997",
+              "name": "Standard Program",
+              "type": "STREAM",
+              "creditPoints": 144,
+              "creditPointsAvailability": "EXPLICIT_RELATIONSHIP"
+            },
+            "rawCode": "STM91997",
+            "rawName": "Standard Program",
+            "creditPoints": 144,
+            "sortOrder": 0
+          },
+          {
+            "id": "cmszsfv030645kwtzf27k3642",
+            "itemType": "COMPONENT",
+            "subject": null,
+            "component": {
+              "id": "cmszs24ue00glkwtzligialm0",
+              "code": "STM91472",
+              "displayCode": "STM91472",
+              "name": "Enrolled Nurse",
+              "type": "STREAM",
+              "creditPoints": 144,
+              "creditPointsAvailability": "EXPLICIT_RELATIONSHIP"
+            },
+            "rawCode": "STM91472",
+            "rawName": "Enrolled Nurse",
+            "creditPoints": 144,
+            "sortOrder": 100
+          }
+        ],
+        "children": [],
+        "pathways": []
+      }
+    ],
+    "completionSummary": [
+      {
+        "id": "cmszsfunu0643kwtznfitntel:summary",
+        "title": "Select 144 credit points from the following programs:",
+        "explanation": null,
+        "obligation": "REQUIRED",
+        "minimumCreditPoints": 144,
+        "maximumCreditPoints": null,
+        "conditionLabel": null,
+        "actionKind": "NONE",
+        "sourceText": "Select 144 credit points from the following programs:",
+        "sourceUrl": null,
+        "requirementGroupId": "cmszsfunu0643kwtznfitntel"
+      }
+    ]
+  },
+  "plans": [
+    {
+      "id": "cmszu3q3k0oo5kwtz94gp5xfd",
+      "title": "Accelerated Program (Enrolled Nurse), Autumn commencing, full time",
+      "description": null,
+      "sourceUrl": "/studyplan/0551e1cb83fe3210fed7d4326daad3c0",
+      "years": [
+        {
+          "id": "cmszu3q9o0oo6kwtz2onqp5x7",
+          "name": "Year 1",
+          "sortOrder": 1,
+          "periods": [
+            {
+              "id": "cmszu3qfq0oo7kwtzh6ykvpxr",
+              "name": "Autumn Session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3qlu0oo8kwtzqvajt6fi",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lpkwtz8bc7tqww",
+                    "code": "93200",
+                    "name": "Foundations of Nursing Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93200",
+                  "title": "Foundations of Nursing Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3qlu0oo9kwtzae1h2qqv",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600yvkwtzuz64gfvo",
+                    "code": "93222",
+                    "name": "Clinical Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93222",
+                  "title": "Clinical Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu3qlu0ooakwtzj5cw3rv4",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dwkwtz0slhkwg4",
+                    "code": "91529",
+                    "name": "Pathophysiology and Pharmacology 1",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91529",
+                  "title": "Pathophysiology and Pharmacology 1",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu3qlu0oobkwtzcu17akbb",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "Choice: 93223 Nursing Care of the Older Person or 93227\n\nFundamentals of Mental Health Nursing",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            },
+            {
+              "id": "cmszu3qry0oockwtzs4sddb5g",
+              "name": "Spring Session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3qy10oodkwtz0pjymehr",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lrkwtz4km5tyb8",
+                    "code": "93224",
+                    "name": "Foundations of Nursing Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93224",
+                  "title": "Foundations of Nursing Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3qy10ooekwtzrwikpzzd",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600yykwtzi3p4jsto",
+                    "code": "93225",
+                    "name": "Clinical Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93225",
+                  "title": "Clinical Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu3qy10oofkwtzhkqsvifp",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01tzkwtza7sttlvm",
+                    "code": "93226",
+                    "name": "Indigenous Health and Well-Being",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93226",
+                  "title": "Indigenous Health and Well-Being",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu3qy10oogkwtzku1fz8n9",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "Choice: 93227\n\nFundamentals of Mental Health Nursing or\n93223 Nursing Care of the Older Person",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu3r460oohkwtzsw5qh5pi",
+          "name": "Year 2",
+          "sortOrder": 2,
+          "periods": [
+            {
+              "id": "cmszu3raa0ooikwtzj9ozyp5b",
+              "name": "Autumn Session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3rgc0oojkwtzg18bvtrm",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01ltkwtzaizr54j8",
+                    "code": "93228",
+                    "name": "Foundations of Nursing Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93228",
+                  "title": "Foundations of Nursing Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3rgc0ookkwtzboou1aqz",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dxkwtzcrzqse1t",
+                    "code": "91530",
+                    "name": "Pathophysiology and Pharmacology 2",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91530",
+                  "title": "Pathophysiology and Pharmacology 2",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu3rgc0oolkwtzns8hg1fq",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600z1kwtzoihx3q9e",
+                    "code": "93229",
+                    "name": "Clinical Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93229",
+                  "title": "Clinical Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu3rgc0oomkwtzi6w3b6h6",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oe0248kwtzmnl29rh8",
+                    "code": "93233",
+                    "name": "Leading, Teaching and Mentoring",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93233",
+                  "title": "Leading, Teaching and Mentoring",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            },
+            {
+              "id": "cmszu3rmi0oonkwtz42pz16d1",
+              "name": "Spring Session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3rsm0oookwtzaf0xtffd",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lukwtzzufsv5oq",
+                    "code": "93230",
+                    "name": "Foundations of Nursing Practice 3B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93230",
+                  "title": "Foundations of Nursing Practice 3B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3rsm0oopkwtzsysrnt56",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o901d5kwtzoqr6qdy9",
+                    "code": "93231",
+                    "name": "Empathy and Compassion for Nursing Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93231",
+                  "title": "Empathy and Compassion for Nursing Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu3rsm0ooqkwtzgvncl4tl",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27om036skwtzxkg5nlli",
+                    "code": "93232",
+                    "name": "Transition to Professional Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93232",
+                  "title": "Transition to Professional Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu3rsm0oorkwtz8dp6fufa",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "CBK91913 ISP Electives",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "major": null,
+      "relationshipBasis": null,
+      "commencement": "AUTUMN",
+      "attendance": "FULL"
+    },
+    {
+      "id": "cmszu3sh40ooskwtzy742890v",
+      "title": "Accelerated Program (Enrolled Nurse), Autumn commencing, part time",
+      "description": null,
+      "sourceUrl": "/studyplan/0951e1cb83fe3210fed7d4326daad3c9",
+      "years": [
+        {
+          "id": "cmszu3sn90ootkwtz5b5q9h07",
+          "name": "Year 1",
+          "sortOrder": 1,
+          "periods": [
+            {
+              "id": "cmszu3stc0ooukwtzzklwv3ls",
+              "name": "Semester 1",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3szf0oovkwtzrmspt4pq",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600yvkwtzuz64gfvo",
+                    "code": "93222",
+                    "name": "Clinical Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93222",
+                  "title": "Clinical Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3szf0oowkwtzpdkljunr",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lpkwtz8bc7tqww",
+                    "code": "93200",
+                    "name": "Foundations of Nursing Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93200",
+                  "title": "Foundations of Nursing Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3t5j0ooxkwtzb9msuc63",
+              "name": "Semester 2",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3tbn0ooykwtz0jftsnwe",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01tzkwtza7sttlvm",
+                    "code": "93226",
+                    "name": "Indigenous Health and Well-Being",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93226",
+                  "title": "Indigenous Health and Well-Being",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3tbn0oozkwtz472ljxnm",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "Choice: 93223 Nursing Care of the Older Person or\n93227 Fundamentals of Mental Health Nursing",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu3thr0op0kwtzcelz6yny",
+          "name": "Year 2",
+          "sortOrder": 2,
+          "periods": [
+            {
+              "id": "cmszu3tnv0op1kwtz9jiu4cxa",
+              "name": "Semester 1",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3ttz0op2kwtzsoma100x",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dwkwtz0slhkwg4",
+                    "code": "91529",
+                    "name": "Pathophysiology and Pharmacology 1",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91529",
+                  "title": "Pathophysiology and Pharmacology 1",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3ttz0op3kwtzrh522cm9",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "Choice: 93227 Fundamentals of Mental Health Nursing",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3u030op4kwtz5zattjbq",
+              "name": "Semester 2",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3u670op5kwtzxq41av7g",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lrkwtz4km5tyb8",
+                    "code": "93224",
+                    "name": "Foundations of Nursing Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93224",
+                  "title": "Foundations of Nursing Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3u670op6kwtz3pk51kgu",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600yykwtzi3p4jsto",
+                    "code": "93225",
+                    "name": "Clinical Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93225",
+                  "title": "Clinical Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu3ucb0op7kwtzobvr151y",
+          "name": "Year 3",
+          "sortOrder": 3,
+          "periods": [
+            {
+              "id": "cmszu3uie0op8kwtzqhz9jkn7",
+              "name": "Semester 1",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3uoi0op9kwtza0gnul9b",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oe0248kwtzmnl29rh8",
+                    "code": "93233",
+                    "name": "Leading, Teaching and Mentoring",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93233",
+                  "title": "Leading, Teaching and Mentoring",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3uoi0opakwtza0ydn33y",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dxkwtzcrzqse1t",
+                    "code": "91530",
+                    "name": "Pathophysiology and Pharmacology 2",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91530",
+                  "title": "Pathophysiology and Pharmacology 2",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3uum0opbkwtzxrnytjc4",
+              "name": "Semester 2",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3v0r0opckwtzzvlqjq12",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o901d5kwtzoqr6qdy9",
+                    "code": "93231",
+                    "name": "Empathy and Compassion for Nursing Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93231",
+                  "title": "Empathy and Compassion for Nursing Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3v0r0opdkwtzv17cj9t6",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "CBK91913 ISP Electives",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu3v6t0opekwtzk5u726vz",
+          "name": "Year 4",
+          "sortOrder": 4,
+          "periods": [
+            {
+              "id": "cmszu3vcy0opfkwtz3zl7475q",
+              "name": "Semester 1",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3vj00opgkwtzze3aj0d5",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01ltkwtzaizr54j8",
+                    "code": "93228",
+                    "name": "Foundations of Nursing Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93228",
+                  "title": "Foundations of Nursing Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3vj00ophkwtzt6qraajx",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600z1kwtzoihx3q9e",
+                    "code": "93229",
+                    "name": "Clinical Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93229",
+                  "title": "Clinical Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3vp40opikwtzv6h3b16h",
+              "name": "Semester 2",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3vv70opjkwtz7qdpjun9",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lukwtzzufsv5oq",
+                    "code": "93230",
+                    "name": "Foundations of Nursing Practice 3B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93230",
+                  "title": "Foundations of Nursing Practice 3B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3vv70opkkwtzh26l657q",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27om036skwtzxkg5nlli",
+                    "code": "93232",
+                    "name": "Transition to Professional Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93232",
+                  "title": "Transition to Professional Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "major": null,
+      "relationshipBasis": null,
+      "commencement": "AUTUMN",
+      "attendance": "PART"
+    },
+    {
+      "id": "cmszu3wjs0oplkwtzxtec0t5g",
+      "title": "Standard Program, Autumn commencing, part time",
+      "description": null,
+      "sourceUrl": "/studyplan/b051e1cb83fe3210fed7d4326daad396",
+      "years": [
+        {
+          "id": "cmszu3wpx0opmkwtzezzwtlps",
+          "name": "Year 1",
+          "sortOrder": 1,
+          "periods": [
+            {
+              "id": "cmszu3ww10opnkwtzx8vskj0z",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3x270opokwtzttziyr9w",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01qkkwtzztvuzdeh",
+                    "code": "93203",
+                    "name": "Healthcare Communication",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93203",
+                  "title": "Healthcare Communication",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3x270oppkwtz2d916z84",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01q5kwtzhxyixlyz",
+                    "code": "91562",
+                    "name": "Health and Homeostasis 1",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91562",
+                  "title": "Health and Homeostasis 1",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3x8b0opqkwtzrv6kyszg",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3xei0oprkwtz81vfhihd",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01q8kwtzbfb70svv",
+                    "code": "93205",
+                    "name": "Health and Society",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93205",
+                  "title": "Health and Society",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3xei0opskwtzewojh00g",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01q6kwtzrwr099sb",
+                    "code": "91561",
+                    "name": "Health and Homeostasis 2",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91561",
+                  "title": "Health and Homeostasis 2",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu3xkm0optkwtzhsyjp79v",
+          "name": "Year 2",
+          "sortOrder": 2,
+          "periods": [
+            {
+              "id": "cmszu3xqp0opukwtzvplpk5tr",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3xwt0opvkwtz18pd8vzx",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lmkwtzbnm13kt4",
+                    "code": "93201",
+                    "name": "Foundations of Nursing Practice 1 A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93201",
+                  "title": "Foundations of Nursing Practice 1 A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3xwt0opwkwtzc46xy1q3",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oi02i2kwtzx4yyploy",
+                    "code": "93202",
+                    "name": "Preparation for Clinical Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93202",
+                  "title": "Preparation for Clinical Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3y2x0opxkwtzwcockfm2",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3y920opykwtz15dj4l28",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27od01yvkwtzx4leilyf",
+                    "code": "93206",
+                    "name": "Introduction to Clinical Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93206",
+                  "title": "Introduction to Clinical Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3y920opzkwtzcld5d0c7",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lnkwtz8hpixhpe",
+                    "code": "93204",
+                    "name": "Foundations of Nursing Practice 1B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93204",
+                  "title": "Foundations of Nursing Practice 1B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu3yf70oq0kwtzz6ikxtx7",
+          "name": "Year 3",
+          "sortOrder": 3,
+          "periods": [
+            {
+              "id": "cmszu3ylc0oq1kwtzjtqao0nf",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3yrg0oq2kwtzf76xqzmn",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01mtkwtzcc8cbl5v",
+                    "code": "93213",
+                    "name": "Fundamentals of Mental Health Nursing",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93213",
+                  "title": "Fundamentals of Mental Health Nursing",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3yrg0oq3kwtzbu9lr1hl",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dwkwtz0slhkwg4",
+                    "code": "91529",
+                    "name": "Pathophysiology and Pharmacology 1",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91529",
+                  "title": "Pathophysiology and Pharmacology 1",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3yxj0oq4kwtzm7h0st15",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3z3m0oq5kwtzadz5b2l0",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dxkwtzcrzqse1t",
+                    "code": "91530",
+                    "name": "Pathophysiology and Pharmacology 2",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91530",
+                  "title": "Pathophysiology and Pharmacology 2",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3z3m0oq6kwtzj4ndz6bv",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "CBK92069 Transdisciplinary subject",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu3z9p0oq7kwtzyi547ynk",
+          "name": "Year 4",
+          "sortOrder": 4,
+          "periods": [
+            {
+              "id": "cmszu3zft0oq8kwtzgouohklg",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu3zlz0oq9kwtzsayrjuqs",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lokwtzhz7259ng",
+                    "code": "93207",
+                    "name": "Foundations of Nursing Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93207",
+                  "title": "Foundations of Nursing Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3zlz0oqakwtzy3m8cc8a",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600ywkwtzzvw9yq1z",
+                    "code": "93208",
+                    "name": "Clinical Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93208",
+                  "title": "Clinical Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu3zs10oqbkwtzycfws6sz",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu3zy60oqckwtz2ocd2htd",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lqkwtzxe5xzvdh",
+                    "code": "93210",
+                    "name": "Foundations of Nursing Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93210",
+                  "title": "Foundations of Nursing Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu3zy60oqdkwtzy8eguy9t",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600yxkwtzp2w3vp4f",
+                    "code": "93211",
+                    "name": "Clinical Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93211",
+                  "title": "Clinical Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu40490oqekwtza6vrs3t2",
+          "name": "Year 5",
+          "sortOrder": 5,
+          "periods": [
+            {
+              "id": "cmszu40ac0oqfkwtzo6hb7fwv",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu40ku0oqgkwtz0sbuvzkx",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lskwtz7zezpzhd",
+                    "code": "93214",
+                    "name": "Foundations of Nursing Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93214",
+                  "title": "Foundations of Nursing Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu40ku0oqhkwtzm25t2i99",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dakwtzz3ew46xl",
+                    "code": "91976",
+                    "name": "Optimising Health and Wellness In Older Persons",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91976",
+                  "title": "Optimising Health and Wellness In Older Persons",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu40qx0oqikwtzlcj9p3go",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu40x10oqjkwtzj2ivorvx",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01u0kwtzlulojrzu",
+                    "code": "93212",
+                    "name": "Indigenous Health and Well-Being",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93212",
+                  "title": "Indigenous Health and Well-Being",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu40x10oqkkwtze0jzoros",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o901d6kwtzgnwpx5z9",
+                    "code": "93218",
+                    "name": "Empathy and Compassion for Nursing Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93218",
+                  "title": "Empathy and Compassion for Nursing Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu41360oqlkwtzf5kalcx7",
+          "name": "Year 6",
+          "sortOrder": 6,
+          "periods": [
+            {
+              "id": "cmszu419c0oqmkwtzuss1vex6",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu41fg0oqnkwtz26d6us1z",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600z2kwtzv2ufsvjh",
+                    "code": "93216",
+                    "name": "Clinical Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93216",
+                  "title": "Clinical Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu41fg0oqokwtz0tfcszb5",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "CBK91913 ISP Electives",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            },
+            {
+              "id": "cmszu41lk0oqpkwtzq1yhts3w",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu41ro0oqqkwtzgxb6n89e",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27om036tkwtz6x214dkn",
+                    "code": "93219",
+                    "name": "Transition to Professional Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93219",
+                  "title": "Transition to Professional Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu41ro0oqrkwtz7ksi0ym0",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oe0249kwtzunqzrm6y",
+                    "code": "93220",
+                    "name": "Leading, Teaching and Mentoring",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93220",
+                  "title": "Leading, Teaching and Mentoring",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "major": null,
+      "relationshipBasis": null,
+      "commencement": "AUTUMN",
+      "attendance": "PART"
+    },
+    {
+      "id": "cmszu42gd0oqskwtzu0pcx5p7",
+      "title": "Standard Program, Autumn commencing, full time",
+      "description": "<p>A typical program is presented below for standard full-time attendance for the standard program.</p>",
+      "sourceUrl": "/studyplan/f851e1cb83fe3210fed7d4326daad37d",
+      "years": [
+        {
+          "id": "cmszu42mi0oqtkwtzk8snmwxl",
+          "name": "Year 1",
+          "sortOrder": 1,
+          "periods": [
+            {
+              "id": "cmszu42sl0oqukwtz0kocyrmw",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu42yo0oqvkwtza48t0v9j",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lmkwtzbnm13kt4",
+                    "code": "93201",
+                    "name": "Foundations of Nursing Practice 1 A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93201",
+                  "title": "Foundations of Nursing Practice 1 A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu42yo0oqwkwtzxyfnfb2k",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oi02i2kwtzx4yyploy",
+                    "code": "93202",
+                    "name": "Preparation for Clinical Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93202",
+                  "title": "Preparation for Clinical Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu42yo0oqxkwtzfbirglo1",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01qkkwtzztvuzdeh",
+                    "code": "93203",
+                    "name": "Healthcare Communication",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93203",
+                  "title": "Healthcare Communication",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu42yo0oqykwtz2k92llk5",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01q5kwtzhxyixlyz",
+                    "code": "91562",
+                    "name": "Health and Homeostasis 1",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91562",
+                  "title": "Health and Homeostasis 1",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            },
+            {
+              "id": "cmszu434s0oqzkwtzjyqbn1zl",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu43aw0or0kwtzh1gvt39g",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lnkwtz8hpixhpe",
+                    "code": "93204",
+                    "name": "Foundations of Nursing Practice 1B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93204",
+                  "title": "Foundations of Nursing Practice 1B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu43aw0or1kwtzu82h54dk",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27od01yvkwtzx4leilyf",
+                    "code": "93206",
+                    "name": "Introduction to Clinical Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93206",
+                  "title": "Introduction to Clinical Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu43aw0or2kwtzb1fezhcd",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01q8kwtzbfb70svv",
+                    "code": "93205",
+                    "name": "Health and Society",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93205",
+                  "title": "Health and Society",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu43aw0or3kwtzotq0gp4z",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01q6kwtzrwr099sb",
+                    "code": "91561",
+                    "name": "Health and Homeostasis 2",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91561",
+                  "title": "Health and Homeostasis 2",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu43h10or4kwtzadegg2f6",
+          "name": "Year 2",
+          "sortOrder": 2,
+          "periods": [
+            {
+              "id": "cmszu43n40or5kwtzckaehgcy",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu43t80or6kwtzq9prsovu",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lokwtzhz7259ng",
+                    "code": "93207",
+                    "name": "Foundations of Nursing Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93207",
+                  "title": "Foundations of Nursing Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu43t80or7kwtzsbk2tnn3",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600ywkwtzzvw9yq1z",
+                    "code": "93208",
+                    "name": "Clinical Practice 2A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93208",
+                  "title": "Clinical Practice 2A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu43t80or8kwtzs3qd0gpn",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01mtkwtzcc8cbl5v",
+                    "code": "93213",
+                    "name": "Fundamentals of Mental Health Nursing",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93213",
+                  "title": "Fundamentals of Mental Health Nursing",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu43t80or9kwtzz5w0a7ym",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dwkwtz0slhkwg4",
+                    "code": "91529",
+                    "name": "Pathophysiology and Pharmacology 1",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91529",
+                  "title": "Pathophysiology and Pharmacology 1",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            },
+            {
+              "id": "cmszu43zc0orakwtzl1117ham",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu445g0orbkwtzcrq56qm2",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lqkwtzxe5xzvdh",
+                    "code": "93210",
+                    "name": "Foundations of Nursing Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93210",
+                  "title": "Foundations of Nursing Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu445g0orckwtzwa35eyx5",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600yxkwtzp2w3vp4f",
+                    "code": "93211",
+                    "name": "Clinical Practice 2B",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93211",
+                  "title": "Clinical Practice 2B",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu445g0ordkwtzgo3f6zqc",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dxkwtzcrzqse1t",
+                    "code": "91530",
+                    "name": "Pathophysiology and Pharmacology 2",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91530",
+                  "title": "Pathophysiology and Pharmacology 2",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu445g0orekwtzdp5e2uiv",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "CBK92069 (Transdisciplinary subject)",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cmszu44bl0orfkwtztu2obqhd",
+          "name": "Year 3",
+          "sortOrder": 3,
+          "periods": [
+            {
+              "id": "cmszu44ho0orgkwtzis0z4g90",
+              "name": "Autumn session",
+              "sortOrder": 1,
+              "items": [
+                {
+                  "id": "cmszu44ns0orhkwtzarv0ms8s",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27ob01lskwtz7zezpzhd",
+                    "code": "93214",
+                    "name": "Foundations of Nursing Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93214",
+                  "title": "Foundations of Nursing Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu44ns0orikwtzpzzlpipj",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o600z2kwtzv2ufsvjh",
+                    "code": "93216",
+                    "name": "Clinical Practice 3A",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93216",
+                  "title": "Clinical Practice 3A",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu44ns0orjkwtznba6zx7e",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oh02dakwtzz3ew46xl",
+                    "code": "91976",
+                    "name": "Optimising Health and Wellness In Older Persons",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "91976",
+                  "title": "Optimising Health and Wellness In Older Persons",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu44ns0orkkwtzq5y9kwxd",
+                  "itemType": "CHOICE",
+                  "subject": null,
+                  "rawCode": null,
+                  "title": "CBK91913 (ISP subject)",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 4
+                }
+              ]
+            },
+            {
+              "id": "cmszu44tw0orlkwtzc11mnqal",
+              "name": "Spring session",
+              "sortOrder": 2,
+              "items": [
+                {
+                  "id": "cmszu45010ormkwtzcf77jp51",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oc01u0kwtzlulojrzu",
+                    "code": "93212",
+                    "name": "Indigenous Health and Well-Being",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93212",
+                  "title": "Indigenous Health and Well-Being",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 0
+                },
+                {
+                  "id": "cmszu45010ornkwtza8sk7vxf",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27o901d6kwtzgnwpx5z9",
+                    "code": "93218",
+                    "name": "Empathy and Compassion for Nursing Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93218",
+                  "title": "Empathy and Compassion for Nursing Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 1
+                },
+                {
+                  "id": "cmszu45010orokwtzmx2motfy",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27om036tkwtz6x214dkn",
+                    "code": "93219",
+                    "name": "Transition to Professional Practice",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93219",
+                  "title": "Transition to Professional Practice",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 2
+                },
+                {
+                  "id": "cmszu45010orpkwtze5ewj2qt",
+                  "itemType": "SUBJECT",
+                  "subject": {
+                    "id": "cmszs27oe0249kwtzunqzrm6y",
+                    "code": "93220",
+                    "name": "Leading, Teaching and Mentoring",
+                    "creditPoints": 6
+                  },
+                  "rawCode": "93220",
+                  "title": "Leading, Teaching and Mentoring",
+                  "creditPoints": 6,
+                  "numberOfPeriods": 1,
+                  "sortOrder": 3
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "major": null,
+      "relationshipBasis": null,
+      "commencement": "AUTUMN",
+      "attendance": "FULL"
+    }
+  ]
+}

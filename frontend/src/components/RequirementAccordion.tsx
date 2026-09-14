@@ -1,3 +1,4 @@
+import { appUi } from "./ui";
 import { useId, useState } from "react";
 import type { ComponentSelections } from "../hooks/useComponentSelections";
 import { readableText } from "../domain/readableText";
@@ -27,6 +28,7 @@ const componentCreditSummary = (groups: RequirementGroup[]) => groups.reduce((su
   return summary;
 }, { required: 0, selective: 0 });
 
+/** Displays a subject or component requirement without changing its formal allocation. */
 const RequirementRow = ({
   item,
   onOpenSubject,
@@ -35,22 +37,22 @@ const RequirementRow = ({
   onOpenSubject: (subjectCode: string) => void;
 }) => {
   if (item.subject) return <button
-    className="requirement-row requirement-row--subject requirement-row--interactive"
+    className={appUi.requirementRowInteractive}
     type="button"
     onClick={() => onOpenSubject(item.subject!.code)}
     aria-label={`View ${item.subject.code} ${item.subject.name}`}
   >
-    <span className="requirement-row__code">{item.subject.code}</span><span className="requirement-row__name">{item.subject.name}</span>
-    {(item.subject.creditPoints ?? item.creditPoints) !== null && <span className="requirement-row__cp">{item.subject.creditPoints ?? item.creditPoints} CP</span>}
+    <span className={appUi.requirementRowCode}>{item.subject.code}</span><span className={appUi.requirementRowName}>{item.subject.name}</span>
+    {(item.subject.creditPoints ?? item.creditPoints) !== null && <span className={appUi.requirementRowCp}>{item.subject.creditPoints ?? item.creditPoints} CP</span>}
   </button>;
-  if (item.component) return <div className="requirement-row requirement-row--component">
-    <span className="type-badge">{formatType(item.component.type)}</span>{item.component.displayCode && <span className="requirement-row__code">{item.component.displayCode}</span>}
-    <span className="requirement-row__name">{item.component.name}</span>{(item.component.creditPoints ?? item.creditPoints) !== null && <span className="requirement-row__cp">{item.component.creditPoints ?? item.creditPoints} CP</span>}
+  if (item.component) return <div className={appUi.requirementRowComponent}>
+    <span className={appUi.typeBadge}>{formatType(item.component.type)}</span>{item.component.displayCode && <span className={appUi.requirementRowCode}>{item.component.displayCode}</span>}
+    <span className={appUi.requirementRowName}>{item.component.name}</span>{(item.component.creditPoints ?? item.creditPoints) !== null && <span className={appUi.requirementRowCp}>{item.component.creditPoints ?? item.creditPoints} CP</span>}
   </div>;
-  return <div className="requirement-row requirement-row--other">
-    <span className="type-badge">{item.itemType.toLowerCase()}</span>{item.rawCode && <span className="requirement-row__code">{item.rawCode}</span>}
-    <span className="requirement-row__name">{item.rawName ?? "Requirement details unavailable"}</span>
-    {item.creditPoints !== null && <span className="requirement-row__cp">{item.creditPoints} CP</span>}
+  return <div className={appUi.requirementRowOther}>
+    <span className={appUi.typeBadge}>{item.itemType.toLowerCase()}</span>{item.rawCode && <span className={appUi.requirementRowCode}>{item.rawCode}</span>}
+    <span className={appUi.requirementRowName}>{item.rawName ?? "Requirement details unavailable"}</span>
+    {item.creditPoints !== null && <span className={appUi.requirementRowCp}>{item.creditPoints} CP</span>}
   </div>;
 };
 
@@ -64,6 +66,7 @@ interface SelectionContext {
 
 interface Props extends SelectionContext { group: RequirementGroup; depth?: number; }
 
+/** Loads the selected component structure while keeping empty and failed responses distinct. */
 const SelectedComponentRequirements = ({ componentId, context }: { componentId: string; context: SelectionContext }) => {
   const { detail, status, retry } = useComponentDetail(componentId, context.universityCode, context.handbookYear);
   const view = componentDetailView(status, detail);
@@ -73,23 +76,24 @@ const SelectedComponentRequirements = ({ componentId, context }: { componentId: 
   const creditSummary = componentCreditSummary(detail.requirements);
   const creditLabel = componentCreditLabel(detail);
 
-  return <section className="selected-component" aria-label={`Selected ${formatType(detail.component.type)}`}>
-    <div className="selected-component__header">
-      <div><p className="selected-component__label">Selected {formatType(detail.component.type)}</p><h4>{detail.component.name}</h4></div>
+  return <section className={appUi.selectedComponent} aria-label={`Selected ${formatType(detail.component.type)}`}>
+    <div className={appUi.selectedComponentHeader}>
+      <div><p className={appUi.selectedComponentLabel}>Selected {formatType(detail.component.type)}</p><h4>{detail.component.name}</h4></div>
       {creditLabel && <span>{creditLabel}</span>}
     </div>
-    {(creditSummary.required > 0 || creditSummary.selective > 0) && <p className="selected-component__summary">
+    {(creditSummary.required > 0 || creditSummary.selective > 0) && <p className={appUi.selectedComponentSummary}>
       {creditSummary.required > 0 && <span>{creditSummary.required} CP required</span>}
       {creditSummary.selective > 0 && <span>{creditSummary.selective} CP selected from options</span>}
     </p>}
-    {view === "success-empty" ? <p className="selected-component__empty">No verified subject list is available for this requirement. You may search other subjects, but eligibility must be confirmed.{detail.component.sourceUrl && <> <a href={detail.component.sourceUrl} target="_blank" rel="noreferrer">View the official handbook source.</a></>}</p> :
-      <div className="component-requirements">
+    {view === "success-empty" ? <p className={appUi.selectedComponentEmpty}>No verified subject list is available for this requirement. You may search other subjects, but eligibility must be confirmed.{detail.component.sourceUrl && <> <a href={detail.component.sourceUrl} target="_blank" rel="noreferrer">View the official handbook source.</a></>}</p> :
+      <div className={appUi.componentRequirements}>
         <h5>Component structure</h5>
         {detail.requirements.map((group) => <RequirementAccordion key={group.id} group={group} depth={1} {...context} />)}
       </div>}
   </section>;
 };
 
+/** Expands nested handbook requirements and renders selectable component variants. */
 export const RequirementAccordion = ({ group, depth = 0, universityCode, handbookYear, selections, onSelectComponent, onOpenSubject }: Props) => {
   const componentChoices = group.items.filter((item) => item.itemType === "COMPONENT");
   const isSingleComponentChoice = group.logic === "ONE_OF" && componentChoices.length > 1 && componentChoices.length === group.items.length;
@@ -107,41 +111,41 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
   const hasContent = group.items.length > 0 || group.children.length > 0 || Boolean(group.description);
   const context = { universityCode, handbookYear, selections, onSelectComponent, onOpenSubject };
 
-  return <section className={`requirement-group requirement-group--depth-${Math.min(depth, 2)}`}>
-    <button className="requirement-group__trigger" type="button" aria-expanded={isOpen} aria-controls={contentId} onClick={() => setIsOpen((open) => !open)} disabled={!hasContent}>
-      <span className="requirement-group__heading"><span className="requirement-group__title">{readableGroupTitle(group.title)}</span>
-        <span className="requirement-group__meta">{group.requiredCreditPoints !== null && `${group.requiredCreditPoints} credit points`}
-          {group.logic !== "UNKNOWN" && <span className="logic-label">{readableLogic(group.logic)}</span>}
-          {selectedChoice?.component && <span className="selection-summary">Selected: {selectedChoice.component.name}</span>}
+  return <section className={depth > 0 ? appUi.requirementGroupNested : appUi.requirementGroup}>
+    <button className={appUi.requirementGroupTrigger} type="button" aria-expanded={isOpen} aria-controls={contentId} onClick={() => setIsOpen((open) => !open)} disabled={!hasContent}>
+      <span className={appUi.requirementGroupHeading}><span className={appUi.requirementGroupTitle}>{readableGroupTitle(group.title)}</span>
+        <span className={appUi.requirementGroupMeta}>{group.requiredCreditPoints !== null && `${group.requiredCreditPoints} credit points`}
+          {group.logic !== "UNKNOWN" && <span className={appUi.logicLabel}>{readableLogic(group.logic)}</span>}
+          {selectedChoice?.component && <span className={appUi.selectionSummary}>Selected: {selectedChoice.component.name}</span>}
         </span>
-      </span>{hasContent && <span className="chevron" aria-hidden="true">{isOpen ? "−" : "+"}</span>}
+      </span>{hasContent && <span className={appUi.chevron} aria-hidden="true">{isOpen ? "−" : "+"}</span>}
     </button>
-    {isOpen && hasContent && <div className="requirement-group__content" id={contentId}>
-      {group.description && <details className="official-requirement"><summary>Official requirement</summary><p className="group-description">{readableText(group.description)}</p></details>}
-      {isSingleComponentChoice ? <fieldset className="component-choices">
+    {isOpen && hasContent && <div className={appUi.requirementGroupContent} id={contentId}>
+      {group.description && <details className={appUi.officialRequirement}><summary>Official requirement</summary><p className={appUi.groupDescription}>{readableText(group.description)}</p></details>}
+      {isSingleComponentChoice ? <fieldset className={appUi.componentChoices}>
         <legend>{readableGroupTitle(group.title)}</legend>
-        <div className="component-choices__tools">
+        <div className={appUi.componentChoicesTools}>
           {componentChoices.length > 12 && <label><span>Filter choices</span><input type="search" value={choiceQuery} onChange={(event) => setChoiceQuery(event.target.value)} placeholder="Search by name or role" /></label>}
           <span>{componentChoices.length} choices available</span>
         </div>
         {visibleChoices.map((item) => {
           const component = item.component;
-          if (!component) return <div className="component-choice component-choice--unavailable" key={item.id}>
-            <span className="type-badge">component</span><strong>{item.rawCode ?? "Unavailable option"}</strong><span>{item.rawName}</span>
+          if (!component) return <div className={appUi.componentChoiceUnavailable} key={item.id}>
+            <span className={appUi.typeBadge}>component</span><strong>{item.rawCode ?? "Unavailable option"}</strong><span>{item.rawName}</span>
           </div>;
           const selected = component.code === selectedCode;
-          return <label className={`component-choice${selected ? " component-choice--selected" : ""}`} key={item.id}>
+          return <label className={selected ? appUi.componentChoiceSelected : appUi.componentChoice} key={item.id}>
             <input type="radio" name={`component-choice-${group.id}`} value={component.code} checked={selected} onChange={() => onSelectComponent(group.id, component.code)} />
-            <span className="component-choice__body"><strong>{component.name}</strong><span className="component-choice__meta"><span className="type-badge">{formatType(component.type)}</span>{component.displayCode && <span>{component.displayCode}</span>}</span></span>
+            <span className={appUi.componentChoiceBody}><strong>{component.name}</strong><span className={appUi.componentChoiceMeta}><span className={appUi.typeBadge}>{formatType(component.type)}</span>{component.displayCode && <span>{component.displayCode}</span>}</span></span>
             {(component.creditPoints ?? item.creditPoints) !== null
-              ? <span className="component-choice__cp">{component.creditPoints ?? item.creditPoints} CP</span>
-              : <span className="component-choice__cp component-choice__cp--unknown">Credit points unavailable</span>}
+              ? <span className={appUi.componentChoiceCp}>{component.creditPoints ?? item.creditPoints} CP</span>
+              : <span className={appUi.componentChoiceCpUnknown}>Credit points unavailable</span>}
           </label>;
         })}
-        {visibleChoices.length === 0 && <p className="component-choices__empty">No choices match this filter.</p>}
-      </fieldset> : group.items.length > 0 && <div className="requirement-items">{group.items.map((item) => <RequirementRow item={item} onOpenSubject={onOpenSubject} key={item.id} />)}</div>}
+        {visibleChoices.length === 0 && <p className={appUi.componentChoicesEmpty}>No choices match this filter.</p>}
+      </fieldset> : group.items.length > 0 && <div className={appUi.requirementItems}>{group.items.map((item) => <RequirementRow item={item} onOpenSubject={onOpenSubject} key={item.id} />)}</div>}
       {isSingleComponentChoice && selectedChoice?.component && <SelectedComponentRequirements componentId={selectedChoice.component.id} context={context} />}
-      {group.children.length > 0 && <div className="nested-requirements">{group.children.map((child) => <RequirementAccordion key={child.id} group={child} depth={depth + 1} {...context} />)}</div>}
+      {group.children.length > 0 && <div className={appUi.nestedRequirements}>{group.children.map((child) => <RequirementAccordion key={child.id} group={child} depth={depth + 1} {...context} />)}</div>}
     </div>}
   </section>;
 };

@@ -172,7 +172,7 @@ const mapGroup = (group: GroupRecord, fallbackIndex: number): DegreeRequirementG
   };
 };
 
-const addExplicitPathways = (group: DegreeRequirementGroup): void => {
+export const addExplicitPathways = (group: DegreeRequirementGroup): void => {
   group.children.forEach(addExplicitPathways);
   const description = normalizedDescription(group.description);
   if (!description.includes("one major")
@@ -184,27 +184,32 @@ const addExplicitPathways = (group: DegreeRequirementGroup): void => {
   const subMajorGroup = group.children.find((child) => /sub[ -]?majors?/i.test(child.title ?? ""));
   const electiveGroup = group.children.find((child) => /electives?/i.test(child.title ?? ""));
   if (!majorGroup || !subMajorGroup || !electiveGroup) return;
+  const total = group.requiredCreditPoints;
+  const subMajorPoints = subMajorGroup.requiredCreditPoints;
+  const electivePoints = electiveGroup.requiredCreditPoints;
+  if (!total || !subMajorPoints || !electivePoints || majorGroup.requiredCreditPoints !== total
+    || subMajorPoints * 2 !== total || subMajorPoints + electivePoints !== total) return;
 
   group.pathways = [
     {
       id: `${group.id}:pathway:second-major`,
       title: "One second major",
-      requiredCreditPoints: 48,
-      selections: [{ requirementGroupId: majorGroup.id, selectionType: "COMPONENT", requiredSelections: 1, requiredCreditPoints: 48 }],
+      requiredCreditPoints: total,
+      selections: [{ requirementGroupId: majorGroup.id, selectionType: "COMPONENT", requiredSelections: 1, requiredCreditPoints: total }],
     },
     {
       id: `${group.id}:pathway:two-sub-majors`,
       title: "Two sub-majors",
-      requiredCreditPoints: 48,
-      selections: [{ requirementGroupId: subMajorGroup.id, selectionType: "COMPONENT", requiredSelections: 2, requiredCreditPoints: 48 }],
+      requiredCreditPoints: total,
+      selections: [{ requirementGroupId: subMajorGroup.id, selectionType: "COMPONENT", requiredSelections: 2, requiredCreditPoints: total }],
     },
     {
       id: `${group.id}:pathway:sub-major-and-electives`,
       title: "One sub-major plus electives",
-      requiredCreditPoints: 48,
+      requiredCreditPoints: total,
       selections: [
-        { requirementGroupId: subMajorGroup.id, selectionType: "COMPONENT", requiredSelections: 1, requiredCreditPoints: 24 },
-        { requirementGroupId: electiveGroup.id, selectionType: "ELECTIVE_ALLOCATION", requiredSelections: 1, requiredCreditPoints: 24 },
+        { requirementGroupId: subMajorGroup.id, selectionType: "COMPONENT", requiredSelections: 1, requiredCreditPoints: subMajorPoints },
+        { requirementGroupId: electiveGroup.id, selectionType: "ELECTIVE_ALLOCATION", requiredSelections: 1, requiredCreditPoints: electivePoints },
       ],
     },
   ];

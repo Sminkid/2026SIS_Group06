@@ -9,7 +9,7 @@ export const GetStartedPage = ({ onStart }: Props) => (
       <p className={appUi.eyebrow}>Not sure what to study?</p>
       <h1>Build your university path</h1>
       <p className={appUi.lead}>Explore official handbook requirements and understand how your degree is structured, one section at a time.</p>
-      <div className={appUi.sectionHeading}>
+      <div className={appUi.subheading}>
         <h2>What can you get?</h2>
         <div className={appUi.sectionRow}>
         <img src={check} className={appUi.checkMark}/>

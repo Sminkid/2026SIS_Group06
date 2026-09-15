@@ -89,7 +89,7 @@ export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onB
                          { label: "Quiz Result", onClick: onBackToQuizResult }, 
                          { label: "Recommendations", onClick: onBackToRecommendations }, 
                          { label: "Comparison", onClick: onBackToComparison }, 
-                         { label: "Study Plan "}]} />
+                         { label: "Study Plan"}]} />
     {status === "loading" && <AsyncState kind="loading" label="Loading degree requirements" />}
     {status === "error" && <AsyncState kind="error" label="We couldn't load this degree's requirements." onRetry={retry} />}
     {status === "ready" && detail && <>

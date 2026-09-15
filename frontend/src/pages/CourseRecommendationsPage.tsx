@@ -20,7 +20,9 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
       <Breadcrumbs items={[{ label: "Get Started", onClick: onHome }, 
                             { label: "Quiz Result", onClick: onBackToQuizResult }, 
                             { label: "Recommendations" }]} />
-      <section className={appUi.contentSection} aria-labelledby="courses-heading">
+      <section className={appUi.pageIntroCompact} aria-labelledby="courses-heading">
+        <p className={appUi.eyebrow}>Choose a course</p>
+        <h1>Courses</h1>
         <h2 id="courses-heading">Recommended courses</h2>
         {status === "loading" && <AsyncState kind="loading" label="Finding matching courses" />}
         {status === "error" && <AsyncState kind="error" label="We couldn't load course recommendations." />}

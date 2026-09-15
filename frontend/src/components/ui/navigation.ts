@@ -30,14 +30,14 @@ export const navigationUi = {
   ),
   degreeDescription: "max-w-216 mt-8 text-[#4d596d] [line-height:1.75]",
   resultCount: "text-[var(--muted)] text-[length:.88rem] whitespace-nowrap",
-  pageIntroCompact: "max-w-216 [margin:2.5rem_0_3.5rem]",
+  pageIntroCompact: " [margin:2.5rem_0_3.5rem]",
   searchField: cn(
     "[width:min(100%,_25rem)] flex items-center [gap:.65rem] [padding:0_1rem] border-[1px] border-solid",
     "border-[color:#bfc6d1] bg-[var(--surface)] [&_input]:w-full [&_input]:[padding:.85rem_0] [&_input]:border-0",
     "[&_input]:outline-none [&:focus-within]:outline-[3px] [&:focus-within]:outline-[#78a4e5]",
     "[&:focus-within]:outline-offset-2 [&_input]:bg-transparent [@media(max-width:720px)]:w-full",
   ),
-  degreeList: "[border-top:1px_solid_var(--line)]",
+  degreeList: "[border-top:1px_solid_var(--line)] mt-5",
   resultSummary: "mb-3 text-[var(--muted)] text-[length:.82rem]",
   degreeGrid: cn(
     "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(400px,1fr))]",

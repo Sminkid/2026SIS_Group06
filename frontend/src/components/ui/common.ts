@@ -21,6 +21,10 @@ export const commonUi = {
   secondaryButton: "[padding:.65rem_1rem] border-[1px] border-solid border-[color:currentColor] bg-transparent cursor-pointer",
   stepLabel: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   sectionHeading: cn(
+    "flex items-end justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
+    "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",
+  ),
+  subheading: cn(
     "w-fit flex flex-col mt-15 gap-5 bg-[var(--surface)] shadow-md [padding:2rem] rounded-2xl",
     "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",
   ),

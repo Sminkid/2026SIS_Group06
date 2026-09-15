@@ -21,9 +21,11 @@ export const commonUi = {
   secondaryButton: "[padding:.65rem_1rem] border-[1px] border-solid border-[color:currentColor] bg-transparent cursor-pointer",
   stepLabel: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   sectionHeading: cn(
-    "flex items-end justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
+    "w-fit flex flex-col mt-15 gap-5 bg-[var(--surface)] shadow-md [padding:2rem] rounded-2xl",
     "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",
   ),
+  sectionRow: "flex flex-row gap-2 items-center [&_p]:m-0",
+  checkMark: "w-5 h-5",
   sectionNote: "[margin:-.75rem_0_2rem] text-[var(--muted)]",
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
@@ -33,7 +35,7 @@ export const commonUi = {
   ),
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
   eyebrow: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
-  lead: "max-w-168 text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
+  lead: "text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
   contentSection: "pt-8 [border-top:2px_solid_var(--line)]",
   degreeTools: cn(
     "flex items-center justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",

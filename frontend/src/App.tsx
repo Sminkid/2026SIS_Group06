@@ -5,17 +5,19 @@ import { DegreePage } from "./pages/DegreePage";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
+import { GetStartedPage } from "./pages/GetStartedPage";
 import logo from "./components/ui/icons/Logo.png";
 
 type Screen =
-  | { name: "universities" }
-  | { name: "degrees"; university: University }
-  | { name: "degree"; university: University; degree: DegreeSummary };
+    { name: "getStarted" }
+    // { name: "universities" }
+  // | { name: "degrees"; university: University }
+  // | { name: "degree"; university: University; degree: DegreeSummary };
 
 /** Coordinates the university, degree and handbook screens within the shared navigation shell. */
 export const App = () => {
   const [screen, setScreen] = useState<Screen>({
-    name: "universities",
+    name: "getStarted",
   });
 
   return (
@@ -28,7 +30,7 @@ export const App = () => {
         <button
           className={appUi.brand}
           type="button"
-          onClick={() => setScreen({ name: "universities" })}
+          onClick={() => setScreen({ name: "getStarted" })}
           aria-label="Degree planner home"
         >
           <img src={logo} className={appUi.brandMark}/>
@@ -40,7 +42,11 @@ export const App = () => {
       </header>
 
       <div className="min-w-0">
-        {screen.name === "universities" && (
+        {screen.name === "getStarted" && (
+          <GetStartedPage onStart={() => setScreen({ name: "getStarted" })} />
+        )}
+
+        {/* {screen.name === "universities" && (
           <HomePage
             onSelectUniversity={(university) =>
               setScreen({ name: "degrees", university })
@@ -74,7 +80,7 @@ export const App = () => {
             }
             onHome={() => setScreen({ name: "universities" })}
           />
-        )}
+        )} */}
       </div>
 
       <GlossaryChatWidget />

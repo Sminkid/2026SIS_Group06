@@ -39,6 +39,14 @@ export const navigationUi = {
   ),
   degreeList: "[border-top:1px_solid_var(--line)]",
   resultSummary: "mb-3 text-[var(--muted)] text-[length:.82rem]",
+  degreeGrid: cn(
+    "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(400px,1fr))]",
+  ),
+  degreeCard: cn(
+    "flex flex-col gap-2 [padding:1.1rem] [border-radius:var(--radius)] border-[1px] border-solid border-[color:var(--line)]",
+    "bg-[var(--surface)] text-left cursor-pointer transition-shadow",
+    "hover:bg-[var(--amber)]",
+  ),
   degreeRow: cn(
     "degree-row w-full grid [grid-template-columns:6rem_minmax(0,1fr)_7rem_1rem] gap-5 items-center",
     "[padding:1.25rem_.75rem] border-0 [border-bottom:1px_solid_var(--line)] text-left bg-transparent",
@@ -53,7 +61,7 @@ export const navigationUi = {
     "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem]",
     "[padding-top:clamp(3.5rem,_8vw,_7rem)] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
   ),
-  pageIntro: "max-w-216 [margin-bottom:clamp(3rem,_7vw,_5.5rem)]",
+  pageIntro: "mb-15",
   universityGrid: "grid [grid-template-columns:repeat(auto-fit,_minmax(17rem,_1fr))] gap-4",
   universityCard: cn(
     "university-card min-h-56 flex flex-col items-start p-7 text-left border-[1px] border-solid",

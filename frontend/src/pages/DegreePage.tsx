@@ -12,7 +12,14 @@ import { useSelectedComponentDetails } from "../hooks/useSelectedComponentDetail
 import { DegreeCompletionOverview } from "../components/DegreeCompletionOverview";
 import { readableText } from "../domain/readableText";
 
-interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; }
+interface Props { 
+  university: University; 
+  degree: DegreeSummary;
+  onHome: () => void;
+  onBackToQuizResult: () => void;
+  onBackToRecommendations: () => void;
+  onBackToComparison: () => void;
+}
 const componentIndex = (groups: RequirementGroup[]) => {
   const index = new Map<string, { id: string; code: string }>();
   const visit = (requirements: RequirementGroup[]) => requirements.forEach((group) => {
@@ -24,7 +31,7 @@ const componentIndex = (groups: RequirementGroup[]) => {
 };
 
 /** Combines the degree overview, formal requirements and separately allocated roadmap. */
-export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
+export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onBackToRecommendations, onBackToComparison }: Props) => {
   const [detail, setDetail] = useState<DegreeDetailResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
@@ -78,7 +85,11 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
   const hasSemanticOverview = detail?.completionSummary.some((summary) => summary.obligation === "OPTIONAL" || summary.obligation === "CONDITIONAL" || summary.obligation === "INFORMATIONAL") ?? false;
 
   return <main className={appUi.page} id="main-content">
-    <Breadcrumbs items={[{ label: "Universities", onClick: onHome }, { label: university.code, onClick: onBack }, { label: degree.code }]} />
+    <Breadcrumbs items={[{ label: "Get Started", onClick: onHome }, 
+                         { label: "Quiz Result", onClick: onBackToQuizResult }, 
+                         { label: "Recommendations", onClick: onBackToRecommendations }, 
+                         { label: "Comparison", onClick: onBackToComparison }, 
+                         { label: "Study Plan "}]} />
     {status === "loading" && <AsyncState kind="loading" label="Loading degree requirements" />}
     {status === "error" && <AsyncState kind="error" label="We couldn't load this degree's requirements." onRetry={retry} />}
     {status === "ready" && detail && <>

@@ -4,8 +4,8 @@ import { cn } from "./cn";
 export const navigationUi = {
   appShell: "flex flex-col [min-height:100vh]",
   siteHeader: cn(
-    "site-header sticky [z-index:20] top-0 h-18 flex items-center justify-between",
-    "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] [border-bottom:1px_solid_var(--line)] bg-[var(--surface)]",
+    "site-header sticky [z-index:20] top-0 h-20 flex items-center justify-between",
+    "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] bg-[linear-gradient(180deg,var(--header-gradient-start)_0%,var(--header-gradient-end)_100%)]",
   ),
   brand: "inline-flex items-center p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
   brandMark: "w-30 h-10 object-contain",

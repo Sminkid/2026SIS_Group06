@@ -36,6 +36,7 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
   let server: Server;
   let baseUrl: string;
   let engineering: DegreeDetailResponse;
+  let engineeringStreams: Map<string, ComponentDetailResponse>;
   let software: ComponentDetailResponse;
   let elec5760: SubjectDetailResponse;
   let advancedComputing: DegreeDetailResponse;
@@ -60,13 +61,16 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
     engineering = await get<DegreeDetailResponse>(
       "/api/degrees/BHENGINE-04?university=USYD&year=2026",
     );
-    const softwareComponent = componentItems(engineering).find(
-      (component) => component.name === "Software Engineering",
-    );
+    const streamComponents = componentItems(engineering).filter((component) => component.type === "STREAM");
+    engineeringStreams = new Map(await Promise.all(streamComponents.map(async (component) => [
+      component.name,
+      await get<ComponentDetailResponse>(
+        `/api/components/${encodeURIComponent(component.id)}?university=USYD&year=2026`,
+      ),
+    ] as const)));
+    const softwareComponent = streamComponents.find((component) => component.name === "Software Engineering");
     assert.ok(softwareComponent, "Software Engineering must be discoverable from BHENGINE-04");
-    software = await get<ComponentDetailResponse>(
-      `/api/components/${encodeURIComponent(softwareComponent.id)}?university=USYD&year=2026`,
-    );
+    software = engineeringStreams.get("Software Engineering")!;
     elec5760 = await get<SubjectDetailResponse>(
       "/api/subjects/ELEC5760?university=USYD&year=2026",
     );
@@ -107,13 +111,61 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
     assert.deepEqual(streams, [...expectedEngineeringStreams].sort());
   });
 
-  test("Software Engineering maps its three persisted requirement groups", () => {
-    assert.deepEqual(software.requirements.map((group) => group.title), [
+  test("BHENGINE-04 exposes the repaired Engineering Core groups", () => {
+    const groups = new Map(flattenGroups(engineering.requirements).map((group) => [group.title, group]));
+    const foundation = groups.get("Foundation");
+    const projects = groups.get("Engineering Projects");
+    const pep = groups.get("Professional Engagement Program");
+    assert.ok(foundation && projects && pep);
+    assert.equal(foundation.requiredCreditPoints, 18);
+    assert.equal(foundation.items.length, 5);
+    assert.deepEqual(foundation.items.map((item) => item.subject?.code),
+      ["INFO1110", "INFO1910", "ENGG1810", "MATH1061", "MATH1062"]);
+    assert.equal(projects.requiredCreditPoints, 30);
+    assert.equal(projects.items.length, 28);
+    assert.deepEqual(pep.items.map((item) => item.subject?.code), [
+      "ENGP1001", "ENGP1002", "ENGP1003", "ENGP2001",
+      "ENGP2002", "ENGP2003", "ENGP3001", "ENGP3002",
+    ]);
+  });
+
+  test("all Engineering streams expose their persisted Specialisation counts", () => {
+    const expected = new Map([
+      ["Aeronautical Engineering", 2],
+      ["Aeronautical Engineering with Space", 2],
+      ["Biomedical Engineering", 4],
+      ["Chemical and Biomolecular Engineering", 4],
+      ["Civil Engineering", 7],
+      ["Electrical Engineering", 5],
+      ["Environmental Engineering", 3],
+      ["Mechanical Engineering", 6],
+      ["Mechanical Engineering with Space", 6],
+      ["Mechatronic Engineering", 1],
+      ["Mechatronic Engineering with Space", 1],
+      ["Software Engineering", 4],
+    ]);
+    assert.equal(engineeringStreams.size, expected.size);
+    let total = 0;
+    for (const [streamName, count] of expected) {
+      const group = engineeringStreams.get(streamName)?.requirements.find((candidate) =>
+        candidate.title === "Specialisation");
+      assert.ok(group, `${streamName} must expose a Specialisation group`);
+      assert.equal(group.logic, "ONE_OF");
+      assert.equal(group.items.length, count, streamName);
+      assert.ok(group.items.every((item) => item.itemType === "COMPONENT"
+        && item.component?.type === "SPECIALISATION"), streamName);
+      total += group.items.length;
+    }
+    assert.equal(total, 45);
+  });
+
+  test("Software Engineering preserves its three subject groups alongside Specialisation", () => {
+    assert.deepEqual(software.requirements.slice(0, 3).map((group) => group.title), [
       "Stream Core units",
       "1000/2000 Level Stream Elective units",
       "3000+ Level Stream Elective Units",
     ]);
-    assert.deepEqual(software.requirements.map((group) => group.items.length), [16, 21, 86]);
+    assert.deepEqual(software.requirements.slice(0, 3).map((group) => group.items.length), [16, 21, 86]);
   });
 
   test("Software Engineering returns resolved subject rows", () => {

@@ -33,8 +33,32 @@ const referencedLabel = (
   return null;
 };
 
-/** Preserves the imported rule expression and each condition in full. */
-const ConditionGroups = ({
+interface ConditionReference {
+  key: string;
+  label: string;
+  details: string | null;
+}
+
+/** Produces unique user-facing references without exposing imported item IDs. */
+export const conditionReferences = (group: SubjectAccessConditionGroup): ConditionReference[] => {
+  const references = new Map<string, ConditionReference>();
+  for (const item of group.items) {
+    const label = referencedLabel(item);
+    const details = item.details.trim();
+    const fallback = details && details !== group.rule?.trim() ? details : null;
+    const value = label ?? fallback;
+    if (!value) continue;
+    const key = item.referencedSubject?.code
+      ?? item.referencedComponent?.code
+      ?? item.referencedDegree?.code
+      ?? value;
+    if (!references.has(key)) references.set(key, { key, label: value, details: label && fallback ? fallback : null });
+  }
+  return [...references.values()];
+};
+
+/** Shows each logical expression once, followed by unique resolved references. */
+export const ConditionGroups = ({
   groups,
   emptyLabel,
 }: {
@@ -42,27 +66,23 @@ const ConditionGroups = ({
   emptyLabel: string;
 }) => groups.length === 0
   ? <p className="m-0 text-sm text-slate-600">{emptyLabel}</p>
-  : <div className="condition-groups grid gap-3">{groups.map((group) => (
-      <section className="overflow-hidden rounded border border-solid border-slate-200" key={group.id}>
+  : <div className="condition-groups grid gap-3">{groups.map((group) => {
+      const references = conditionReferences(group);
+      return <section className="overflow-hidden rounded border border-solid border-slate-200" key={group.id}>
         <div className="grid gap-2 border-0 border-b border-solid border-slate-200 bg-slate-50 p-3 text-sm [overflow-wrap:anywhere]">
           <span>Logical rule</span>
           <code>{group.rule ?? "No machine-readable rule supplied"}</code>
         </div>
-        <dl className="m-0">
-          {group.items.map((item) => {
-            const reference = referencedLabel(item);
-            return <div className="grid grid-cols-[2.75rem_minmax(0,1fr)] border-0 border-b border-solid border-slate-200 last:border-0" key={item.id}>
-              <dt className="bg-slate-50 p-3 text-center text-sm font-bold text-blue-800">{item.itemKey}</dt>
-              <dd className="m-0 min-w-0 p-3 text-sm leading-6 [overflow-wrap:anywhere]">
-                {item.requisiteType && <span className="text-xs font-bold text-blue-800">{item.requisiteType}</span>}
-                <p className="mb-0 mt-1">{item.details}</p>
-                {reference && <small className="mt-2 block text-slate-600">Resolved reference: {reference}</small>}
-              </dd>
-            </div>;
-          })}
-        </dl>
-      </section>
-    ))}</div>;
+        {references.length > 0 && <div className="p-3 text-sm leading-6">
+          <strong>Referenced subjects and requirements</strong>
+          <ul className="mb-0 mt-2 list-disc pl-5">
+            {references.map((reference) => <li key={reference.key}>{reference.label}
+              {reference.details && <p className="mb-2 mt-1 whitespace-pre-wrap text-slate-600">{reference.details}</p>}
+            </li>)}
+          </ul>
+        </div>}
+      </section>;
+    })}</div>;
 
 interface OfferingView { key: string; fields: Array<{ label: string; value: string }> }
 /** Selects human-readable offering fields while leaving imported content unchanged. */
@@ -165,7 +185,7 @@ export const SubjectDetailsDialog = ({
               {planIssues.filter(issue => issue.code.includes("REQUISITE")).map((issue, index) => <p className="mb-0 mt-2" key={`${issue.code}-${index}`}>{requirementIssueText(issue.message)}</p>)}
             </aside>}
             {prerequisite.kind === "satisfied" && <p className="m-0 text-sm text-emerald-800">Prerequisites satisfied</p>}
-            <p className="m-0 rounded bg-blue-50 p-3 text-sm leading-6 text-slate-700">Rules are shown exactly as supplied. Item keys map to the condition details below; no AND/OR logic has been simplified.</p>
+            <p className="m-0 rounded bg-blue-50 p-3 text-sm leading-6 text-slate-700">Rules are shown exactly as supplied. Resolved handbook references are listed once below each rule; no AND/OR logic has been simplified.</p>
             <ConditionGroups groups={conditions?.requisiteGroups ?? []} emptyLabel="No requisite groups are listed." />
           </section>
           <section className={ui.section}><h3 className="m-0 text-base font-bold">Anti-requisites and exclusions</h3>

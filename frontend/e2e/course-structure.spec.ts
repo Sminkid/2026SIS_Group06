@@ -150,7 +150,44 @@ const softwareDetail: ComponentDetailResponse = {
     subjectGroup("software-core", "Stream Core units", 16, "SOFT", ["INFO1113"]),
     subjectGroup("software-lower-electives", "1000/2000 Level Stream Elective units", 21, "LOWR", ["COMP2017", "COMP2123"]),
     subjectGroup("software-upper-electives", "3000+ Level Stream Elective Units", 86, "UPPR", ["ELEC5760"]),
+    {
+      ...emptyGroup("software-specialisations", "Specialisation", "ONE_OF"),
+      items: ["Computer", "Engineering Data Science", "Intelligent Information Engineering", "Internet Things"]
+        .map((name, index): RequirementItem => ({
+          id: `software-specialisation-${index}`,
+          itemType: "COMPONENT",
+          subject: null,
+          component: {
+            id: `software-specialisation-component-${index}`,
+            code: `USYD:ENGINEERING:SPECIALISATION:${index}`,
+            displayCode: null,
+            name,
+            type: "SPECIALISATION",
+            creditPoints: null,
+            creditPointsAvailability: "UNAVAILABLE",
+          },
+          rawCode: null,
+          rawName: null,
+          creditPoints: null,
+          sortOrder: index,
+        })),
+    },
   ],
+};
+
+const softwareSpecialisationDetail: ComponentDetailResponse = {
+  component: {
+    id: "software-specialisation-component-0",
+    code: "USYD:ENGINEERING:SPECIALISATION:0",
+    name: "Computer",
+    type: "SPECIALISATION",
+    originalType: "SPECIALISATION",
+    creditPoints: null,
+    sourceUrl: null,
+    handbookYear: 2026,
+    university: usyd,
+  },
+  requirements: [subjectGroup("computer-specialisation-core", "Specialisation units", 1, "COMP", ["COMP3221"])],
 };
 
 const routeDegree = async (
@@ -191,7 +228,8 @@ const openDegree = async (page: Page, detail: DegreeDetailResponse) => {
 
 test("selecting a Software Engineering STREAM loads and renders all component subject groups", async ({ page }) => {
   const componentRequests: string[] = [];
-  await routeDegree(page, engineeringDetail, [softwareDetail], (identifier) => componentRequests.push(identifier));
+  await routeDegree(page, engineeringDetail, [softwareDetail, softwareSpecialisationDetail],
+    (identifier) => componentRequests.push(identifier));
   await openDegree(page, engineeringDetail);
 
   const streamButton = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i });
@@ -217,6 +255,17 @@ test("selecting a Software Engineering STREAM loads and renders all component su
     await expect(section.getByRole("button", { name: /^View / })).toHaveCount(expected.count);
     await expect(section.getByRole("button", { name: new RegExp(`View ${expected.subject}`) })).toBeVisible();
   }
+
+  const specialisation = streamSection.getByRole("button", { name: /Specialisation.*Choose one/i });
+  await specialisation.click();
+  const specialisationSection = specialisation.locator("..");
+  await expect(specialisationSection.getByRole("radio")).toHaveCount(4);
+  await specialisationSection.getByRole("radio", { name: /Computer/ }).check();
+  await expect.poll(() => componentRequests).toContain("software-specialisation-component-0");
+  await expect(specialisationSection.getByText("Selected specialisation", { exact: true })).toBeVisible();
+  const specialisationUnits = specialisationSection.getByRole("button", { name: /Specialisation units/i });
+  await specialisationUnits.click();
+  await expect(specialisationSection.getByRole("button", { name: /View COMP3221/i })).toBeVisible();
 
   await expect(streamSection.getByRole("button", { name: /Year 1/i })).toHaveCount(0);
   await expect(streamSection).not.toContainText("relationship unavailable");
@@ -291,4 +340,24 @@ test("UTS selected majors keep the shared component renderer", async ({ page }) 
   const core = section.getByRole("button", { name: /Core units.*ALL/i });
   await core.click();
   await expect(section.getByRole("button", { name: /View 41082/i })).toBeVisible();
+});
+
+test("a one-option ONE_OF component group selects and loads its sole component automatically", async ({ page }) => {
+  const contract = genericComponentContract(usyd, "ONEOPTION-01", "One-option test degree",
+    "USYD:SPECIALISATION:SOLE", "Sole Specialisation", "SOLE1001");
+  contract.detail.requirements[0]!.items = contract.detail.requirements[0]!.items.slice(0, 1);
+  contract.detail.requirements[0]!.items[0]!.component!.type = "SPECIALISATION";
+  contract.component.component.type = "SPECIALISATION";
+  contract.component.component.originalType = "SPECIALISATION";
+  const requests: string[] = [];
+  await routeDegree(page, contract.detail, [contract.component], (identifier) => requests.push(identifier));
+  await openDegree(page, contract.detail);
+
+  const section = page.getByRole("button", { name: /Required major.*Choose one/i }).locator("..");
+  await expect(section.getByRole("radio")).toHaveCount(0);
+  await expect.poll(() => requests).toContain("USYD:SPECIALISATION:SOLE-id");
+  await expect(section.getByText("Selected specialisation", { exact: true })).toBeVisible();
+  const core = section.getByRole("button", { name: /Core units.*ALL/i });
+  await core.click();
+  await expect(section.getByRole("button", { name: /View SOLE1001/i })).toBeVisible();
 });

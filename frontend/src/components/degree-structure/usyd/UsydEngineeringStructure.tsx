@@ -69,7 +69,7 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
 
   return <section className={appUi.requirementsSection} aria-labelledby="requirements-heading">
     <div className={appUi.sectionHeading}><div><p className={appUi.stepLabel}>Step 3 of 3</p><h2 id="requirements-heading">Course structure</h2></div>
-      <span className={appUi.resultCount}>4 sections</span></div>
+      <span className={appUi.resultCount}>3 sections</span></div>
     <p className={appUi.sectionNote}>Open each section to see its formal handbook requirements.</p>
     {selectionNotice && <p className={appUi.selectionNotice} role="status">A saved choice is no longer available for this handbook. Please choose it again.</p>}
     <div className={appUi.requirementsList}>{groups.map((group) => {
@@ -77,7 +77,6 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
       return <RequirementAccordion group={group} key={group.id}
         universityCode={universityCode} handbookYear={handbookYear} selections={selections}
         onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject}
-        obligation={group.title === "Specialisation" ? "OPTIONAL" : undefined}
         showChoiceSearch={stream}
         choiceSelection={stream ? streamSelection : undefined}
         supplementalContent={stream ? streamStatus : undefined} />;

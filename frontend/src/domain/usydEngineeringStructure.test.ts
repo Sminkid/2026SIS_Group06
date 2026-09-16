@@ -53,17 +53,53 @@ test("empty BHENGINE-04 groups remain clean official requirements", () => {
 
   assert.equal(result.totalCreditPoints, 192);
   assert.deepEqual(groups.map((candidate) => candidate.title),
-    ["Engineering Core", "Engineering Stream", "Open Electives", "Specialisation"]);
+    ["Engineering Core", "Engineering Stream", "Open Electives"]);
   assert.deepEqual(groups[0]?.children.map((candidate) => candidate.requiredCreditPoints), [18, 30, null]);
   assert.equal(groups[0]?.children[0]?.description,
     "a minimum of 18 credit points from the Engineering Foundations Table");
   assert.equal(groups[1]?.description, "a minimum of 120 credit points from the Engineering Stream Table");
   assert.equal(groups[2]?.description, "a maximum of 24 credit points from Table S");
-  assert.equal(groups[3]?.description, "the Engineering Specialisations Tables");
+  assert.equal(groups[2]?.requiredCreditPoints, null);
+  assert.equal(groups[2]?.maximumCreditPoints, 24);
   assert.ok(groups.flatMap((candidate) => [candidate, ...candidate.children])
     .every((candidate) => !candidate.description?.includes("Data availability")));
   assert.deepEqual(usydEngineeringConditionalDisplayGroups(result).map((candidate) => candidate.description),
     ["for students enrolled in the Dalyell Stream, 12 credit points"]);
+});
+
+test("exact repaired Core titles win over broad descriptions and groups are never reused", () => {
+  const broadDescription = "Engineering Foundations Table; Engineering Projects Table; Professional Engagement Program; Table S; Dalyell Table D";
+  const foundation = group("repaired-foundation", "Foundation", "ALL", 18,
+    Array.from({ length: 5 }, (_, index) => subjectItem(`foundation-${index}`, `FNDN${index}`, `Foundation ${index}`, 6)));
+  const projects = group("repaired-projects", "Engineering Projects", "ANY", 30,
+    Array.from({ length: 28 }, (_, index) => subjectItem(`project-${index}`, `PROJ${index}`, `Project ${index}`, 6)));
+  const pep = group("repaired-pep", "Professional Engagement Program", "ALL", null,
+    Array.from({ length: 8 }, (_, index) => subjectItem(`pep-${index}`, `ENGP${index}`, `PEP ${index}`, 0)));
+  foundation.description = broadDescription;
+  projects.description = broadDescription;
+  pep.description = broadDescription;
+
+  const groups = usydEngineeringDisplayGroups(mapUsydEngineeringStructure(detail([foundation, projects, pep]))!);
+  const core = groups[0]!;
+  const electives = groups[2]!;
+
+  assert.deepEqual(core.children.map((candidate) => candidate.id),
+    ["repaired-foundation", "repaired-projects", "repaired-pep"]);
+  assert.deepEqual(core.children.map((candidate) => candidate.items.length), [5, 28, 8]);
+  assert.equal(new Set(core.children.map((candidate) => candidate.id)).size, 3);
+  assert.equal(electives.items.length, 0);
+  assert.equal(electives.requiredCreditPoints, null);
+  assert.equal(electives.maximumCreditPoints, 24);
+});
+
+test("broad structural descriptions do not create synthetic Dalyell conditions", () => {
+  const contaminated = summary("repaired-foundation", "the complete rule including for students enrolled in the Dalyell Stream", 18, "CONDITIONAL");
+  const mapped = mapUsydEngineeringStructure({
+    ...detail(),
+    completionSummary: [...completionSummary, contaminated],
+  })!;
+
+  assert.deepEqual(mapped.conditional.map((item) => item.requirementGroupId), ["dalyell"]);
 });
 
 test("real linked Foundation, Project, PEP and stream content survives the compatibility hierarchy", () => {

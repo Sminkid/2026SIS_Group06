@@ -18,8 +18,6 @@ export interface UsydEngineeringStructure {
   streamGroup: RequirementGroup | null;
   electives: StudentRequirementSummary;
   electivesGroup: RequirementGroup | null;
-  specialisationSource: StudentRequirementSummary;
-  specialisationGroup: RequirementGroup | null;
   conditional: StudentRequirementSummary[];
   conditionalGroups: Map<string, RequirementGroup>;
   sourceClauses: StudentRequirementSummary[];
@@ -45,6 +43,9 @@ const structuredContentCount = (group: RequirementGroup): number =>
   group.items.length + group.pathways.length + group.children.reduce((total, child) =>
     total + 1 + structuredContentCount(child), 0);
 
+const normalizedTitle = (title: string | null): string =>
+  (title ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
 const formalComponentPool = (
   detail: DegreeDetailResponse,
   componentType: string,
@@ -58,20 +59,29 @@ const sourceGroup = (
   detail: DegreeDetailResponse,
   summary: StudentRequirementSummary,
   pattern: RegExp,
+  claimedGroupIds: Set<string>,
+  exactTitles: string[] = [],
 ): RequirementGroup | null => {
   const groups = flattenGroups(detail.requirements);
-  const exact = groups.find((group) => group.id === summary.requirementGroupId);
-  const candidates = groups.filter((group) =>
-    pattern.test(`${group.title ?? ""} ${group.description ?? ""}`));
-  const structured = candidates.filter((group) => structuredContentCount(group) > 0)
+  const available = groups.filter((group) => !claimedGroupIds.has(group.id));
+  const normalizedExactTitles = new Set(exactTitles.map(normalizedTitle));
+  const exactTitle = available
+    .filter((group) => normalizedExactTitles.has(normalizedTitle(group.title)))
     .sort((left, right) => structuredContentCount(right) - structuredContentCount(left));
-  return structured[0] ?? exact ?? candidates[0] ?? null;
+  const exactId = available.find((group) => group.id === summary.requirementGroupId);
+  const titleCandidates = available.filter((group) => pattern.test(group.title ?? ""));
+  const descriptionCandidates = available.filter((group) => pattern.test(group.description ?? ""));
+  const best = (candidates: RequirementGroup[]) => [...candidates]
+    .sort((left, right) => structuredContentCount(right) - structuredContentCount(left))[0];
+  const source = exactTitle[0] ?? best(titleCandidates) ?? exactId ?? best(descriptionCandidates) ?? null;
+  if (source) claimedGroupIds.add(source.id);
+  return source;
 };
 
 /**
  * Compatibility view for BHENGINE-04 while the imported course-resolution
  * clauses remain flat. It groups only the explicit Foundation, Projects, PEP,
- * Stream, Table S/elective, specialisation-table and Dalyell clauses; it does
+ * Stream, Table S/elective and Dalyell clauses; it does
  * not create Component or Subject relationships.
  */
 export const mapUsydEngineeringStructure = (detail: DegreeDetailResponse): UsydEngineeringStructure | null => {
@@ -88,9 +98,20 @@ export const mapUsydEngineeringStructure = (detail: DegreeDetailResponse): UsydE
     "120 CP Engineering Stream");
   const electives = clause(summaries, (item) => /24 credit points from Table S/i.test(item.sourceText ?? ""),
     "24 CP open electives");
-  const specialisationSource = clause(summaries,
-    (item) => /Engineering Specialisations Tables/i.test(item.sourceText ?? ""), "optional specialisation table");
-  const conditional = summaries.filter((item) => item.obligation === "CONDITIONAL");
+  const conditional = summaries.filter((item) => item.obligation === "CONDITIONAL"
+    && /^\s*for students enrolled/i.test(item.sourceText ?? ""));
+  const claimedGroupIds = new Set<string>();
+  const foundationGroup = sourceGroup(detail, foundation, /Engineering Foundations Table/i,
+    claimedGroupIds, ["Foundation"]);
+  const projectsGroup = sourceGroup(detail, projects, /Engineering Projects Table/i,
+    claimedGroupIds, ["Engineering Projects"]);
+  const professionalEngagementGroup = sourceGroup(detail, professionalEngagement,
+    /Professional Engagement Program/i, claimedGroupIds, ["Professional Engagement Program"]);
+  const streamGroup = formalComponentPool(detail, "STREAM")
+    ?? sourceGroup(detail, stream, /Engineering Stream Tables?/i, claimedGroupIds);
+  if (streamGroup) claimedGroupIds.add(streamGroup.id);
+  const electivesGroup = sourceGroup(detail, electives,
+    /Table S of the Shared Pool|credit points from Table S/i, claimedGroupIds);
 
   return {
     totalCreditPoints: detail.degree.creditPoints ?? 192,
@@ -98,33 +119,32 @@ export const mapUsydEngineeringStructure = (detail: DegreeDetailResponse): UsydE
       title: "Engineering Core",
       creditPoints: 48,
       foundation,
-      foundationGroup: sourceGroup(detail, foundation, /Engineering Foundations Table/i),
+      foundationGroup,
       projects,
-      projectsGroup: sourceGroup(detail, projects, /Engineering Projects Table/i),
+      projectsGroup,
       professionalEngagement,
-      professionalEngagementGroup: sourceGroup(detail, professionalEngagement, /Professional Engagement Program/i),
+      professionalEngagementGroup,
     },
     stream,
-    streamGroup: formalComponentPool(detail, "STREAM")
-      ?? sourceGroup(detail, stream, /Engineering Stream Tables?/i),
+    streamGroup,
     electives,
-    electivesGroup: sourceGroup(detail, electives, /Table S of the Shared Pool|credit points from Table S/i),
-    specialisationSource,
-    specialisationGroup: sourceGroup(detail, specialisationSource, /Engineering Specialisations Tables?/i),
+    electivesGroup,
     conditional,
     conditionalGroups: new Map(conditional.flatMap((item) => {
-      const group = sourceGroup(detail, item, /Dalyell.*Table D|Table D.*Dalyell/i);
+      const group = sourceGroup(detail, item, /Dalyell.*Table D|Table D.*Dalyell/i, claimedGroupIds);
       return group ? [[item.requirementGroupId, group]] : [];
     })),
     sourceClauses: summaries.filter((item) => item.sourceText),
   };
 };
 
-const displayGroup = ({ id, title, description, creditPoints, logic = "ALL", children, source }: {
+const displayGroup = ({ id, title, description, requiredCreditPoints, maximumCreditPoints,
+  logic = "ALL", children, source }: {
   id: string;
   title: string;
   description: string | null;
-  creditPoints: number | null;
+  requiredCreditPoints?: number | null;
+  maximumCreditPoints?: number | null;
   logic?: RequirementGroup["logic"];
   children?: RequirementGroup[];
   source?: RequirementGroup | null;
@@ -132,9 +152,13 @@ const displayGroup = ({ id, title, description, creditPoints, logic = "ALL", chi
   id: source?.id ?? id,
   title,
   description,
-  logic: source?.logic !== "UNKNOWN" ? source?.logic ?? logic : logic,
-  requiredCreditPoints: creditPoints ?? source?.requiredCreditPoints ?? null,
-  maximumCreditPoints: source?.maximumCreditPoints ?? null,
+  logic: source?.logic ?? logic,
+  requiredCreditPoints: requiredCreditPoints !== undefined
+    ? requiredCreditPoints
+    : source?.requiredCreditPoints ?? null,
+  maximumCreditPoints: maximumCreditPoints !== undefined
+    ? maximumCreditPoints
+    : source?.maximumCreditPoints ?? null,
   sortOrder: source?.sortOrder ?? null,
   items: source?.items ?? [],
   children: children ?? source?.children ?? [],
@@ -150,24 +174,24 @@ export const usydEngineeringDisplayGroups = (structure: UsydEngineeringStructure
     id: "usyd-engineering-core",
     title: structure.core.title,
     description: null,
-    creditPoints: structure.core.creditPoints,
+    requiredCreditPoints: structure.core.creditPoints,
     children: [
       displayGroup({ id: structure.core.foundation.requirementGroupId, title: "Foundation",
         description: sectionDescription(structure.core.foundation, structure.core.foundationGroup),
-        creditPoints: structure.core.foundation.minimumCreditPoints, source: structure.core.foundationGroup }),
+        requiredCreditPoints: structure.core.foundation.minimumCreditPoints, source: structure.core.foundationGroup }),
       displayGroup({ id: structure.core.projects.requirementGroupId, title: "Engineering Projects",
         description: sectionDescription(structure.core.projects, structure.core.projectsGroup),
-        creditPoints: structure.core.projects.minimumCreditPoints, source: structure.core.projectsGroup }),
+        requiredCreditPoints: structure.core.projects.minimumCreditPoints, source: structure.core.projectsGroup }),
       displayGroup({ id: structure.core.professionalEngagement.requirementGroupId, title: "Professional Engagement Program",
         description: sectionDescription(structure.core.professionalEngagement, structure.core.professionalEngagementGroup),
-        creditPoints: null, source: structure.core.professionalEngagementGroup }),
+        requiredCreditPoints: null, source: structure.core.professionalEngagementGroup }),
     ],
   }),
   displayGroup({
     id: structure.stream.requirementGroupId,
     title: "Engineering Stream",
     description: sectionDescription(structure.stream, structure.streamGroup),
-    creditPoints: structure.stream.minimumCreditPoints,
+    requiredCreditPoints: structure.stream.minimumCreditPoints,
     logic: "ONE_OF",
     source: structure.streamGroup,
   }),
@@ -175,17 +199,13 @@ export const usydEngineeringDisplayGroups = (structure: UsydEngineeringStructure
     id: structure.electives.requirementGroupId,
     title: "Open Electives",
     description: sectionDescription(structure.electives, structure.electivesGroup),
-    creditPoints: structure.electives.minimumCreditPoints,
+    requiredCreditPoints: null,
+    maximumCreditPoints: structure.electives.maximumCreditPoints
+      ?? (/\bmaximum\b|\bup to\b/i.test(structure.electives.sourceText ?? "")
+        ? structure.electives.minimumCreditPoints
+        : null),
     logic: "ANY",
     source: structure.electivesGroup,
-  }),
-  displayGroup({
-    id: structure.specialisationSource.requirementGroupId,
-    title: "Specialisation",
-    description: sectionDescription(structure.specialisationSource, structure.specialisationGroup),
-    creditPoints: null,
-    logic: "UNKNOWN",
-    source: structure.specialisationGroup,
   }),
 ];
 
@@ -194,7 +214,7 @@ export const usydEngineeringConditionalDisplayGroups = (structure: UsydEngineeri
     id: item.requirementGroupId,
     title: item.title,
     description: sectionDescription(item, structure.conditionalGroups.get(item.requirementGroupId) ?? null),
-    creditPoints: item.minimumCreditPoints,
+    requiredCreditPoints: item.minimumCreditPoints,
     logic: "ALL",
     source: structure.conditionalGroups.get(item.requirementGroupId) ?? null,
   }));

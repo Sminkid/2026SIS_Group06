@@ -1,5 +1,5 @@
 import { appUi } from "./ui";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { ReactNode } from "react";
 import type { ComponentSelections } from "../hooks/useComponentSelections";
 import { readableText } from "../domain/readableText";
@@ -7,6 +7,7 @@ import type { ComponentDetailResponse, RequirementGroup, RequirementItem, Requir
 import { AsyncState } from "./AsyncState";
 import { useComponentDetail } from "../hooks/useComponentDetail";
 import { componentCreditLabel, componentDetailView } from "../domain/componentDetailState";
+import { requirementItemCreditPoints, requirementLogicLabel } from "../domain/requirementPresentation";
 
 const formatType = (type: string) => type.toLowerCase().replaceAll("_", " ");
 const readableGroupTitle = (title: string | null) => {
@@ -15,9 +16,6 @@ const readableGroupTitle = (title: string | null) => {
   const choicePool = /^(.*?)\s+(major|minor|sub[ -]?major)\s+choice pool$/i.exec(value);
   return choicePool ? `Choose one ${choicePool[2]!.toLowerCase()} from ${choicePool[1]}` : value;
 };
-const readableLogic = (logic: RequirementGroup["logic"]) => logic === "ONE_OF"
-  ? "Choose one"
-  : logic === "ANY" ? "Choose from options" : logic.replace("_", " ");
 const componentCreditSummary = (groups: RequirementGroup[]) => groups.reduce((summary, group) => {
   const points = group.requiredCreditPoints ?? 0;
   const hasDirectSubjects = group.items.some((item) => item.subject);
@@ -44,7 +42,7 @@ const RequirementRow = ({
     aria-label={`View ${item.subject.code} ${item.subject.name}`}
   >
     <span className={appUi.requirementRowCode}>{item.subject.code}</span><span className={appUi.requirementRowName}>{item.subject.name}</span>
-    {(item.subject.creditPoints ?? item.creditPoints) !== null && <span className={appUi.requirementRowCp}>{item.subject.creditPoints ?? item.creditPoints} CP</span>}
+    {requirementItemCreditPoints(item) !== null && <span className={appUi.requirementRowCp}>{requirementItemCreditPoints(item)} CP</span>}
   </button>;
   if (item.component) return <div className={appUi.requirementRowComponent}>
     <span className={appUi.typeBadge}>{formatType(item.component.type)}</span>{item.component.displayCode && <span className={appUi.requirementRowCode}>{item.component.displayCode}</span>}
@@ -188,16 +186,26 @@ const SelectedComponentRequirements = ({ componentId, context }: { componentId: 
 export const RequirementAccordion = ({ group, depth = 0, universityCode, handbookYear, selections, onSelectComponent,
   onOpenSubject, obligation, showChoiceSearch = false, choiceSelection, supplementalContent }: Props) => {
   const componentChoices = group.items.filter((item) => item.itemType === "COMPONENT");
-  const isSingleComponentChoice = group.logic === "ONE_OF" && componentChoices.length > 1 && componentChoices.length === group.items.length;
-  const hasChoiceSelection = isSingleComponentChoice || Boolean(choiceSelection);
-  const [isOpen, setIsOpen] = useState(depth === 0 && hasChoiceSelection);
+  const isComponentChoiceGroup = group.logic === "ONE_OF" && componentChoices.length > 0
+    && componentChoices.length === group.items.length;
+  const isSingleComponentChoice = isComponentChoiceGroup && componentChoices.length > 1;
+  const soleComponentChoice = isComponentChoiceGroup && componentChoices.length === 1
+    ? componentChoices[0]
+    : undefined;
+  const hasChoiceSelection = isComponentChoiceGroup || Boolean(choiceSelection);
+  const [isOpen, setIsOpen] = useState((depth === 0 && hasChoiceSelection) || Boolean(soleComponentChoice));
   const contentId = useId();
   const selectedCode = selections[group.id];
-  const selectedChoice = componentChoices.find((item) => item.component?.code === selectedCode);
+  const selectedChoice = componentChoices.find((item) => item.component?.code === selectedCode)
+    ?? soleComponentChoice;
   const selectedExternalChoice = choiceSelection?.choices.find((choice) => choice.value === choiceSelection.selectedValue);
   const hasContent = group.items.length > 0 || group.children.length > 0 || Boolean(group.description)
     || Boolean(choiceSelection) || Boolean(supplementalContent);
   const context = { universityCode, handbookYear, selections, onSelectComponent, onOpenSubject };
+  useEffect(() => {
+    const componentCode = soleComponentChoice?.component?.code;
+    if (componentCode && selectedCode !== componentCode) onSelectComponent(group.id, componentCode);
+  }, [group.id, onSelectComponent, selectedCode, soleComponentChoice]);
   const componentChoiceSelection: RequirementChoiceSelection | undefined = isSingleComponentChoice ? {
     legend: readableGroupTitle(group.title),
     choices: componentChoices.map((item) => item.component ? {
@@ -221,12 +229,14 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
     showSearch: showChoiceSearch || componentChoices.length > 12,
   } : undefined;
   const renderedSelection = choiceSelection ?? componentChoiceSelection;
+  const logicLabel = requirementLogicLabel(group.logic);
 
   return <section className={depth > 0 ? appUi.requirementGroupNested : appUi.requirementGroup}>
     <button className={appUi.requirementGroupTrigger} type="button" aria-expanded={isOpen} aria-controls={contentId} onClick={() => setIsOpen((open) => !open)} disabled={!hasContent}>
       <span className={appUi.requirementGroupHeading}><span className={appUi.requirementGroupTitle}>{readableGroupTitle(group.title)}</span>
         <span className={appUi.requirementGroupMeta}>{group.requiredCreditPoints !== null && `${group.requiredCreditPoints} credit points`}
-          {group.logic !== "UNKNOWN" && <span className={appUi.logicLabel}>{readableLogic(group.logic)}</span>}
+          {group.maximumCreditPoints !== null && <span>Maximum {group.maximumCreditPoints} credit points</span>}
+          {logicLabel && <span className={appUi.logicLabel}>{logicLabel}</span>}
           {obligation && <span className={obligation === "OPTIONAL" ? appUi.obligationOptional
             : obligation === "CONDITIONAL" ? appUi.obligationConditional
               : obligation === "INFORMATIONAL" ? appUi.obligationInformational : appUi.obligationRequired}>{obligation}</span>}
@@ -240,7 +250,7 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
       {supplementalContent}
       {renderedSelection ? <RequirementChoiceList {...renderedSelection} />
         : group.items.length > 0 && <div className={appUi.requirementItems}>{group.items.map((item) => <RequirementRow item={item} onOpenSubject={onOpenSubject} key={item.id} />)}</div>}
-      {isSingleComponentChoice && selectedChoice?.component && <SelectedComponentRequirements componentId={selectedChoice.component.id} context={context} />}
+      {isComponentChoiceGroup && selectedChoice?.component && <SelectedComponentRequirements componentId={selectedChoice.component.id} context={context} />}
       {choiceSelection?.selectedContent}
       {group.children.length > 0 && <div className={appUi.nestedRequirements}>{group.children.map((child) => <RequirementAccordion key={child.id} group={child} depth={depth + 1} {...context} />)}</div>}
     </div>}

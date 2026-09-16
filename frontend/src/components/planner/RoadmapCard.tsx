@@ -7,6 +7,7 @@ import { plannerUi as ui } from "./ui";
 
 interface Props {
   item: StudyPlanItem; editable: boolean; scheduled?: string; issues: ValidationResult[];
+  readOnlyChoiceNote?: string;
   prerequisite?: PrerequisiteDisplayState;
   onChoose: (item: StudyPlanItem) => void;
   onOpenSubject: (code: string, issues: ValidationResult[]) => void;
@@ -25,7 +26,8 @@ function PrerequisiteSummary({ state }: { state: PrerequisiteDisplayState }) {
  * Displays one allocation at its current schedule position. Card size is shared
  * by fixed, empty and selected states; only compact actions and status change.
  */
-export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, onChoose, onOpenSubject, onRestoreChoice, onSwap }: Props) {
+export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, readOnlyChoiceNote,
+  onChoose, onOpenSubject, onRestoreChoice, onSwap }: Props) {
   const placement = /\b(internship|placement|practicum|professional experience)\b/i.test(`${item.title} ${item.choiceOrigin?.title ?? ""}`);
   const fixedCore = item.choiceOrigin?.componentRequirementKind === "FIXED";
   const filled = Boolean(item.choiceOrigin && item.subject && !fixedCore);
@@ -48,7 +50,9 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, o
     {code && <p className="m-0 text-xs font-semibold text-blue-800">{code}</p>}
     {scheduled && <p className={cn("plan-item__note", ui.note)}>Scheduled: {scheduled}</p>}
     {item.choiceOrigin && <p className={cn("plan-item__note line-clamp-2", ui.note)} title={`Counts toward: ${source}`}>Counts toward: {source}</p>}
-    {!item.subject && interactive && <p className={cn("plan-item__note", ui.note)}>{item.choiceOrigin?.componentRequirementKind === "COMPONENT" ? "Choose a required Core or eligible Option" : "Choose an eligible subject"}</p>}
+    {!item.subject && interactive && <p className={cn("plan-item__note", ui.note)}>{!editable && readOnlyChoiceNote
+      ? readOnlyChoiceNote
+      : item.choiceOrigin?.componentRequirementKind === "COMPONENT" ? "Choose a required Core or eligible Option" : "Choose an eligible subject"}</p>}
     {prerequisite && <PrerequisiteSummary state={prerequisite} />}
     {secondaryIssue && <p className="m-0 text-xs text-amber-900">Plan requirement needs review</p>}
     {editable && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">

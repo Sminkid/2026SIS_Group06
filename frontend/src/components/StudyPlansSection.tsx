@@ -25,8 +25,9 @@ import { readableText } from "../domain/readableText";
 import { reconcileStudyPlan } from "../domain/studyPlanSelection";
 import { expandRoadmapSlots } from "../domain/roadmapSlots";
 import { SwapPositionDialog } from "./SwapPositionDialog";
+import { OfficialPlanRoadmap } from "./study-plan/OfficialPlanRoadmap";
 
-interface Props {
+export interface StudyPlansSectionProps {
   degreeCode: string;
   universityCode: string;
   handbookYear: number;
@@ -41,15 +42,6 @@ interface Props {
   onSelectComponent: (groupId: string, value: string, clearGroupIds?: string[]) => void;
 }
 /** Groups allocations by their formal aggregate without changing their schedule order. */
-const roadmapBlocks = (items: StudyPlanItem[]) => {
-  const blocks = new Map<string, StudyPlanItem[]>();
-  items.forEach((item) => {
-    const key = item.choiceOrigin?.parentAggregateItemId ?? item.id;
-    blocks.set(key, [...(blocks.get(key) ?? []), item]);
-  });
-  return [...blocks.entries()];
-};
-
 /** Coordinates the official roadmap, student draft and their existing selection workflows. */
 export const StudyPlansSection = ({
   degreeCode,
@@ -64,7 +56,7 @@ export const StudyPlansSection = ({
   componentDetailsStatus,
   degreeName,
   onSelectComponent,
-}: Props) => {
+}: StudyPlansSectionProps) => {
   const [requirementDetail, setRequirementDetail] = useState<{ code: string; issues: ValidationResult[] } | null>(null);
   const [plans, setPlans] = useState<StudyPlan[]>([]);
   const variantStorageKey = `degree-planner:variant:${universityCode}:${handbookYear}:${degreeCode}`;
@@ -102,7 +94,7 @@ export const StudyPlansSection = ({
   const reconciledPlan = reconcileStudyPlan(plans, selectedPlanId, universityCode === "UTS" ? majorCode : undefined);
   const selectedPlan = useMemo(() => expandRoadmapSlots(reconciledPlan.plan, universityCode, requirements, selectedComponents, componentDetails),
     [reconciledPlan.plan, universityCode, requirements, selectedComponents, componentDetails]);
-  const selectPathComponent: Props["onSelectComponent"] = (groupId, value, clearIds = []) => {
+  const selectPathComponent: StudyPlansSectionProps["onSelectComponent"] = (groupId, value, clearIds = []) => {
     setActiveChoice(null);
     if (universityCode === "UTS" && groupId === majorGroup?.id) {
       const result = reconcileStudyPlan(plans, selectedPlan?.id ?? selectedPlanId, value);
@@ -330,21 +322,7 @@ export const StudyPlansSection = ({
         {displayedSessionNames.filter((name) => /spring/i.test(name)).length > 0 && <div><dt>Spring</dt><dd>Main second-half teaching session.</dd></div>}
         {displayedSessionNames.filter((name) => /session 1/i.test(name)).length > 0 && <div><dt>Session 1</dt><dd>A separate teaching or placement period used by this course calendar; it is not assumed to be Autumn.</dd></div>}
       </dl><p>Exact dates are not stored in this planner. Check the university academic calendar before enrolling.</p></details>}
-      <div className="plan-years grid items-start gap-10">
-        {displayedPlan.years.map((year) => <section className="plan-year min-w-0 scroll-mt-4" key={year.id}>
-          <h3 className="mb-4 mt-0 border-0 border-b border-solid border-slate-400 pb-3 text-2xl">{year.name}</h3>
-          <div className="grid items-start gap-7">
-            {year.periods.map((period) => <section className="plan-period min-w-0" key={period.id}>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600"><h4 className="m-0 text-sm font-bold uppercase tracking-wide">{period.name}</h4><span>{period.items.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0)} CP scheduled</span></div>
-              {period.items.length === 0 ? <p className={appUi.planPeriodEmpty}>No items listed</p> :
-                <div className={plannerUi.grid}>{roadmapBlocks(period.items).map(([blockId, blockItems]) => {
-                  const origin = blockItems[0].choiceOrigin;
-                  const required = origin?.parentAggregateCreditPoints;
-                  const points = blockItems.reduce((sum, item) => sum + (item.subject?.creditPoints ?? 0), 0);
-                  return <div key={blockId} className={required ? "roadmap-aggregate col-span-full min-w-0 border-0 border-y border-solid border-slate-200 py-3" : "min-w-0"}>
-                  {required !== undefined && <header className="mb-3 text-sm"><strong>{origin?.sourceLabel ?? origin?.parentAggregateTitle}</strong><p className="mb-0 mt-1 text-xs text-slate-600">{points} CP scheduled here</p></header>}
-                  <div className={required ? plannerUi.grid : undefined}>{blockItems.map((item) => (
-                  <RoadmapCard
+      <OfficialPlanRoadmap plan={displayedPlan} renderItem={(item, scheduled) => <RoadmapCard
                     item={item}
                     editable={planner !== null}
                     onChoose={setActiveChoice}
@@ -353,15 +331,9 @@ export const StudyPlansSection = ({
                     prerequisite={planner && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], combinedIssuesBySubject.get(item.subject.code), { loading: validationStatus === "loading", hasPlan: true }) : undefined}
                     onRestoreChoice={restoreChoiceSlot}
                     onSwap={setSwapSourceId}
-                    scheduled={`${year.name} ${period.name}`}
+                    scheduled={scheduled}
                     key={item.id}
-                  />
-                ))}</div></div>;
-                })}</div>}
-            </section>)}
-          </div>
-        </section>)}
-      </div>
+                  />} />
       {planner && unassignedItems.length > 0 && <section className={appUi.unassignedSection} aria-labelledby="unassigned-heading">
         <div><p className={appUi.stepLabel}>Custom plan holding area</p><h3 id="unassigned-heading">Unscheduled subjects</h3>
           <p>Move these subjects into a study period when you are ready.</p></div>

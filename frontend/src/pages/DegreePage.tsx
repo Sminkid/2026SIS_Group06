@@ -3,14 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchDegreeDetail } from "../api/degrees";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { RequirementAccordion } from "../components/RequirementAccordion";
 import type { DegreeDetailResponse, DegreeSummary, RequirementGroup, University } from "../types/handbook";
 import { useComponentSelections } from "../hooks/useComponentSelections";
-import { StudyPlansSection } from "../components/StudyPlansSection";
 import { SubjectDetailsDialog } from "../components/SubjectDetailsDialog";
 import { useSelectedComponentDetails } from "../hooks/useSelectedComponentDetails";
-import { DegreeCompletionOverview } from "../components/DegreeCompletionOverview";
 import { readableText } from "../domain/readableText";
+import { DegreeStructureRenderer } from "../components/degree-structure/DegreeStructureRenderer";
+import { StudyPlanRenderer } from "../components/study-plan/StudyPlanRenderer";
 
 interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; }
 const componentIndex = (groups: RequirementGroup[]) => {
@@ -73,8 +72,6 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
     return () => controller.abort();
   }, [degree.code, degree.handbookYear, reloadKey, university.code]);
 
-  const pathwayRequirements = detail?.requirements.filter((group) => group.pathways.length > 0) ?? [];
-  const compulsoryRequirements = detail?.requirements.filter((group) => group.pathways.length === 0) ?? [];
   const hasSemanticOverview = detail?.completionSummary.some((summary) => summary.obligation === "OPTIONAL" || summary.obligation === "CONDITIONAL" || summary.obligation === "INFORMATIONAL") ?? false;
 
   return <main className={appUi.page} id="main-content">
@@ -91,32 +88,9 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
         </div>
         {detail.degree.description && !hasSemanticOverview && <p className={appUi.degreeDescription}>{readableText(detail.degree.description)}</p>}
       </header>
-      <section className={appUi.requirementsSection} aria-labelledby="requirements-heading">
-        <div className={appUi.sectionHeading}><div><p className={appUi.stepLabel}>Step 3 of 3</p><h2 id="requirements-heading">Course structure</h2></div><span className={appUi.resultCount}>{detail.requirements.length} sections</span></div>
-        <p className={appUi.sectionNote}>{hasSemanticOverview ? "Start with what is required, then decide whether optional or conditional rules apply to you." : "Open each section to see its formal handbook requirements."}</p>
-        {selectionNotice && <p className={appUi.selectionNotice} role="status">A saved choice is no longer available for this handbook. Please choose it again.</p>}
-        {detail.requirements.length === 0 ? <AsyncState kind="empty" label="No formal requirement structure is available for this degree." /> : hasSemanticOverview ? <DegreeCompletionOverview
-          totalCreditPoints={detail.degree.creditPoints} summaries={detail.completionSummary} requirements={detail.requirements}
-          universityCode={university.code} handbookYear={degree.handbookYear} selections={selections} onSelectComponent={selectComponent} onOpenSubject={setSubjectCode}
-        /> :
-          <div className={appUi.requirementsList}>{pathwayRequirements.length > 0 && <><h3 className={appUi.requirementSectionLabel}>Compulsory requirements</h3>{compulsoryRequirements.map((group) => (
-            <RequirementAccordion
-              group={group}
-              key={group.id}
-              universityCode={university.code}
-              handbookYear={degree.handbookYear}
-              selections={selections}
-              onSelectComponent={selectComponent}
-              onOpenSubject={setSubjectCode}
-            />
-          ))}<h3 className={appUi.requirementSectionLabel}>Choose one {pathwayRequirements[0]?.requiredCreditPoints ?? ""} CP option</h3>{pathwayRequirements.map((group) => <RequirementAccordion
-            group={group} key={group.id} universityCode={university.code} handbookYear={degree.handbookYear} selections={selections}
-            onSelectComponent={selectComponent} onOpenSubject={setSubjectCode} />)}</>}{pathwayRequirements.length === 0 && detail.requirements.map((group) => (
-            <RequirementAccordion group={group} key={group.id} universityCode={university.code} handbookYear={degree.handbookYear}
-              selections={selections} onSelectComponent={selectComponent} onOpenSubject={setSubjectCode} />
-          ))}</div>}
-      </section>
-      <StudyPlansSection
+      <DegreeStructureRenderer detail={detail} universityCode={university.code} handbookYear={degree.handbookYear}
+        selections={selections} selectionNotice={selectionNotice} onSelectComponent={selectComponent} onOpenSubject={setSubjectCode} />
+      <StudyPlanRenderer
         degreeCode={degree.code}
         universityCode={university.code}
         handbookYear={degree.handbookYear}

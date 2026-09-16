@@ -124,6 +124,12 @@ export interface StudyPlanPeriod { id: string; name: string; sortOrder: number |
 export interface StudyPlanYear { id: string; name: string; sortOrder: number | null; periods: StudyPlanPeriod[]; }
 export interface StudyPlan {
   id: string; title: string; description: string | null; sourceUrl: string | null; years: StudyPlanYear[];
+  sourcePlanId?: string | null;
+  pathway?: string | null;
+  sourceType?: string | null;
+  handbookYear?: number | null;
+  variantNumber?: number | null;
+  totalCreditPoints?: number | null;
   major?: { id: string; code: string; name: string } | null;
   relationshipBasis?: "SOURCE_TITLE_AND_SUBJECT_IDS" | null;
   commencement?: string | null;

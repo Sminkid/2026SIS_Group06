@@ -8,6 +8,9 @@ const fixture = JSON.parse(readFileSync(new URL("../src/domain/fixtures/handbook
   engineering: DegreeDetailResponse; accounting: DegreeDetailResponse; usyd: DegreeDetailResponse;
   engineeringPlans: StudyPlan[]; accountingPlans: StudyPlan[]; details: Record<string, ComponentDetailResponse>; usydComponent: ComponentDetailResponse;
 };
+const usydEngineering = JSON.parse(readFileSync(new URL("./fixtures/usyd-engineering-2026.json", import.meta.url), "utf8")) as {
+  detail: DegreeDetailResponse; plans: StudyPlan[];
+};
 const failures = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
   const errors: string[] = [];
@@ -21,9 +24,9 @@ test.beforeEach(async ({ page }) => {
     let body: unknown = {};
     if (path === "/api/universities") body = [fixture.accounting.degree.university, fixture.usyd.degree.university];
     else if (path.includes("/handbooks/latest")) body = { year: 2026 };
-    else if (/\/universities\/.*\/degrees$/.test(path)) body = path.includes("USYD") ? [fixture.usyd.degree] : [fixture.engineering.degree, fixture.accounting.degree];
-    else if (path.includes("/study-plans")) body = path.includes("C09066") ? fixture.engineeringPlans : path.includes("C10235") ? fixture.accountingPlans : [];
-    else if (path.includes("/degrees/")) body = path.includes("C09066") ? fixture.engineering : path.includes("C10235") ? fixture.accounting : fixture.usyd;
+    else if (/\/universities\/.*\/degrees$/.test(path)) body = path.includes("USYD") ? [fixture.usyd.degree, usydEngineering.detail.degree] : [fixture.engineering.degree, fixture.accounting.degree];
+    else if (path.includes("/study-plans")) body = path.includes("C09066") ? fixture.engineeringPlans : path.includes("C10235") ? fixture.accountingPlans : path.includes("BHENGINE-04") ? usydEngineering.plans : [];
+    else if (path.includes("/degrees/")) body = path.includes("C09066") ? fixture.engineering : path.includes("C10235") ? fixture.accounting : path.includes("BHENGINE-04") ? usydEngineering.detail : fixture.usyd;
     else if (path.includes("/components/")) body = [...Object.values(fixture.details), fixture.usydComponent].find((detail) => [detail.component.code, detail.component.id].includes(decodeURIComponent(path.split("/").at(-1)!))) ?? { error: "Component not captured" };
     else if (path.endsWith("/subjects/search")) body = [{ id: "test-elective", code: "TEST100", name: "Test elective", creditPoints: 6, prerequisiteStatus: "UNKNOWN", recommendation: "UNVERIFIED" }];
     await route.fulfill({ json: body });
@@ -122,6 +125,84 @@ test("Engineering Data Science major/variant synchronization and exact candidate
   await openDegree(page, "C09066");
   await expect(major).toHaveValue("MAJ03518");
   await expect(page.locator(".plan-intro h3")).toContainText("Data Science");
+});
+
+test("UTS Course Structure still selects a major and renders its nested subject requirements", async ({ page }) => {
+  await openDegree(page, "C09066");
+  const majorsButton = page.getByRole("button", { name: /Majors - Engineering.*120 credit points.*Choose one/i });
+  await expect(majorsButton).toBeVisible();
+  const majorsSection = majorsButton.locator("..");
+  await majorsSection.getByRole("searchbox", { name: "Filter choices" }).fill("Data Science Engineering");
+  await majorsSection.getByRole("radio", { name: /Data Science Engineering/ }).check();
+  await expect(majorsSection.getByText("Selected major", { exact: true })).toBeVisible();
+  const core = majorsSection.getByRole("button", { name: /Core.*66 credit points.*ALL/i });
+  await core.click();
+  await expect(majorsSection.getByRole("button", { name: /View 41082 Introduction to Data Engineering/i })).toBeVisible();
+});
+
+test("USYD Engineering keeps unsupported detail minimal and separate from the CUSP study plan", async ({ page }) => {
+  await openDegree(page, "BHENGINE-04", "USYD");
+  const coreSection = page.getByRole("button", { name: /Engineering Core.*48 credit points.*ALL/i });
+  const streamButton = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i });
+  const electivesButton = page.getByRole("button", { name: /Open Electives.*24 credit points.*Choose from options/i });
+  const specialisationButton = page.getByRole("button", { name: /Specialisation.*Optional/i });
+  await expect(coreSection).toBeVisible();
+  await expect(streamButton).toBeVisible();
+  await expect(electivesButton).toBeVisible();
+  await expect(specialisationButton).toBeVisible();
+  await coreSection.click();
+  await expect(page.getByRole("button", { name: /Foundation.*18 credit points.*ALL/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Engineering Projects.*30 credit points.*ALL/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Professional Engagement Program.*ALL/i })).toBeVisible();
+  const foundationButton = page.getByRole("button", { name: /Foundation.*18 credit points.*ALL/i });
+  await foundationButton.click();
+  const foundationSection = foundationButton.locator("..");
+  await foundationSection.getByText("Official requirement", { exact: true }).click();
+  await expect(foundationSection).toContainText("a minimum of 18 credit points from the Engineering Foundations Table");
+  await expect(foundationSection).not.toContainText("Data availability");
+  const pepButton = page.getByRole("button", { name: /Professional Engagement Program.*ALL/i });
+  await pepButton.click();
+  const pepSection = pepButton.locator("..");
+  await pepSection.getByText("Official requirement", { exact: true }).click();
+  await expect(pepSection).toContainText("successfully complete the requirements of the Professional Engagement Program");
+
+  await streamButton.click();
+  const streamSection = streamButton.locator("..");
+  await expect(streamSection.getByRole("searchbox", { name: "Filter choices" })).toBeVisible();
+  await expect(streamSection.getByRole("radio")).toHaveCount(2);
+  await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
+  await expect(streamSection.getByText("Selected stream", { exact: true })).toBeVisible();
+  await expect(streamSection.getByRole("heading", { name: "Software Engineering", exact: true })).toBeVisible();
+  await expect(streamSection).toContainText("120 CP stream requirement");
+  await expect(streamSection).not.toContainText("StudyPlan.pathway");
+  await expect(streamSection).not.toContainText("DegreeComponent");
+  await expect(streamSection).not.toContainText("current API");
+  await expect(streamSection).not.toContainText("CUSP base-plan structure");
+  await expect(streamSection).not.toContainText("View the official source");
+  await expect(streamSection.getByRole("button", { name: /Year 1/i })).toHaveCount(0);
+  await expect(streamSection.getByRole("button", { name: /View INFO1110/i })).toHaveCount(0);
+  await electivesButton.click();
+  const electivesSection = electivesButton.locator("..");
+  await electivesSection.getByText("Official requirement", { exact: true }).click();
+  await expect(electivesSection).toContainText("a maximum of 24 credit points from Table S");
+  await expect(electivesSection).not.toContainText("eligible-subject list");
+  await specialisationButton.click();
+  const specialisationSection = specialisationButton.locator("..");
+  await specialisationSection.getByText("Official requirement", { exact: true }).click();
+  await expect(specialisationSection).toContainText("the Engineering Specialisations Tables");
+  await expect(specialisationSection).not.toContainText("component relationships");
+  await expect(page.locator(".plan-year")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Customize plan", exact: true })).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Engineering stream" }).selectOption("Software Engineering");
+  await page.getByRole("combobox", { name: "Commencement" }).selectOption("STANDARD");
+  await page.getByRole("combobox", { name: "Official plan variant" }).selectOption("software-base");
+  await expect(page.locator(".plan-year")).toHaveCount(4);
+  await expect(page.locator(".plan-year").first()).toContainText("Year 1");
+  await expect(page.locator(".plan-period").first()).toContainText("Semester 1");
+  await expect(page.locator(".plan-item").filter({ hasText: "INFO1110" })).toBeVisible();
+  await expect(page.locator(".plan-item--choice")).toContainText("Software Stream 1000/2000 Level Electives");
+  await expect(page.locator(".plan-item--choice")).toContainText("Eligible subject options are not yet mapped");
+  await expect(page.getByText("Year 0", { exact: true })).toHaveCount(0);
 });
 
 test("Narrow layout and compact empty dialog retain a visible close control", async ({ page }) => {
@@ -277,6 +358,12 @@ test("USYD degree requirements remain available", async ({ page }) => {
   await expect(page.locator(".requirements-section")).toBeVisible();
   await expect(page.locator("body")).not.toContainText("undefined");
   await expect(page.locator(".roadmap-aggregate")).toHaveCount(0);
+  const requiredMajor = page.getByRole("button", { name: /Required major/ });
+  await expect(requiredMajor).toBeVisible();
+  const requiredMajorSection = requiredMajor.locator("..");
+  await expect(requiredMajorSection.getByRole("radio")).toHaveCount(4);
+  await expect(requiredMajorSection.getByRole("searchbox", { name: "Filter choices" })).toBeVisible();
+  await expect(page.getByText("Choose one 48 CP major", { exact: true })).toHaveCount(0);
   const component = fixture.usydComponent.component;
   await page.getByRole("combobox", { name: "Would you like an additional component?" }).selectOption("MINOR");
   await page.locator(`input[type="radio"][value="${component.code}"]`).first().check();

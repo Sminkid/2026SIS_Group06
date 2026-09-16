@@ -1,0 +1,72 @@
+{
+  "detail": {
+    "degree": {
+      "id": "usyd-bhengine-04",
+      "code": "BHENGINE-04",
+      "name": "Bachelor of Engineering Honours",
+      "creditPoints": 192,
+      "handbookYear": 2026,
+      "university": { "id": "usyd", "code": "USYD", "name": "The University of Sydney" },
+      "description": "Official Engineering course resolutions"
+    },
+    "requirements": [],
+    "completionSummary": [
+      { "id": "foundation", "title": "18 CP Foundation", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 18, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 18 credit points from the Engineering Foundations Table", "sourceUrl": null, "requirementGroupId": "foundation" },
+      { "id": "projects", "title": "30 CP Projects", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 30, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 30 credit points from the Engineering Projects Table", "sourceUrl": null, "requirementGroupId": "projects" },
+      { "id": "pep", "title": "Professional Engagement Program", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": null, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "successfully complete the requirements of the Professional Engagement Program", "sourceUrl": null, "requirementGroupId": "pep" },
+      { "id": "stream", "title": "120 CP Stream", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 120, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 120 credit points from the Engineering Stream Table", "sourceUrl": null, "requirementGroupId": "stream" },
+      { "id": "electives", "title": "24 CP electives", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 24, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a maximum of 24 credit points from Table S", "sourceUrl": null, "requirementGroupId": "electives" },
+      { "id": "specialisation", "title": "Specialisations", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": null, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "the Engineering Specialisations Tables", "sourceUrl": null, "requirementGroupId": "specialisation" },
+      { "id": "dalyell", "title": "12 CP Dalyell units", "explanation": "Applies only to Dalyell students", "obligation": "CONDITIONAL", "minimumCreditPoints": 12, "maximumCreditPoints": null, "conditionLabel": "Dalyell Stream", "actionKind": "CONFIRM_CONDITION", "sourceText": "for students enrolled in the Dalyell Stream, a minimum of 12 credit points", "sourceUrl": null, "requirementGroupId": "dalyell" }
+    ]
+  },
+  "plans": [
+    {
+      "id": "software-base",
+      "sourcePlanId": "BHENGINE-04:6701:BASE:Software Engineering",
+      "pathway": "Software Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": null,
+      "totalCreditPoints": null,
+      "title": "Software Engineering",
+      "description": null,
+      "sourceUrl": "https://cusp.sydney.edu.au/example",
+      "years": [
+        { "id": "year-1", "name": "Year 1", "sortOrder": 0, "periods": [{ "id": "y1s1", "name": "Semester 1", "sortOrder": 0, "items": [
+          { "id": "info1110", "itemType": "SUBJECT", "subject": { "id": "subject-info1110", "code": "INFO1110", "name": "Introduction to Programming", "creditPoints": 6 }, "rawCode": "INFO1110", "title": "Introduction to Programming", "creditPoints": 6, "numberOfPeriods": null, "sortOrder": 0 },
+          { "id": "choice-1", "itemType": "CHOICE", "subject": null, "rawCode": null, "title": "Software Stream 1000/2000 Level Electives or Free Electives", "creditPoints": 6, "numberOfPeriods": null, "sortOrder": 1 }
+        ] }] },
+        { "id": "year-2", "name": "Year 2", "sortOrder": 1, "periods": [{ "id": "y2s1", "name": "Semester 1", "sortOrder": 0, "items": [] }] },
+        { "id": "year-3", "name": "Year 3", "sortOrder": 2, "periods": [{ "id": "y3s1", "name": "Semester 1", "sortOrder": 0, "items": [] }] },
+        { "id": "year-4", "name": "Year 4", "sortOrder": 3, "periods": [{ "id": "y4s1", "name": "Semester 1", "sortOrder": 0, "items": [] }] }
+      ]
+    },
+    {
+      "id": "software-midyear",
+      "sourcePlanId": "BHENGINE-04:6702:BASE:Software Engineering",
+      "pathway": "Software Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": null,
+      "totalCreditPoints": null,
+      "title": "Software Engineering (mid-year)",
+      "description": null,
+      "sourceUrl": null,
+      "years": [{ "id": "mid-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
+    },
+    {
+      "id": "civil-base",
+      "sourcePlanId": "BHENGINE-04:CIVIL",
+      "pathway": "Civil Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": null,
+      "totalCreditPoints": null,
+      "title": "Civil Engineering",
+      "description": null,
+      "sourceUrl": null,
+      "years": [{ "id": "civil-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
+    }
+  ]
+}

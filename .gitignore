@@ -8,3 +8,5 @@ dist/
 frontend/.vite/
 backend/src/generated/prisma/
 
+frontend/test-results
+docs

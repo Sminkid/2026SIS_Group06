@@ -26,6 +26,10 @@ export interface StudyPlanYearSummary {
 }
 
 export interface StudyPlanSummary {
+  major?: { id: string; code: string; name: string } | null;
+  relationshipBasis?: "SOURCE_TITLE_AND_SUBJECT_IDS" | null;
+  commencement?: string | null;
+  attendance?: string | null;
   id: string;
   title: string;
   description: string | null;

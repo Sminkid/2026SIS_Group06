@@ -29,6 +29,7 @@ const requirementProgress = (
   groups: RequirementGroup[],
   plannedCodes: Set<string>,
   selectedCodes: Set<string>,
+  planner: PlannerState,
 ): RequirementProgress[] => {
   const progress: RequirementProgress[] = [];
 
@@ -43,7 +44,9 @@ const requirementProgress = (
         return total + (item.creditPoints ?? item.subject.creditPoints ?? 0);
       }
       if (item.component && selectedCodes.has(item.component.code)) {
-        return total + (item.creditPoints ?? item.component.creditPoints ?? 0);
+        return total + planner.years.flatMap((year) => year.periods.flatMap((period) => period.items))
+          .filter((position) => position.subject && position.choiceOrigin?.formalComponentId === item.component!.id)
+          .reduce((sum, position) => sum + (position.subject?.creditPoints ?? 0), 0);
       }
       return total;
     }, 0) + children.reduce((total, child) => total + child.points, 0);
@@ -122,7 +125,18 @@ const validateRequisiteGroup = (
     });
   }
   const satisfied = evaluateBooleanRule(group.rule, itemValues);
-  if (satisfied === "FALSE" || (satisfied === "UNKNOWN" && unsatisfied.length > 0)) {
+
+  /*
+   * Only a deterministically FALSE rule may produce an actionable
+   * missing/timing warning.
+   *
+   * UNKNOWN means that at least part of the handbook expression cannot be
+   * evaluated automatically (for example an admission condition or a
+   * minimum-completed-credit-point condition). In that case we must not infer
+   * that one of the referenced subjects is missing, because another branch of
+   * an OR expression may still satisfy the rule.
+   */
+  if (satisfied === "FALSE") {
     const actionable = unsatisfied.filter((prerequisite) => {
       const matchingItem = group.items.find((item) => item.referencedSubject?.code === prerequisite.code);
       if (!matchingItem) return false;
@@ -151,6 +165,7 @@ const validateRequisiteGroup = (
       }
     }
   }
+
   if (unknownItems.length > 0 || satisfied === "UNKNOWN") {
     results.push({
       severity: "info",
@@ -338,7 +353,7 @@ export const validatePlanner = ({
   }
 
   const selectedCodes = new Set(Object.values(selectedComponents));
-  const progress = requirementProgress(requirements, plannedCodes, selectedCodes);
+  const progress = requirementProgress(requirements, plannedCodes, selectedCodes, planner);
   const errorCount = results.filter((result) => result.severity === "error").length;
   const warningCount = results.filter((result) => result.severity === "warning").length;
   const infoCount = results.filter((result) => result.severity === "info").length;

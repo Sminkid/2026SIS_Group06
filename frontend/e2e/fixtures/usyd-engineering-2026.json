@@ -9,7 +9,29 @@
       "university": { "id": "usyd", "code": "USYD", "name": "The University of Sydney" },
       "description": "Official Engineering course resolutions"
     },
-    "requirements": [],
+    "requirements": [
+      {
+        "id": "pep-table",
+        "title": "Professional Engagement Program Table",
+        "description": "the Professional Engagement Program Table",
+        "logic": "ALL",
+        "requiredCreditPoints": null,
+        "maximumCreditPoints": null,
+        "sortOrder": 3,
+        "items": [
+          { "id": "pep-engp1001", "itemType": "SUBJECT", "subject": { "id": "engp1001", "code": "ENGP1001", "name": "Professional Engagement Program 1A", "creditPoints": null }, "component": null, "rawCode": "ENGP1001", "rawName": "Professional Engagement Program 1A", "creditPoints": 0, "sortOrder": 0 },
+          { "id": "pep-engp1002", "itemType": "SUBJECT", "subject": { "id": "engp1002", "code": "ENGP1002", "name": "Professional Engagement Program 1B", "creditPoints": null }, "component": null, "rawCode": "ENGP1002", "rawName": "Professional Engagement Program 1B", "creditPoints": 0, "sortOrder": 1 },
+          { "id": "pep-engp1003", "itemType": "SUBJECT", "subject": { "id": "engp1003", "code": "ENGP1003", "name": "Professional Engagement Program 1C", "creditPoints": null }, "component": null, "rawCode": "ENGP1003", "rawName": "Professional Engagement Program 1C", "creditPoints": 0, "sortOrder": 2 },
+          { "id": "pep-engp2001", "itemType": "SUBJECT", "subject": { "id": "engp2001", "code": "ENGP2001", "name": "Professional Engagement Program 2A", "creditPoints": null }, "component": null, "rawCode": "ENGP2001", "rawName": "Professional Engagement Program 2A", "creditPoints": 0, "sortOrder": 3 },
+          { "id": "pep-engp2002", "itemType": "SUBJECT", "subject": { "id": "engp2002", "code": "ENGP2002", "name": "Professional Engagement Program 2B", "creditPoints": null }, "component": null, "rawCode": "ENGP2002", "rawName": "Professional Engagement Program 2B", "creditPoints": 0, "sortOrder": 4 },
+          { "id": "pep-engp2003", "itemType": "SUBJECT", "subject": { "id": "engp2003", "code": "ENGP2003", "name": "Professional Engagement Program 2C", "creditPoints": null }, "component": null, "rawCode": "ENGP2003", "rawName": "Professional Engagement Program 2C", "creditPoints": 0, "sortOrder": 5 },
+          { "id": "pep-engp3001", "itemType": "SUBJECT", "subject": { "id": "engp3001", "code": "ENGP3001", "name": "Professional Engagement Program 3A", "creditPoints": null }, "component": null, "rawCode": "ENGP3001", "rawName": "Professional Engagement Program 3A", "creditPoints": 0, "sortOrder": 6 },
+          { "id": "pep-engp3002", "itemType": "SUBJECT", "subject": { "id": "engp3002", "code": "ENGP3002", "name": "Professional Engagement Program 3B", "creditPoints": null }, "component": null, "rawCode": "ENGP3002", "rawName": "Professional Engagement Program 3B", "creditPoints": 0, "sortOrder": 7 }
+        ],
+        "children": [],
+        "pathways": []
+      }
+    ],
     "completionSummary": [
       { "id": "foundation", "title": "18 CP Foundation", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 18, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 18 credit points from the Engineering Foundations Table", "sourceUrl": null, "requirementGroupId": "foundation" },
       { "id": "projects", "title": "30 CP Projects", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 30, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 30 credit points from the Engineering Projects Table", "sourceUrl": null, "requirementGroupId": "projects" },

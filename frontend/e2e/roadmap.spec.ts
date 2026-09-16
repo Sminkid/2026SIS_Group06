@@ -165,6 +165,8 @@ test("USYD Engineering keeps unsupported detail minimal and separate from the CU
   const pepSection = pepButton.locator("..");
   await pepSection.getByText("Official requirement", { exact: true }).click();
   await expect(pepSection).toContainText("successfully complete the requirements of the Professional Engagement Program");
+  await expect(pepSection.getByRole("button", { name: /View ENGP1001 Professional Engagement Program 1A/i })).toBeVisible();
+  await expect(pepSection.getByRole("button", { name: /^View ENGP/i })).toHaveCount(8);
 
   await streamButton.click();
   const streamSection = streamButton.locator("..");

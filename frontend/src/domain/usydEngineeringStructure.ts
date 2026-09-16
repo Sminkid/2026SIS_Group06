@@ -45,6 +45,15 @@ const structuredContentCount = (group: RequirementGroup): number =>
   group.items.length + group.pathways.length + group.children.reduce((total, child) =>
     total + 1 + structuredContentCount(child), 0);
 
+const formalComponentPool = (
+  detail: DegreeDetailResponse,
+  componentType: string,
+): RequirementGroup | null => flattenGroups(detail.requirements).find((group) =>
+  group.logic === "ONE_OF"
+  && group.items.length > 1
+  && group.items.every((item) => item.itemType === "COMPONENT"
+    && item.component?.type === componentType)) ?? null;
+
 const sourceGroup = (
   detail: DegreeDetailResponse,
   summary: StudentRequirementSummary,
@@ -96,7 +105,8 @@ export const mapUsydEngineeringStructure = (detail: DegreeDetailResponse): UsydE
       professionalEngagementGroup: sourceGroup(detail, professionalEngagement, /Professional Engagement Program/i),
     },
     stream,
-    streamGroup: sourceGroup(detail, stream, /Engineering Stream Tables?/i),
+    streamGroup: formalComponentPool(detail, "STREAM")
+      ?? sourceGroup(detail, stream, /Engineering Stream Tables?/i),
     electives,
     electivesGroup: sourceGroup(detail, electives, /Table S of the Shared Pool|credit points from Table S/i),
     specialisationSource,

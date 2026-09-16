@@ -88,6 +88,19 @@ test("real linked Foundation, Project, PEP and stream content survives the compa
   assert.deepEqual(stream.items.map((item) => item.component?.name), ["Software Engineering", "Civil Engineering"]);
 });
 
+test("a formal STREAM pool is preserved when its imported title differs from the source clause", () => {
+  const streamClause = group("stream-clause", "Requirement 12", "UNKNOWN", 120);
+  streamClause.description = "a minimum of 120 credit points from the Engineering Stream Table";
+  const formalPool = group("stream-pool", "Engineering Streams stream choice pool", "ONE_OF", null,
+    [componentItem("software", "Software Engineering"), componentItem("civil", "Civil Engineering")]);
+
+  const result = mapUsydEngineeringStructure(detail([streamClause, formalPool]))!;
+  const stream = usydEngineeringDisplayGroups(result).find((candidate) => candidate.title === "Engineering Stream")!;
+
+  assert.equal(stream.id, "stream-pool");
+  assert.deepEqual(stream.items.map((item) => item.component?.name), ["Software Engineering", "Civil Engineering"]);
+});
+
 test("the compatibility adapter does not apply to other USYD degrees", () => {
   const other = detail();
   assert.equal(mapUsydEngineeringStructure({ ...other, degree: { ...other.degree, code: "OTHER" } }), null);

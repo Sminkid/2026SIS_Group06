@@ -35,35 +35,40 @@ const getClient = (): GoogleGenAI => {
   return client;
 };
 
-const generate = (model: string, question: string) => {
-  const ai = getClient();
+interface GenerateContentClient {
+  models: {
+    generateContent: (params: {
+      model: string;
+      contents: string;
+      config: { systemInstruction: string; maxOutputTokens: number };
+    }) => Promise<{ text?: string | undefined }>;
+  };
+}
 
-  return ai.models.generateContent({
+const generate = (client: GenerateContentClient, model: string, question: string) => {
+  return client.models.generateContent({
     model,
     contents: question,
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-      maxOutputTokens: 300,
-    },
+    config: { systemInstruction: SYSTEM_PROMPT, maxOutputTokens: 300 },
   });
 };
 
-export const answerGlossaryQuestion = async (question: string): Promise<string> => {
+export const answerGlossaryQuestion = async (
+  question: string,
+  client: GenerateContentClient = getClient(),
+): Promise<string> => {
   let result;
-
   try {
-    result = await generate(PRIMARY_MODEL, question);
+    result = await generate(client, PRIMARY_MODEL, question);
   } catch (primaryError) {
     console.warn(`Gemini ${PRIMARY_MODEL} call failed, retrying with ${FALLBACK_MODEL}`, primaryError);
-    result = await generate(FALLBACK_MODEL, question);
+    result = await generate(client, FALLBACK_MODEL, question);
   }
 
   const answer = result.text?.trim();
-
   if (!answer) {
     throw new ApiError(502, "Chat assistant returned an empty response");
   }
-
   return answer;
 };
 

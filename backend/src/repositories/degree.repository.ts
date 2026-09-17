@@ -25,6 +25,16 @@ export const findDegreeDetailRecord = async (
               name: true,
               creditPoints: true,
               description: true,
+              DegreeRanking: {
+                orderBy: [{ year: "desc" }, { source: "asc" }, { category: "asc" }],
+                select: {
+                  source: true,
+                  category: true,
+                  year: true,
+                  rank: true,
+                  rankBand: true,
+                },
+              },
               RequirementGroup: {
                 orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
                 select: {

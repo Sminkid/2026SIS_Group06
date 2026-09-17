@@ -55,6 +55,22 @@ model Degree {
   @@index([code])
 }
 
+model DegreeRanking {
+  id        String   @id
+  degreeId  String
+  source    String
+  category  String
+  year      Int
+  rank      Int
+  rankBand  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  Degree    Degree   @relation(fields: [degreeId], references: [id], onDelete: Cascade)
+
+  @@unique([degreeId, source, category, year])
+  @@index([degreeId])
+}
+
 model DegreeComponent {
   id                   String            @id
   degreeId             String
@@ -474,22 +490,6 @@ model RiasecSubcategoryScore {
   @@unique([degreeId, componentId, subcategoryId])
   @@index([componentId])
   @@index([subcategoryId])
-}
-
-model DegreeRanking {
-  id        String   @id
-  degreeId  String
-  source    String
-  category  String
-  year      Int
-  rank      Int
-  rankBand  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  Degree    Degree   @relation(fields: [degreeId], references: [id], onDelete: Cascade)
-
-  @@unique([degreeId, source, category, year])
-  @@index([degreeId])
 }
 
 model RequirementCandidateSource {

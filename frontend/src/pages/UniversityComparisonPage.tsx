@@ -12,26 +12,28 @@ interface Props {
 }
 
 export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, onBackToQuizResult, onBackToRecommendations }: Props) => (
-  <main className="page" id="main-content">
+  <main className={appUi.page} id="main-content">
     <Breadcrumbs items={[{ label: "Get Started", onClick: onHome }, 
                          { label: "Quiz Result", onClick: onBackToQuizResult }, 
                          { label: "Recommendations", onClick: onBackToRecommendations }, 
                          { label: "Comparison" }]} />
-    <section className="content-section" aria-labelledby="compare-heading">
+    <section className={appUi.pageIntroCompact} aria-labelledby="compare-heading">
+      <p className={appUi.eyebrow}>Explore universities</p>
+      <h1>Compare</h1>
       <h2 id="compare-heading">Compare universities for {course.courseName}</h2>
-      <div className="university-grid">
+      <div className={appUi.universityGrid}>
         {course.offerings.map(({ university, degree }) => (
           <button
-            className="university-card"
+            className={appUi.universityCard}
             type="button"
             key={university.id}
             onClick={() => onSelectUniversity(university, degree)}
           >
-            <span className="university-card__code">{university.code}</span>
-            <span className="university-card__name">{university.name}</span>
+            <span className={appUi.universityCardCode}>{university.code}</span>
+            <span className={appUi.universityCardName}>{university.name}</span>
             <p>{degree.name}</p>
             <p>{degree.creditPoints === null ? "CP not listed" : `${degree.creditPoints} CP`}</p>
-            <span className="card-action" aria-hidden="true">View study plan →</span>
+            <span className={appUi.cardAction} aria-hidden="true">View study plan →</span>
           </button>
         ))}
       </div>

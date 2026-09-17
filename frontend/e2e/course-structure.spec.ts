@@ -20,6 +20,7 @@ const emptyGroup = (id: string, title: string, logic: RequirementGroup["logic"])
   maximumCreditPoints: null,
   sortOrder: null,
   items: [],
+  candidateSources: [],
   children: [],
   pathways: [],
 });
@@ -94,6 +95,49 @@ const streamPool = (): RequirementGroup => ({
   }),
 });
 
+const engineeringSource = {
+  id: "engineering-source", sourceKey: "engineering", type: "SUBJECT_FILTER" as const,
+  title: "Engineering undergraduate units", authoritative: true, tableName: null, candidateCount: 271,
+};
+const tableSSource = {
+  id: "table-s-source", sourceKey: "table-s", type: "TABLE_SUBJECT_POOL" as const,
+  title: "Table S units", authoritative: true, tableName: "Table S", candidateCount: 1472,
+};
+
+const engineeringRequirements = (): RequirementGroup[] => {
+  const foundation = emptyGroup("foundation", "Foundation", "ALL");
+  foundation.requiredCreditPoints = 18;
+  foundation.children = [
+    subjectGroup("computing", "Computing Units", 3, "COMP", ["INFO1110", "INFO1910", "ENGG1810"]),
+    subjectGroup("mathematics", "Mathematics Units", 2, "MATH", ["MATH1061", "MATH1062"]),
+  ];
+  foundation.children[0]!.logic = "ONE_OF";
+  foundation.children[0]!.requiredCreditPoints = 6;
+  foundation.children[1]!.logic = "ALL";
+  foundation.children[1]!.requiredCreditPoints = 12;
+
+  const projects = emptyGroup("projects", "Engineering Projects", "ALL");
+  projects.requiredCreditPoints = 30;
+  projects.children = [
+    subjectGroup("project-1", "Project 1", 9, "PROJ"),
+    subjectGroup("project-23", "Project 2 & 3", 2, "ENGG", ["ENGG2112", "ENGG3112"]),
+    subjectGroup("thesis", "Thesis Units", 17, "THES"),
+  ];
+  projects.children[0]!.logic = "ONE_OF";
+  projects.children[0]!.requiredCreditPoints = 6;
+  projects.children[1]!.logic = "ALL";
+  projects.children[1]!.requiredCreditPoints = 12;
+  projects.children[2]!.logic = "UNKNOWN";
+  projects.children[2]!.requiredCreditPoints = 12;
+
+  const pep = subjectGroup("pep", "Professional Engagement Program", 8, "ENGP");
+  pep.items.forEach((item) => { item.creditPoints = 0; if (item.subject) item.subject.creditPoints = 0; });
+  const electives = emptyGroup("electives", "Requirement 13", "UNKNOWN");
+  electives.maximumCreditPoints = 24;
+  electives.candidateSources = [engineeringSource, tableSSource];
+  return [foundation, projects, pep, electives, streamPool()];
+};
+
 const summary = (
   id: string,
   sourceText: string,
@@ -123,7 +167,7 @@ const engineeringDetail: DegreeDetailResponse = {
     university: usyd,
     description: null,
   },
-  requirements: [streamPool()],
+  requirements: engineeringRequirements(),
   completionSummary: [
     summary("foundation", "a minimum of 18 credit points from the Engineering Foundations Table", 18),
     summary("projects", "a minimum of 30 credit points from the Engineering Projects Table", 30),
@@ -190,11 +234,41 @@ const softwareSpecialisationDetail: ComponentDetailResponse = {
   requirements: [subjectGroup("computer-specialisation-core", "Specialisation units", 1, "COMP", ["COMP3221"])],
 };
 
+const candidateSubjects = {
+  [engineeringSource.id]: [
+    { id: "aero1400", code: "AERO1400", name: "Intro to Aircraft Construction and Design", creditPoints: 6 },
+    { id: "shared-comp", code: "COMP1000", name: "Shared Computing Subject", creditPoints: 6 },
+    { id: "engg2000", code: "ENGG2000", name: "Engineering Practice", creditPoints: 6 },
+  ],
+  [tableSSource.id]: [
+    { id: "acct1006", code: "ACCT1006", name: "Accounting and Financial Management", creditPoints: 6 },
+    { id: "shared-comp", code: "COMP1000", name: "Shared Computing Subject", creditPoints: 6 },
+    { id: "arts2000", code: "ARTS2000", name: "Arts and Society", creditPoints: 6 },
+  ],
+};
+
+const candidateResponse = (url: URL) => {
+  const sourceId = decodeURIComponent(url.pathname.split("/").at(-2)!);
+  const source = sourceId === engineeringSource.id ? engineeringSource : tableSSource;
+  const query = url.searchParams.get("q")?.toLowerCase() ?? "";
+  const page = Number(url.searchParams.get("page") ?? "1");
+  const matching = candidateSubjects[source.id].filter((subject) => !query
+    || subject.code.toLowerCase().includes(query)
+    || subject.name.toLowerCase().includes(query));
+  const subjects = query ? matching : page === 1 ? matching.slice(0, 2) : matching.slice(2);
+  return {
+    candidateSource: source,
+    subjects,
+    pagination: { page, limit: 20, total: matching.length, totalPages: query ? 1 : 2 },
+  };
+};
+
 const routeDegree = async (
   page: Page,
   detail: DegreeDetailResponse,
   componentDetails: ComponentDetailResponse[],
   onComponentRequest?: (identifier: string) => void,
+  onCandidateRequest?: (request: string) => void,
 ) => {
   await page.route("**/api/**", async (route) => {
     const url = new URL(route.request().url());
@@ -209,6 +283,10 @@ const routeDegree = async (
     else if (/\/universities\/.*\/degrees$/.test(path)) body = [detail.degree];
     else if (path.includes("/study-plans")) body = [];
     else if (path.includes("/degrees/")) body = detail;
+    else if (path.includes("/requirement-candidate-sources/")) {
+      onCandidateRequest?.(`${path}?${url.searchParams}`);
+      body = candidateResponse(url);
+    }
     else if (path.includes("/components/")) {
       const identifier = decodeURIComponent(path.split("/").at(-1)!);
       onComponentRequest?.(identifier);
@@ -225,6 +303,58 @@ const openDegree = async (page: Page, detail: DegreeDetailResponse) => {
   await page.locator(".degree-row").filter({ hasText: detail.degree.code }).click();
   await expect(page.getByRole("heading", { name: "Course structure" })).toBeVisible();
 };
+
+test("USYD Engineering renders nested Core and lazily pages a deduplicated Free Elective union", async ({ page }) => {
+  const candidateRequests: string[] = [];
+  await routeDegree(page, engineeringDetail, [softwareDetail, softwareSpecialisationDetail], undefined,
+    (request) => candidateRequests.push(request));
+  await openDegree(page, engineeringDetail);
+
+  expect(candidateRequests).toEqual([]);
+  const coreButton = page.getByRole("button", { name: /Engineering Core.*48 credit points/i });
+  await coreButton.click();
+  const core = coreButton.locator("..");
+  const foundationButton = core.getByRole("button", { name: /Foundation.*18 credit points/i });
+  await foundationButton.click();
+  const foundation = foundationButton.locator("..");
+  await expect(foundation.getByRole("button", { name: /Computing Units.*6 credit points.*Choose one/i })).toBeVisible();
+  await expect(foundation.getByRole("button", { name: /Mathematics Units.*12 credit points.*ALL/i })).toBeVisible();
+
+  const projectsButton = core.getByRole("button", { name: /Engineering Projects.*30 credit points/i });
+  await projectsButton.click();
+  const projects = projectsButton.locator("..");
+  await expect(projects.getByRole("button", { name: /Project 1.*6 credit points.*Choose one/i })).toBeVisible();
+  await expect(projects.getByRole("button", { name: /Project 2 & 3.*12 credit points.*ALL/i })).toBeVisible();
+  await expect(projects.getByRole("button", { name: /Thesis Units.*12 credit points/i })).toBeVisible();
+  const pepButton = core.getByRole("button", { name: /Professional Engagement Program/i });
+  await pepButton.click();
+  await expect(pepButton.locator("..").getByRole("button", { name: /^View / })).toHaveCount(8);
+
+  const electivesButton = page.getByRole("button", { name: /Open Electives.*Maximum 24 credit points/i });
+  await electivesButton.click();
+  const electives = electivesButton.locator("..");
+  await expect(electives.getByRole("heading", { name: "Eligible Free Elective subjects" })).toBeVisible();
+  await expect.poll(() => new Set(candidateRequests
+    .filter((request) => request.includes("page=1"))
+    .map((request) => request.split("/requirement-candidate-sources/")[1]?.split("/")[0])).size).toBe(2);
+  await expect(electives.getByText("271 subjects")).toBeVisible();
+  await expect(electives.getByText("1,472 subjects")).toBeVisible();
+  await expect(electives.getByRole("button", { name: /View eligible subject COMP1000/ })).toHaveCount(1);
+  const shared = electives.getByRole("button", { name: /View eligible subject COMP1000/ });
+  await expect(shared).toContainText("Engineering undergraduate units");
+  await expect(shared).toContainText("Table S units");
+
+  await electives.getByRole("button", { name: /Load more from Engineering undergraduate units/ }).click();
+  await electives.getByRole("button", { name: /Load more from Table S units/ }).click();
+  await expect.poll(() => candidateRequests.filter((request) => request.includes("page=2")).length).toBe(2);
+  await expect(electives.getByRole("button", { name: /View eligible subject ENGG2000/ })).toBeVisible();
+  await expect(electives.getByRole("button", { name: /View eligible subject ARTS2000/ })).toBeVisible();
+
+  await electives.getByRole("searchbox", { name: "Search eligible subjects by code or name" }).fill("Accounting");
+  await electives.getByRole("button", { name: "Search eligible subjects" }).click();
+  await expect(electives.getByRole("button", { name: /View eligible subject ACCT1006/ })).toBeVisible();
+  await expect(electives.getByRole("button", { name: /View eligible subject COMP1000/ })).toHaveCount(0);
+});
 
 test("selecting a Software Engineering STREAM loads and renders all component subject groups", async ({ page }) => {
   const componentRequests: string[] = [];

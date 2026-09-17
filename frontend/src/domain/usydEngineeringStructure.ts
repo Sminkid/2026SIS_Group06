@@ -40,7 +40,7 @@ const flattenGroups = (groups: RequirementGroup[]): RequirementGroup[] =>
   groups.flatMap((group) => [group, ...flattenGroups(group.children)]);
 
 const structuredContentCount = (group: RequirementGroup): number =>
-  group.items.length + group.pathways.length + group.children.reduce((total, child) =>
+  group.items.length + group.candidateSources.length + group.pathways.length + group.children.reduce((total, child) =>
     total + 1 + structuredContentCount(child), 0);
 
 const normalizedTitle = (title: string | null): string =>
@@ -161,6 +161,7 @@ const displayGroup = ({ id, title, description, requiredCreditPoints, maximumCre
     : source?.maximumCreditPoints ?? null,
   sortOrder: source?.sortOrder ?? null,
   items: source?.items ?? [],
+  candidateSources: source?.candidateSources ?? [],
   children: children ?? source?.children ?? [],
   pathways: source?.pathways ?? [],
 });

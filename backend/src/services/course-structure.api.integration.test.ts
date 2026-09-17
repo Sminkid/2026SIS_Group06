@@ -7,6 +7,7 @@ import { createApp } from "../app.js";
 import { disconnectPrisma } from "../db/prisma.js";
 import type { ComponentDetailResponse } from "../types/component.js";
 import type { DegreeDetailResponse, DegreeRequirementGroup } from "../types/degree.js";
+import type { RequirementCandidateSubjectsResponse } from "../types/requirement-candidate-source.js";
 import type { SubjectDetailResponse } from "../types/subject.js";
 
 const expectedEngineeringStreams = [
@@ -43,6 +44,8 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
   let cybersecurity: ComponentDetailResponse;
   let utsEngineering: DegreeDetailResponse;
   let utsBiomedical: ComponentDetailResponse;
+  let engineeringCandidateSourceId: string;
+  let tableSCandidateSourceId: string;
 
   const get = async <T>(path: string): Promise<T> => {
     const response = await fetch(`${baseUrl}${path}`);
@@ -61,6 +64,17 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
     engineering = await get<DegreeDetailResponse>(
       "/api/degrees/BHENGINE-04?university=USYD&year=2026",
     );
+    const freeElectives = flattenGroups(engineering.requirements).find((group) =>
+      group.candidateSources.some((source) => source.title === "Engineering undergraduate units")
+      && group.candidateSources.some((source) => source.title === "Table S units"));
+    assert.ok(freeElectives, "BHENGINE-04 must expose Free Electives");
+    engineeringCandidateSourceId = freeElectives.candidateSources.find(
+      (source) => source.title === "Engineering undergraduate units",
+    )?.id ?? "";
+    tableSCandidateSourceId = freeElectives.candidateSources.find(
+      (source) => source.title === "Table S units",
+    )?.id ?? "";
+    assert.ok(engineeringCandidateSourceId && tableSCandidateSourceId);
     const streamComponents = componentItems(engineering).filter((component) => component.type === "STREAM");
     engineeringStreams = new Map(await Promise.all(streamComponents.map(async (component) => [
       component.name,
@@ -118,15 +132,114 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
     const pep = groups.get("Professional Engagement Program");
     assert.ok(foundation && projects && pep);
     assert.equal(foundation.requiredCreditPoints, 18);
-    assert.equal(foundation.items.length, 5);
-    assert.deepEqual(foundation.items.map((item) => item.subject?.code),
-      ["INFO1110", "INFO1910", "ENGG1810", "MATH1061", "MATH1062"]);
+    assert.equal(foundation.items.length, 0);
+    assert.deepEqual(foundation.children.map((group) => group.title), ["Computing Units", "Mathematics Units"]);
+    const computing = foundation.children[0]!;
+    const mathematics = foundation.children[1]!;
+    assert.equal(computing.logic, "ONE_OF");
+    assert.equal(computing.requiredCreditPoints, 6);
+    assert.deepEqual(computing.items.map((item) => item.subject?.code), ["INFO1110", "INFO1910", "ENGG1810"]);
+    assert.equal(mathematics.logic, "ALL");
+    assert.equal(mathematics.requiredCreditPoints, 12);
+    assert.deepEqual(mathematics.items.map((item) => item.subject?.code), ["MATH1061", "MATH1062"]);
+
     assert.equal(projects.requiredCreditPoints, 30);
-    assert.equal(projects.items.length, 28);
+    assert.equal(projects.items.length, 0);
+    assert.deepEqual(projects.children.map((group) => group.title), ["Project 1", "Project 2 & 3", "Thesis Units"]);
+    const project1 = projects.children[0]!;
+    const project23 = projects.children[1]!;
+    const thesis = projects.children[2]!;
+    assert.equal(project1.logic, "ONE_OF");
+    assert.equal(project1.requiredCreditPoints, 6);
+    assert.equal(project1.items.length, 9);
+    assert.equal(project23.logic, "ALL");
+    assert.equal(project23.requiredCreditPoints, 12);
+    assert.deepEqual(project23.items.map((item) => item.subject?.code), ["ENGG2112", "ENGG3112"]);
+    assert.equal(thesis.logic, "UNKNOWN");
+    assert.equal(thesis.requiredCreditPoints, 12);
+    assert.equal(thesis.items.length, 17);
+
+    assert.equal(pep.items.length, 8);
     assert.deepEqual(pep.items.map((item) => item.subject?.code), [
       "ENGP1001", "ENGP1002", "ENGP1003", "ENGP2001",
       "ENGP2002", "ENGP2003", "ENGP3001", "ENGP3002",
     ]);
+    assert.ok(pep.items.every((item) => item.subject?.creditPoints === 0));
+  });
+
+  test("BHENGINE-04 Free Electives exposes candidate-source metadata without materialising items", () => {
+    const freeElectives = flattenGroups(engineering.requirements).find((group) => group.candidateSources.length > 0);
+    assert.ok(freeElectives);
+    assert.equal(freeElectives.maximumCreditPoints, 24);
+    assert.equal(freeElectives.requiredCreditPoints, null);
+    assert.equal(freeElectives.items.length, 0);
+    assert.deepEqual(freeElectives.candidateSources.map((source) => ({
+      title: source.title,
+      type: source.type,
+      candidateCount: source.candidateCount,
+    })), [
+      { title: "Engineering undergraduate units", type: "SUBJECT_FILTER", candidateCount: 271 },
+      { title: "Table S units", type: "TABLE_SUBJECT_POOL", candidateCount: 1472 },
+    ]);
+  });
+
+  test("candidate-source subjects are canonical, searchable, unique, ordered, and paginated", async () => {
+    const firstPage = await get<RequirementCandidateSubjectsResponse>(
+      `/api/requirement-candidate-sources/${encodeURIComponent(engineeringCandidateSourceId)}/subjects?limit=50`,
+    );
+    assert.equal(firstPage.candidateSource.candidateCount, 271);
+    assert.deepEqual(firstPage.pagination, { page: 1, limit: 50, total: 271, totalPages: 6 });
+    assert.equal(firstPage.subjects.length, 50);
+    assert.ok(firstPage.subjects.every((subject) => subject.id && subject.code && subject.name));
+
+    const pages = await Promise.all(Array.from({ length: firstPage.pagination.totalPages }, (_, index) =>
+      get<RequirementCandidateSubjectsResponse>(
+        `/api/requirement-candidate-sources/${encodeURIComponent(engineeringCandidateSourceId)}/subjects?page=${index + 1}&limit=50`,
+      )));
+    const allSubjects = pages.flatMap((page) => page.subjects);
+    assert.equal(allSubjects.length, 271);
+    assert.equal(new Set(allSubjects.map((subject) => subject.id)).size, 271);
+    assert.deepEqual(allSubjects.map((subject) => `${subject.code}\0${subject.name}\0${subject.id}`),
+      [...allSubjects]
+        .sort((left, right) => left.code.localeCompare(right.code)
+          || left.name.localeCompare(right.name)
+          || left.id.localeCompare(right.id))
+        .map((subject) => `${subject.code}\0${subject.name}\0${subject.id}`));
+
+    const sample = firstPage.subjects[0]!;
+    const codeSearch = await get<RequirementCandidateSubjectsResponse>(
+      `/api/requirement-candidate-sources/${encodeURIComponent(engineeringCandidateSourceId)}/subjects?q=${encodeURIComponent(sample.code)}&limit=10`,
+    );
+    assert.ok(codeSearch.subjects.some((subject) => subject.id === sample.id));
+    assert.ok(codeSearch.subjects.every((subject) =>
+      subject.code.toLowerCase().includes(sample.code.toLowerCase())
+      || subject.name.toLowerCase().includes(sample.code.toLowerCase())));
+
+    const nameQuery = sample.name.slice(0, Math.min(12, sample.name.length));
+    const nameSearch = await get<RequirementCandidateSubjectsResponse>(
+      `/api/requirement-candidate-sources/${encodeURIComponent(engineeringCandidateSourceId)}/subjects?q=${encodeURIComponent(nameQuery)}&limit=10`,
+    );
+    assert.ok(nameSearch.subjects.some((subject) => subject.id === sample.id));
+    assert.ok(nameSearch.subjects.every((subject) =>
+      subject.code.toLowerCase().includes(nameQuery.toLowerCase())
+      || subject.name.toLowerCase().includes(nameQuery.toLowerCase())));
+
+    const tableS = await get<RequirementCandidateSubjectsResponse>(
+      `/api/requirement-candidate-sources/${encodeURIComponent(tableSCandidateSourceId)}/subjects`,
+    );
+    assert.equal(tableS.candidateSource.type, "TABLE_SUBJECT_POOL");
+    assert.equal(tableS.pagination.total, 1472);
+    assert.equal(tableS.pagination.limit, 20);
+    assert.equal(tableS.subjects.length, 20);
+
+    for (const query of ["page=0", "page=100001", "limit=0", "limit=51"]) {
+      const response = await fetch(
+        `${baseUrl}/api/requirement-candidate-sources/${encodeURIComponent(tableSCandidateSourceId)}/subjects?${query}`,
+      );
+      assert.equal(response.status, 400, query);
+    }
+    const missing = await fetch(`${baseUrl}/api/requirement-candidate-sources/missing-source/subjects`);
+    assert.equal(missing.status, 404);
   });
 
   test("all Engineering streams expose their persisted Specialisation counts", () => {

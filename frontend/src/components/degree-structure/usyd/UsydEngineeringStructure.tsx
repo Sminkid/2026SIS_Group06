@@ -8,6 +8,7 @@ import { RequirementAccordion, SelectedRequirementStructure,
   type RequirementChoiceSelection } from "../../RequirementAccordion";
 import { appUi } from "../../ui";
 import type { DegreeStructureProps } from "../types";
+import { UsydFreeElectivePicker } from "./UsydFreeElectivePicker";
 
 export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear, selections, selectionNotice,
   onSelectComponent, onOpenSubject }: DegreeStructureProps) => {
@@ -74,12 +75,15 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
     {selectionNotice && <p className={appUi.selectionNotice} role="status">A saved choice is no longer available for this handbook. Please choose it again.</p>}
     <div className={appUi.requirementsList}>{groups.map((group) => {
       const stream = group.title === "Engineering Stream";
+      const freeElectives = group.title === "Open Electives" && group.candidateSources.length > 0;
       return <RequirementAccordion group={group} key={group.id}
         universityCode={universityCode} handbookYear={handbookYear} selections={selections}
         onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject}
         showChoiceSearch={stream}
         choiceSelection={stream ? streamSelection : undefined}
-        supplementalContent={stream ? streamStatus : undefined} />;
+        supplementalContent={stream ? streamStatus : freeElectives
+          ? <UsydFreeElectivePicker candidateSources={group.candidateSources} onOpenSubject={onOpenSubject} />
+          : undefined} />;
     })}</div>
     {conditionalGroups.length > 0 && <section aria-labelledby="usyd-conditional-heading">
       <h3 id="usyd-conditional-heading">Conditional</h3>

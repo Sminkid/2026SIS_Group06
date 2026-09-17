@@ -32,7 +32,7 @@ const detail = (requirements: RequirementGroup[] = []): DegreeDetailResponse => 
 const group = (id: string, title: string, logic: RequirementGroup["logic"],
   requiredCreditPoints: number | null, items: RequirementItem[] = []): RequirementGroup => ({
   id, title, description: null, logic, requiredCreditPoints, maximumCreditPoints: null,
-  sortOrder: null, items, children: [], pathways: [],
+  sortOrder: null, items, candidateSources: [], children: [], pathways: [],
 });
 
 const subjectItem = (id: string, code: string, name: string, creditPoints: number): RequirementItem => ({
@@ -67,29 +67,55 @@ test("empty BHENGINE-04 groups remain clean official requirements", () => {
     ["for students enrolled in the Dalyell Stream, 12 credit points"]);
 });
 
-test("exact repaired Core titles win over broad descriptions and groups are never reused", () => {
+test("nested Engineering Core and Free Elective candidate metadata survive the compatibility hierarchy", () => {
   const broadDescription = "Engineering Foundations Table; Engineering Projects Table; Professional Engagement Program; Table S; Dalyell Table D";
-  const foundation = group("repaired-foundation", "Foundation", "ALL", 18,
-    Array.from({ length: 5 }, (_, index) => subjectItem(`foundation-${index}`, `FNDN${index}`, `Foundation ${index}`, 6)));
-  const projects = group("repaired-projects", "Engineering Projects", "ANY", 30,
-    Array.from({ length: 28 }, (_, index) => subjectItem(`project-${index}`, `PROJ${index}`, `Project ${index}`, 6)));
+  const foundation = group("repaired-foundation", "Foundation", "ALL", 18);
+  foundation.children = [
+    group("computing", "Computing Units", "ONE_OF", 6,
+      ["INFO1110", "INFO1910", "ENGG1810"].map((code) => subjectItem(code, code, code, 6))),
+    group("mathematics", "Mathematics Units", "ALL", 12,
+      ["MATH1061", "MATH1062"].map((code) => subjectItem(code, code, code, 6))),
+  ];
+  const projects = group("repaired-projects", "Engineering Projects", "ALL", 30);
+  projects.children = [
+    group("project-1", "Project 1", "ONE_OF", 6,
+      Array.from({ length: 9 }, (_, index) => subjectItem(`project-1-${index}`, `PRJ1${index}`, `Project 1 ${index}`, 6))),
+    group("project-23", "Project 2 & 3", "ALL", 12,
+      ["ENGG2112", "ENGG3112"].map((code) => subjectItem(code, code, code, 6))),
+    group("thesis", "Thesis Units", "UNKNOWN", 12,
+      Array.from({ length: 17 }, (_, index) => subjectItem(`thesis-${index}`, `THES${index}`, `Thesis ${index}`, 6))),
+  ];
   const pep = group("repaired-pep", "Professional Engagement Program", "ALL", null,
     Array.from({ length: 8 }, (_, index) => subjectItem(`pep-${index}`, `ENGP${index}`, `PEP ${index}`, 0)));
+  const electives = group("electives", "Requirement 13", "UNKNOWN", null);
+  electives.maximumCreditPoints = 24;
+  electives.candidateSources = [
+    { id: "engineering", sourceKey: "engineering", type: "SUBJECT_FILTER", title: "Engineering undergraduate units",
+      authoritative: true, tableName: null, candidateCount: 271 },
+    { id: "table-s", sourceKey: "table-s", type: "TABLE_SUBJECT_POOL", title: "Table S units",
+      authoritative: true, tableName: "Table S", candidateCount: 1472 },
+  ];
   foundation.description = broadDescription;
   projects.description = broadDescription;
   pep.description = broadDescription;
 
-  const groups = usydEngineeringDisplayGroups(mapUsydEngineeringStructure(detail([foundation, projects, pep]))!);
+  const groups = usydEngineeringDisplayGroups(mapUsydEngineeringStructure(detail([foundation, projects, pep, electives]))!);
   const core = groups[0]!;
-  const electives = groups[2]!;
+  const displayedElectives = groups[2]!;
 
   assert.deepEqual(core.children.map((candidate) => candidate.id),
     ["repaired-foundation", "repaired-projects", "repaired-pep"]);
-  assert.deepEqual(core.children.map((candidate) => candidate.items.length), [5, 28, 8]);
+  assert.deepEqual(core.children.map((candidate) => candidate.items.length), [0, 0, 8]);
+  assert.deepEqual(core.children[0]?.children.map((candidate) => [candidate.title, candidate.items.length]),
+    [["Computing Units", 3], ["Mathematics Units", 2]]);
+  assert.deepEqual(core.children[1]?.children.map((candidate) => [candidate.title, candidate.items.length]),
+    [["Project 1", 9], ["Project 2 & 3", 2], ["Thesis Units", 17]]);
   assert.equal(new Set(core.children.map((candidate) => candidate.id)).size, 3);
-  assert.equal(electives.items.length, 0);
-  assert.equal(electives.requiredCreditPoints, null);
-  assert.equal(electives.maximumCreditPoints, 24);
+  assert.equal(displayedElectives.items.length, 0);
+  assert.equal(displayedElectives.requiredCreditPoints, null);
+  assert.equal(displayedElectives.maximumCreditPoints, 24);
+  assert.deepEqual(displayedElectives.candidateSources.map((source) => [source.title, source.candidateCount]),
+    [["Engineering undergraduate units", 271], ["Table S units", 1472]]);
 });
 
 test("broad structural descriptions do not create synthetic Dalyell conditions", () => {

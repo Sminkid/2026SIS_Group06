@@ -6,7 +6,7 @@ const group = (index: number, description: string, requiredCreditPoints: number 
   id: `group-${index}`, parentGroupId: null, title: `requirements.${index}.rawText`, description,
   logic: "UNKNOWN", status, nodeType: "RAW", sourcePath: `requirements.${index}.rawText`,
   sourceUrl: null, rawData: null, requiredCreditPoints, maximumCreditPoints: null, sortOrder: index,
-  RequirementItem: [], DegreeComponent: [],
+  RequirementItem: [], DegreeComponent: [], RequirementCandidateSource: [],
 });
 
 test("BHENGINE-04 source clauses retain every fact required by the USYD presentation adapter", () => {

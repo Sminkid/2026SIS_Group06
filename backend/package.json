@@ -8,6 +8,7 @@
     "build": "npm run prisma:generate && tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "tsx --test src/**/*.test.ts",
+    "test:smoke": "tsx --test src/services/chat.service.smoke.spec.ts",
     "typecheck": "prisma generate && tsc -p tsconfig.json --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:pull": "prisma db pull",

@@ -3,7 +3,7 @@ import { env } from "../config/env.js";
 import { ApiError } from "../utils/api-error.js";
 
 const PRIMARY_MODEL = "gemini-2.5-flash";
-const FALLBACK_MODEL = "gemini-2.5-flash-lite";
+const FALLBACK_MODEL = "gemini-3.5-flash-lite";
 
 const SYSTEM_PROMPT = `You are a glossary assistant embedded in a university course-planning app.
 

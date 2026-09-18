@@ -14,4 +14,5 @@ export const plannerUi = {
   section: "space-y-3 border-0 border-b border-solid border-slate-200 pb-5 last:border-0",
   warning: "rounded border border-solid border-amber-300 bg-amber-50 p-3 text-sm leading-5 text-amber-900",
   error: "rounded border border-solid border-red-300 bg-red-50 p-3 text-sm leading-5 text-red-900",
+  info: "rounded border border-solid border-slate-200 bg-slate-50 p-3 text-sm leading-5 text-slate-700",
 } as const;

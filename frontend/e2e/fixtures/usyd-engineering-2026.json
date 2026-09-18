@@ -1,0 +1,153 @@
+{
+  "detail": {
+    "degree": {
+      "id": "usyd-bhengine-04",
+      "code": "BHENGINE-04",
+      "name": "Bachelor of Engineering Honours",
+      "creditPoints": 192,
+      "handbookYear": 2026,
+      "university": { "id": "usyd", "code": "USYD", "name": "The University of Sydney" },
+      "description": "Official Engineering course resolutions"
+    },
+    "requirements": [
+      {
+        "id": "foundation",
+        "title": "Foundation",
+        "description": "a minimum of 18 credit points from the Engineering Foundations Table",
+        "logic": "UNKNOWN",
+        "requiredCreditPoints": 18,
+        "maximumCreditPoints": null,
+        "sortOrder": 1,
+        "items": [
+          { "id": "foundation-info1110", "itemType": "SUBJECT", "subject": { "id": "info1110", "code": "INFO1110", "name": "Introduction to Programming", "creditPoints": 6 }, "component": null, "rawCode": "INFO1110", "rawName": "Introduction to Programming", "creditPoints": 6, "sortOrder": 0 },
+          { "id": "foundation-info1910", "itemType": "SUBJECT", "subject": { "id": "info1910", "code": "INFO1910", "name": "Introduction to Programming (Advanced)", "creditPoints": 6 }, "component": null, "rawCode": "INFO1910", "rawName": "Introduction to Programming (Advanced)", "creditPoints": 6, "sortOrder": 1 },
+          { "id": "foundation-engg1810", "itemType": "SUBJECT", "subject": { "id": "engg1810", "code": "ENGG1810", "name": "Introduction to Engineering Computing", "creditPoints": null }, "component": null, "rawCode": "ENGG1810", "rawName": "Introduction to Engineering Computing", "creditPoints": 6, "sortOrder": 2 },
+          { "id": "foundation-math1061", "itemType": "SUBJECT", "subject": { "id": "math1061", "code": "MATH1061", "name": "Mathematics 1A", "creditPoints": 6 }, "component": null, "rawCode": "MATH1061", "rawName": "Mathematics 1A", "creditPoints": 6, "sortOrder": 3 },
+          { "id": "foundation-math1062", "itemType": "SUBJECT", "subject": { "id": "math1062", "code": "MATH1062", "name": "Mathematics 1B", "creditPoints": 6 }, "component": null, "rawCode": "MATH1062", "rawName": "Mathematics 1B", "creditPoints": 6, "sortOrder": 4 }
+        ],
+        "children": [],
+        "pathways": []
+      },
+      {
+        "id": "projects",
+        "title": "Engineering Projects",
+        "description": "a minimum of 30 credit points from the Engineering Projects Table",
+        "logic": "UNKNOWN",
+        "requiredCreditPoints": 30,
+        "maximumCreditPoints": null,
+        "sortOrder": 2,
+        "items": [
+          { "id": "project-aero1560", "itemType": "SUBJECT", "subject": { "id": "aero1560", "code": "AERO1560", "name": "Introduction to Aerospace Engineering", "creditPoints": null }, "component": null, "rawCode": "AERO1560", "rawName": "Introduction to Aerospace Engineering", "creditPoints": 6, "sortOrder": 0 },
+          { "id": "project-bmet1960", "itemType": "SUBJECT", "subject": { "id": "bmet1960", "code": "BMET1960", "name": "Biomedical Engineering 1A", "creditPoints": null }, "component": null, "rawCode": "BMET1960", "rawName": "Biomedical Engineering 1A", "creditPoints": 6, "sortOrder": 1 },
+          { "id": "project-chng1108", "itemType": "SUBJECT", "subject": { "id": "chng1108", "code": "CHNG1108", "name": "Introduction to Chemical Engineering", "creditPoints": null }, "component": null, "rawCode": "CHNG1108", "rawName": "Introduction to Chemical Engineering", "creditPoints": 6, "sortOrder": 2 },
+          { "id": "project-civl1900", "itemType": "SUBJECT", "subject": { "id": "civl1900", "code": "CIVL1900", "name": "Introduction to Civil Engineering", "creditPoints": 6 }, "component": null, "rawCode": "CIVL1900", "rawName": "Introduction to Civil Engineering", "creditPoints": 6, "sortOrder": 3 },
+          { "id": "project-elec1004", "itemType": "SUBJECT", "subject": { "id": "elec1004", "code": "ELEC1004", "name": "Practical Intro to Electrical Engineering", "creditPoints": null }, "component": null, "rawCode": "ELEC1004", "rawName": "Practical Intro to Electrical Engineering", "creditPoints": 6, "sortOrder": 4 },
+          { "id": "project-elec1005", "itemType": "SUBJECT", "subject": { "id": "elec1005", "code": "ELEC1005", "name": "Introduction to Software Engineering", "creditPoints": null }, "component": null, "rawCode": "ELEC1005", "rawName": "Introduction to Software Engineering", "creditPoints": 6, "sortOrder": 5 },
+          { "id": "project-enve1001", "itemType": "SUBJECT", "subject": { "id": "enve1001", "code": "ENVE1001", "name": "Introduction to Environmental Engineering", "creditPoints": null }, "component": null, "rawCode": "ENVE1001", "rawName": "Introduction to Environmental Engineering", "creditPoints": 6, "sortOrder": 6 },
+          { "id": "project-mech1560", "itemType": "SUBJECT", "subject": { "id": "mech1560", "code": "MECH1560", "name": "Introduction to Mechanical Engineering", "creditPoints": null }, "component": null, "rawCode": "MECH1560", "rawName": "Introduction to Mechanical Engineering", "creditPoints": 6, "sortOrder": 7 },
+          { "id": "project-mtrx1701", "itemType": "SUBJECT", "subject": { "id": "mtrx1701", "code": "MTRX1701", "name": "Introduction to Mechatronic Engineering", "creditPoints": null }, "component": null, "rawCode": "MTRX1701", "rawName": "Introduction to Mechatronic Engineering", "creditPoints": 6, "sortOrder": 8 },
+          { "id": "project-engg2112", "itemType": "SUBJECT", "subject": { "id": "engg2112", "code": "ENGG2112", "name": "Multi-disciplinary Engineering", "creditPoints": null }, "component": null, "rawCode": "ENGG2112", "rawName": "Multi-disciplinary Engineering", "creditPoints": 6, "sortOrder": 9 },
+          { "id": "project-engg3112", "itemType": "SUBJECT", "subject": { "id": "engg3112", "code": "ENGG3112", "name": "Interdisciplinary Engineering", "creditPoints": null }, "component": null, "rawCode": "ENGG3112", "rawName": "Interdisciplinary Engineering", "creditPoints": 6, "sortOrder": 10 },
+          { "id": "project-amme4111", "itemType": "SUBJECT", "subject": { "id": "amme4111", "code": "AMME4111", "name": "Thesis A", "creditPoints": null }, "component": null, "rawCode": "AMME4111", "rawName": "Thesis A", "creditPoints": 6, "sortOrder": 11 },
+          { "id": "project-amme4112", "itemType": "SUBJECT", "subject": { "id": "amme4112", "code": "AMME4112", "name": "Thesis B", "creditPoints": null }, "component": null, "rawCode": "AMME4112", "rawName": "Thesis B", "creditPoints": 6, "sortOrder": 12 },
+          { "id": "project-bmet4111", "itemType": "SUBJECT", "subject": { "id": "bmet4111", "code": "BMET4111", "name": "Thesis A", "creditPoints": null }, "component": null, "rawCode": "BMET4111", "rawName": "Thesis A", "creditPoints": 6, "sortOrder": 13 },
+          { "id": "project-bmet4112", "itemType": "SUBJECT", "subject": { "id": "bmet4112", "code": "BMET4112", "name": "Thesis B", "creditPoints": null }, "component": null, "rawCode": "BMET4112", "rawName": "Thesis B", "creditPoints": 6, "sortOrder": 14 },
+          { "id": "project-chng4811", "itemType": "SUBJECT", "subject": { "id": "chng4811", "code": "CHNG4811", "name": "Thesis A", "creditPoints": null }, "component": null, "rawCode": "CHNG4811", "rawName": "Thesis A", "creditPoints": 6, "sortOrder": 15 },
+          { "id": "project-chng4812", "itemType": "SUBJECT", "subject": { "id": "chng4812", "code": "CHNG4812", "name": "Thesis B", "creditPoints": null }, "component": null, "rawCode": "CHNG4812", "rawName": "Thesis B", "creditPoints": 6, "sortOrder": 16 },
+          { "id": "project-civl4022", "itemType": "SUBJECT", "subject": { "id": "civl4022", "code": "CIVL4022", "name": "Thesis A", "creditPoints": null }, "component": null, "rawCode": "CIVL4022", "rawName": "Thesis A", "creditPoints": 6, "sortOrder": 17 },
+          { "id": "project-civl4023", "itemType": "SUBJECT", "subject": { "id": "civl4023", "code": "CIVL4023", "name": "Thesis B", "creditPoints": null }, "component": null, "rawCode": "CIVL4023", "rawName": "Thesis B", "creditPoints": 6, "sortOrder": 18 },
+          { "id": "project-elec4712", "itemType": "SUBJECT", "subject": { "id": "elec4712", "code": "ELEC4712", "name": "Thesis A", "creditPoints": null }, "component": null, "rawCode": "ELEC4712", "rawName": "Thesis A", "creditPoints": 6, "sortOrder": 19 },
+          { "id": "project-elec4713", "itemType": "SUBJECT", "subject": { "id": "elec4713", "code": "ELEC4713", "name": "Thesis B", "creditPoints": null }, "component": null, "rawCode": "ELEC4713", "rawName": "Thesis B", "creditPoints": 6, "sortOrder": 20 },
+          { "id": "project-enve4811", "itemType": "SUBJECT", "subject": { "id": "enve4811", "code": "ENVE4811", "name": "Thesis A", "creditPoints": null }, "component": null, "rawCode": "ENVE4811", "rawName": "Thesis A", "creditPoints": 6, "sortOrder": 21 },
+          { "id": "project-enve4812", "itemType": "SUBJECT", "subject": { "id": "enve4812", "code": "ENVE4812", "name": "Thesis B", "creditPoints": null }, "component": null, "rawCode": "ENVE4812", "rawName": "Thesis B", "creditPoints": 6, "sortOrder": 22 },
+          { "id": "project-amme4010", "itemType": "SUBJECT", "subject": { "id": "amme4010", "code": "AMME4010", "name": "Major Industrial Project", "creditPoints": 24 }, "component": null, "rawCode": "AMME4010", "rawName": "Major Industrial Project", "creditPoints": 24, "sortOrder": 23 },
+          { "id": "project-bmet4010", "itemType": "SUBJECT", "subject": { "id": "bmet4010", "code": "BMET4010", "name": "Major Industrial Project", "creditPoints": 24 }, "component": null, "rawCode": "BMET4010", "rawName": "Major Industrial Project", "creditPoints": 24, "sortOrder": 24 },
+          { "id": "project-chng4203", "itemType": "SUBJECT", "subject": { "id": "chng4203", "code": "CHNG4203", "name": "Major Industrial Project", "creditPoints": 24 }, "component": null, "rawCode": "CHNG4203", "rawName": "Major Industrial Project", "creditPoints": 24, "sortOrder": 25 },
+          { "id": "project-civl4203", "itemType": "SUBJECT", "subject": { "id": "civl4203", "code": "CIVL4203", "name": "Major Industrial Project", "creditPoints": 24 }, "component": null, "rawCode": "CIVL4203", "rawName": "Major Industrial Project", "creditPoints": 24, "sortOrder": 26 },
+          { "id": "project-elec4714", "itemType": "SUBJECT", "subject": { "id": "elec4714", "code": "ELEC4714", "name": "Major Industrial Project", "creditPoints": 24 }, "component": null, "rawCode": "ELEC4714", "rawName": "Major Industrial Project", "creditPoints": 24, "sortOrder": 27 }
+        ],
+        "children": [],
+        "pathways": []
+      },
+      {
+        "id": "pep-table",
+        "title": "Professional Engagement Program Table",
+        "description": "the Professional Engagement Program Table",
+        "logic": "UNKNOWN",
+        "requiredCreditPoints": null,
+        "maximumCreditPoints": null,
+        "sortOrder": 3,
+        "items": [
+          { "id": "pep-engp1001", "itemType": "SUBJECT", "subject": { "id": "engp1001", "code": "ENGP1001", "name": "Professional Engagement Program 1A", "creditPoints": null }, "component": null, "rawCode": "ENGP1001", "rawName": "Professional Engagement Program 1A", "creditPoints": 0, "sortOrder": 0 },
+          { "id": "pep-engp1002", "itemType": "SUBJECT", "subject": { "id": "engp1002", "code": "ENGP1002", "name": "Professional Engagement Program 1B", "creditPoints": null }, "component": null, "rawCode": "ENGP1002", "rawName": "Professional Engagement Program 1B", "creditPoints": 0, "sortOrder": 1 },
+          { "id": "pep-engp1003", "itemType": "SUBJECT", "subject": { "id": "engp1003", "code": "ENGP1003", "name": "Professional Engagement Program 1C", "creditPoints": null }, "component": null, "rawCode": "ENGP1003", "rawName": "Professional Engagement Program 1C", "creditPoints": 0, "sortOrder": 2 },
+          { "id": "pep-engp2001", "itemType": "SUBJECT", "subject": { "id": "engp2001", "code": "ENGP2001", "name": "Professional Engagement Program 2A", "creditPoints": null }, "component": null, "rawCode": "ENGP2001", "rawName": "Professional Engagement Program 2A", "creditPoints": 0, "sortOrder": 3 },
+          { "id": "pep-engp2002", "itemType": "SUBJECT", "subject": { "id": "engp2002", "code": "ENGP2002", "name": "Professional Engagement Program 2B", "creditPoints": null }, "component": null, "rawCode": "ENGP2002", "rawName": "Professional Engagement Program 2B", "creditPoints": 0, "sortOrder": 4 },
+          { "id": "pep-engp2003", "itemType": "SUBJECT", "subject": { "id": "engp2003", "code": "ENGP2003", "name": "Professional Engagement Program 2C", "creditPoints": null }, "component": null, "rawCode": "ENGP2003", "rawName": "Professional Engagement Program 2C", "creditPoints": 0, "sortOrder": 5 },
+          { "id": "pep-engp3001", "itemType": "SUBJECT", "subject": { "id": "engp3001", "code": "ENGP3001", "name": "Professional Engagement Program 3A", "creditPoints": null }, "component": null, "rawCode": "ENGP3001", "rawName": "Professional Engagement Program 3A", "creditPoints": 0, "sortOrder": 6 },
+          { "id": "pep-engp3002", "itemType": "SUBJECT", "subject": { "id": "engp3002", "code": "ENGP3002", "name": "Professional Engagement Program 3B", "creditPoints": null }, "component": null, "rawCode": "ENGP3002", "rawName": "Professional Engagement Program 3B", "creditPoints": 0, "sortOrder": 7 }
+        ],
+        "children": [],
+        "pathways": []
+      }
+    ],
+    "completionSummary": [
+      { "id": "foundation", "title": "18 CP Foundation", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 18, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 18 credit points from the Engineering Foundations Table", "sourceUrl": null, "requirementGroupId": "foundation" },
+      { "id": "projects", "title": "30 CP Projects", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 30, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 30 credit points from the Engineering Projects Table", "sourceUrl": null, "requirementGroupId": "projects" },
+      { "id": "pep", "title": "Professional Engagement Program", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": null, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "successfully complete the requirements of the Professional Engagement Program", "sourceUrl": null, "requirementGroupId": "pep" },
+      { "id": "stream", "title": "120 CP Stream", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 120, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a minimum of 120 credit points from the Engineering Stream Table", "sourceUrl": null, "requirementGroupId": "stream" },
+      { "id": "electives", "title": "24 CP electives", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": 24, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "a maximum of 24 credit points from Table S", "sourceUrl": null, "requirementGroupId": "electives" },
+      { "id": "specialisation", "title": "Specialisations", "explanation": null, "obligation": "REQUIRED", "minimumCreditPoints": null, "maximumCreditPoints": null, "conditionLabel": null, "actionKind": "NONE", "sourceText": "the Engineering Specialisations Tables", "sourceUrl": null, "requirementGroupId": "specialisation" },
+      { "id": "dalyell", "title": "12 CP Dalyell units", "explanation": "Applies only to Dalyell students", "obligation": "CONDITIONAL", "minimumCreditPoints": 12, "maximumCreditPoints": null, "conditionLabel": "Dalyell Stream", "actionKind": "CONFIRM_CONDITION", "sourceText": "for students enrolled in the Dalyell Stream, a minimum of 12 credit points", "sourceUrl": null, "requirementGroupId": "dalyell" }
+    ]
+  },
+  "plans": [
+    {
+      "id": "software-base",
+      "sourcePlanId": "BHENGINE-04:6701:BASE:Software Engineering",
+      "pathway": "Software Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": null,
+      "totalCreditPoints": null,
+      "title": "Software Engineering",
+      "description": null,
+      "sourceUrl": "https://cusp.sydney.edu.au/example",
+      "years": [
+        { "id": "year-1", "name": "Year 1", "sortOrder": 0, "periods": [{ "id": "y1s1", "name": "Semester 1", "sortOrder": 0, "items": [
+          { "id": "info1110", "itemType": "SUBJECT", "subject": { "id": "subject-info1110", "code": "INFO1110", "name": "Introduction to Programming", "creditPoints": 6 }, "rawCode": "INFO1110", "title": "Introduction to Programming", "creditPoints": 6, "numberOfPeriods": null, "sortOrder": 0 },
+          { "id": "choice-1", "itemType": "CHOICE", "subject": null, "rawCode": null, "title": "Software Stream 1000/2000 Level Electives or Free Electives", "creditPoints": 6, "numberOfPeriods": null, "sortOrder": 1 }
+        ] }] },
+        { "id": "year-2", "name": "Year 2", "sortOrder": 1, "periods": [{ "id": "y2s1", "name": "Semester 1", "sortOrder": 0, "items": [] }] },
+        { "id": "year-3", "name": "Year 3", "sortOrder": 2, "periods": [{ "id": "y3s1", "name": "Semester 1", "sortOrder": 0, "items": [] }] },
+        { "id": "year-4", "name": "Year 4", "sortOrder": 3, "periods": [{ "id": "y4s1", "name": "Semester 1", "sortOrder": 0, "items": [] }] }
+      ]
+    },
+    {
+      "id": "software-midyear",
+      "sourcePlanId": "BHENGINE-04:6702:BASE:Software Engineering",
+      "pathway": "Software Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": null,
+      "totalCreditPoints": null,
+      "title": "Software Engineering (mid-year)",
+      "description": null,
+      "sourceUrl": null,
+      "years": [{ "id": "mid-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
+    },
+    {
+      "id": "civil-base",
+      "sourcePlanId": "BHENGINE-04:CIVIL",
+      "pathway": "Civil Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": null,
+      "totalCreditPoints": null,
+      "title": "Civil Engineering",
+      "description": null,
+      "sourceUrl": null,
+      "years": [{ "id": "civil-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
+    }
+  ]
+}

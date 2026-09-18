@@ -5,12 +5,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { getPrerequisiteDisplayState } from "./prerequisiteDisplay";
 import { RequirementWarning } from "../components/planner/RequirementWarning";
+import { requirementItemCreditPoints, requirementLogicLabel } from "./requirementPresentation";
 import { RoadmapCard } from "../components/planner/RoadmapCard";
 import { getValidSwapTargets } from "./swapTargets";
 import { plannerItems, proposeSwap } from "./plannerSwap";
 import { cloneOfficialPlan, plannerItemToStudyPlanItem, type PlannerItem } from "../types/planner";
 import type { SubjectAccessConditions } from "../types/subject";
-import type { StudyPlan } from "../types/handbook";
+import type { RequirementItem, StudyPlan } from "../types/handbook";
 
 const known = (): SubjectAccessConditions => ({ subject: { id: "subject", code: "31251", name: "Subject" }, hasConditions: true, antiRequisiteGroups: [],
   requisiteGroups: [{ id: "group", groupType: "REQUISITE", rule: "A", sortOrder: 0, items: [{ id: "item", itemKey: "A", requisiteType: "Prerequisite", details: "Complete 31250 Introduction to Data Analytics first.",
@@ -30,17 +31,41 @@ test("known satisfied, unmet and late prerequisites are distinct from missing da
   assert.equal(warningMarkup(known(), "Prerequisite scheduled after this subject: 31250."), "");
 });
 
-test("missing records, missing conditions and unresolved expressions produce a red detail warning", () => {
+test("missing records, missing conditions and unresolved expressions produce a neutral detail notice", () => {
   const missing = known(); missing.requisiteGroups[0].items[0].referencedSubject = null;
   const unresolved = known(); unresolved.requisiteGroups[0].rule = "A AND (unresolved handbook condition)";
-  for (const access of [null, { ...known(), hasConditions: null }, { ...known(), requisiteGroups: [] }, missing, unresolved]) {
+  for (const access of [null, { ...known(), hasConditions: null }, { ...known(), requisiteGroups: [] }]) {
     assert.equal(getPrerequisiteDisplayState(access).kind, "unavailable");
-    assert.match(warningMarkup(access), /requirement-warning/);
-    assert.match(warningMarkup(access), /bg-red-50/);
+    assert.match(warningMarkup(access), /requirement-information/);
+    assert.match(warningMarkup(access), /bg-slate-50/);
+    assert.doesNotMatch(warningMarkup(access), /bg-red-50/);
   }
-  assert.match(warningMarkup(missing), /31250/);
-  assert.match(warningMarkup(unresolved), /unresolved handbook condition/);
-  assert.doesNotMatch(warningMarkup(missing), /database|stack trace/);
+  assert.equal(getPrerequisiteDisplayState(missing).kind, "review");
+  assert.equal(getPrerequisiteDisplayState(unresolved).kind, "review");
+});
+
+const requirementItem = (contextual: number | null, canonical: number | null): RequirementItem => ({
+  id: `item-${contextual}-${canonical}`,
+  itemType: "SUBJECT",
+  subject: { id: "subject", code: "TEST1000", name: "Test subject", creditPoints: canonical },
+  component: null,
+  rawCode: "TEST1000",
+  rawName: "Test subject",
+  creditPoints: contextual,
+  sortOrder: 0,
+});
+
+test("Course Structure subject CP prefers contextual values and preserves zero", () => {
+  assert.equal(requirementItemCreditPoints(requirementItem(6, null)), 6);
+  assert.equal(requirementItemCreditPoints(requirementItem(24, 6)), 24);
+  assert.equal(requirementItemCreditPoints(requirementItem(0, null)), 0);
+  assert.equal(requirementItemCreditPoints(requirementItem(null, 6)), 6);
+});
+
+test("requirement logic badges preserve UNKNOWN, ALL and ONE_OF semantics", () => {
+  assert.equal(requirementLogicLabel("UNKNOWN"), null);
+  assert.equal(requirementLogicLabel("ALL"), "ALL");
+  assert.equal(requirementLogicLabel("ONE_OF"), "Choose one");
 });
 
 test("loading never claims satisfied prerequisites or displays a missing-data error", () => {
@@ -73,19 +98,22 @@ const setup = () => {
   return { plan, source, selected, empty, option };
 };
 
-test("swap list includes controlled choices and excludes source, fixed Core, locks, placements and incompatible CP", () => {
+test("swap list includes controlled choices and excludes source, fixed Core, locks and placements", () => {
   const { plan, source } = setup();
   const groups = getValidSwapTargets(plan, source.plannerItemId, { accessConditions: {} });
-  assert.deepEqual(groups.map(group => group.id), ["targets"]);
-  assert.deepEqual(groups[0].targets.map(target => target.item.plannerItemId), ["empty-elective", "sub-major-option", "selected"]);
+  assert.deepEqual(groups.map(group => group.id), ["source-period", "targets"]);
+  assert.deepEqual(groups[0].targets.map(target => target.item.plannerItemId), ["small"]);
+  assert.deepEqual(groups[1].targets.map(target => target.item.plannerItemId), ["empty-elective", "sub-major-option", "selected"]);
   assert.ok(groups.every(group => group.targets.length > 0));
 });
 
 test("duplicate subjects and invalid offerings do not appear as swap targets", () => {
   const { plan, source, selected } = setup();
-  assert.deepEqual(getValidSwapTargets(plan, source.plannerItemId, { accessConditions: {}, offeredPeriods: { SOURCE: ["Autumn"] } }), []);
+  assert.deepEqual(getValidSwapTargets(plan, source.plannerItemId, { accessConditions: {}, offeredPeriods: { SOURCE: ["Autumn"] } })
+    .flatMap(group => group.targets.map(target => target.item.plannerItemId)), ["small"]);
   selected.subject!.code = source.subject!.code;
-  assert.deepEqual(getValidSwapTargets(plan, source.plannerItemId, { accessConditions: {} }), []);
+  assert.deepEqual(getValidSwapTargets(plan, source.plannerItemId, { accessConditions: {} })
+    .flatMap(group => group.targets.map(target => target.item.plannerItemId)), []);
 });
 
 test("filtering does not mutate allocations or weaken the swap validator", () => {

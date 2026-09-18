@@ -28,6 +28,7 @@ const group = (
   maximumCreditPoints: null,
   sortOrder: 0,
   items,
+  candidateSources: [],
   children,
   pathways: [],
 });

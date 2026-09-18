@@ -19,9 +19,15 @@ export const findDegreeStudyPlansRecord = async (
               orderBy: [{ createdAt: "asc" }, { id: "asc" }],
               select: {
                 id: true,
+                sourcePlanId: true,
                 title: true,
                 description: true,
                 sourceUrl: true,
+                pathway: true,
+                sourceType: true,
+                handbookYear: true,
+                variantNumber: true,
+                totalCreditPoints: true,
                 StudyPlanYear: {
                   orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
                   select: {
@@ -44,6 +50,7 @@ export const findDegreeStudyPlansRecord = async (
                             creditPoints: true,
                             numberOfPeriods: true,
                             sortOrder: true,
+                            rawData: true,
                             Subject: { select: { id: true, code: true, name: true, creditPoints: true } },
                           },
                         },

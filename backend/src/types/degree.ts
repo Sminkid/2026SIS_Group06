@@ -1,5 +1,6 @@
 import type {
   ComponentType,
+  RequirementCandidateSourceType,
   RequirementItemType,
   RequirementLogic,
 } from "../generated/prisma/enums.js";
@@ -76,6 +77,16 @@ export interface DegreeRequirementItem {
   sortOrder: number | null;
 }
 
+export interface RequirementCandidateSourceSummary {
+  id: string;
+  sourceKey: string;
+  type: RequirementCandidateSourceType;
+  title: string;
+  authoritative: boolean;
+  tableName: string | null;
+  candidateCount: number;
+}
+
 export interface DegreeRequirementGroup {
   id: string;
   title: string | null;
@@ -85,6 +96,7 @@ export interface DegreeRequirementGroup {
   maximumCreditPoints: number | null;
   sortOrder: number | null;
   items: DegreeRequirementItem[];
+  candidateSources: RequirementCandidateSourceSummary[];
   children: DegreeRequirementGroup[];
   pathways: DegreeRequirementPathway[];
 }

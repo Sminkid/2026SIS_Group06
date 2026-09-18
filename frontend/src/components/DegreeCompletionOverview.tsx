@@ -54,6 +54,14 @@ export const DegreeCompletionOverview = ({
   const componentPools = requirements.filter(isComponentPool);
   const majorPool = componentPools.find((group) => roleInTitle(group, "major"));
   const minorPool = componentPools.find((group) => roleInTitle(group, "minor"));
+  const requiredMajorSummary = summaries.find((summary) => summary.obligation === "REQUIRED"
+    && summary.actionKind === "CHOOSE_COMPONENT" && /\bmajor\b/i.test(summary.title));
+  const requiredMajorGroup = useMemo(() => majorPool ? {
+    ...majorPool,
+    title: "Required major",
+    description: requiredMajorSummary?.sourceText ?? majorPool.description,
+    requiredCreditPoints: requiredMajorSummary?.minimumCreditPoints ?? majorPool.requiredCreditPoints,
+  } : undefined, [majorPool, requiredMajorSummary]);
   const secondMajorPool = useMemo(() => majorPool ? {
     ...majorPool,
     id: `${majorPool.id}:additional-major`,
@@ -65,7 +73,7 @@ export const DegreeCompletionOverview = ({
   return <div className={appUi.completionOverview}>
     <div className={appUi.completionOverviewTotal}><span>Degree completion overview</span><strong>{totalCreditPoints === null ? "Total credit points unavailable" : `Total required: ${totalCreditPoints} CP`}</strong></div>
     {sections.map(({ obligation, label }) => {
-      const items = summaries.filter((summary) => summary.obligation === obligation);
+      const items = summaries.filter((summary) => summary.obligation === obligation && summary !== requiredMajorSummary);
       if (items.length === 0) return null;
       return <section className={appUi.completionSection} aria-labelledby={`completion-${obligation.toLowerCase()}`} key={obligation}>
         <h3 id={`completion-${obligation.toLowerCase()}`}>{label}</h3>
@@ -79,7 +87,9 @@ export const DegreeCompletionOverview = ({
       </section>;
     })}
 
-    {majorPool && <section className={appUi.completionAction}><h3>Required major</h3><RequirementAccordion group={majorPool} universityCode={universityCode} handbookYear={handbookYear} selections={selections} onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject} /></section>}
+    {requiredMajorGroup && <RequirementAccordion group={requiredMajorGroup} universityCode={universityCode}
+      handbookYear={handbookYear} selections={selections} onSelectComponent={onSelectComponent}
+      onOpenSubject={onOpenSubject} showChoiceSearch />}
     {(minorPool || majorPool) && <section className={appUi.completionAction}><label><span>Would you like an additional component?</span><select value={additionalComponent} onChange={(event) => setAdditionalComponent(event.target.value as typeof additionalComponent)}>
       <option value="NONE">No additional component</option>{minorPool && <option value="MINOR">Add a minor</option>}{majorPool && <option value="SECOND_MAJOR">Add a second major</option>}
     </select></label>{additionalComponent === "MINOR" && minorPool && <RequirementAccordion group={minorPool} universityCode={universityCode} handbookYear={handbookYear} selections={selections} onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject} />}

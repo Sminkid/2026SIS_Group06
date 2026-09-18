@@ -64,6 +64,7 @@ const mapGroup = (group: GroupRecord): DegreeRequirementGroup => {
     maximumCreditPoints: group.maximumCreditPoints,
     sortOrder: group.sortOrder,
     items,
+    candidateSources: [],
     children: [],
     pathways: [],
   };

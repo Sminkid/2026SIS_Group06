@@ -10,6 +10,7 @@ import type {
   SubjectAccessConditionsResponse,
   SubjectSearchResult,
 } from "../types/subject.js";
+import type { RequisiteGroupType } from "../generated/prisma/enums.js";
 import { ApiError } from "../utils/api-error.js";
 
 /** Preserves UNKNOWN when no access-condition record was imported. */
@@ -42,6 +43,14 @@ const mapAccessGroup = (
     rawReferencedCodes: item.rawReferencedCodes,
     sortOrder: item.sortOrder,
   })),
+});
+
+const requisiteGroupTypes = new Set<RequisiteGroupType>(["REQUISITE", "PREREQUISITE", "COREQUISITE"]);
+const prohibitionGroupTypes = new Set<RequisiteGroupType>(["ANTI_REQUISITE", "PROHIBITION"]);
+
+export const partitionAccessGroups = (groups: SubjectAccessConditionGroup[]) => ({
+  requisiteGroups: groups.filter((group) => requisiteGroupTypes.has(group.groupType)),
+  antiRequisiteGroups: groups.filter((group) => prohibitionGroupTypes.has(group.groupType)),
 });
 
 /** Resolves a subject in the requested university and handbook, with specific not-found errors. */
@@ -127,11 +136,11 @@ export const getSubjectAccessConditions = async (
   const subject = await resolveSubjectRecord(universityCode, handbookYear, subjectCode);
   const access = subject.SubjectAccessCondition;
   const groups = access?.SubjectRequisiteGroup.map(mapAccessGroup) ?? [];
+  const partitioned = partitionAccessGroups(groups);
   return {
     subject: { id: subject.id, code: subject.code, name: subject.name },
     hasConditions: access?.hasConditions ?? null,
-    requisiteGroups: groups.filter((group) => group.groupType === "REQUISITE"),
-    antiRequisiteGroups: groups.filter((group) => group.groupType === "ANTI_REQUISITE"),
+    ...partitioned,
   };
 };
 
@@ -153,11 +162,11 @@ export const getSubjectAccessConditionsBatch = async (
   return Object.fromEntries(handbook.Subject.map((subject) => {
     const access = subject.SubjectAccessCondition;
     const groups = access?.SubjectRequisiteGroup.map(mapAccessGroup) ?? [];
+    const partitioned = partitionAccessGroups(groups);
     return [subject.code, {
       subject: { id: subject.id, code: subject.code, name: subject.name },
       hasConditions: access?.hasConditions ?? null,
-      requisiteGroups: groups.filter((group) => group.groupType === "REQUISITE"),
-      antiRequisiteGroups: groups.filter((group) => group.groupType === "ANTI_REQUISITE"),
+      ...partitioned,
     }];
   }));
 };

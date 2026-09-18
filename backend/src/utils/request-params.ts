@@ -75,6 +75,14 @@ export const parseRequirementGroupId = (value: unknown): string => {
   return id;
 };
 
+export const parseCandidateSourceId = (value: unknown): string => {
+  const id = typeof value === "string" ? value.trim() : "";
+  if (!id || id.length > 160 || !/^[A-Za-z0-9:_-]+$/.test(id)) {
+    throw new ApiError(400, "Invalid candidate source id");
+  }
+  return id;
+};
+
 export const parseSubjectCode = (value: unknown): string => {
   const code = typeof value === "string" ? value.trim().toUpperCase() : "";
   if (!code || !/^[A-Z0-9][A-Z0-9_-]{0,31}$/.test(code)) {
@@ -110,6 +118,18 @@ export const parseSearchLimit = (value: unknown): number => {
   }
 
   return limit;
+};
+
+export const parsePage = (value: unknown): number => {
+  if (value === undefined) return 1;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    throw new ApiError(400, "page must be an integer between 1 and 100000");
+  }
+  const page = Number(value);
+  if (!Number.isSafeInteger(page) || page < 1 || page > 100000) {
+    throw new ApiError(400, "page must be an integer between 1 and 100000");
+  }
+  return page;
 };
 
 const MAX_CHAT_QUESTION_LENGTH = 500;

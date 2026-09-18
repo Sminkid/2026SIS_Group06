@@ -12,6 +12,7 @@ const group = (index: number, description: string, requiredCreditPoints: number 
 test("BHENGINE-04 source clauses retain every fact required by the USYD presentation adapter", () => {
   const degree = {
     id: "degree", code: "BHENGINE-04", name: "Bachelor of Engineering Honours", creditPoints: 192, description: null,
+    DegreeRanking: [],
     RequirementGroup: [
       group(0, "the Engineering Specialisations Tables", null, "RAW_FALLBACK"),
       group(1, "a minimum of 18 credit points from the Engineering Foundations Table, including all required units", 18),

@@ -23,14 +23,19 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
       <section className={appUi.pageIntroCompact} aria-labelledby="courses-heading">
         <p className={appUi.eyebrow}>Choose a course</p>
         <h1>Courses</h1>
-        <h2 id="courses-heading">Recommended courses</h2>
+        <section className={appUi.degreeTools}>
+          <h2 id="courses-heading">Recommended courses</h2>
+          <label className={appUi.searchField}><span className={appUi.srOnly}>Search degrees by code or name</span><span aria-hidden="true">⌕</span>
+            <input type="search" placeholder="Search by code or degree name" />
+          </label>
+        </section>
         {status === "loading" && <AsyncState kind="loading" label="Finding matching courses" />}
         {status === "error" && <AsyncState kind="error" label="We couldn't load course recommendations." />}
         {status === "ready" && courses.length === 0 && <AsyncState kind="empty" label="No matching courses found." />}
         {status === "ready" && (
-          <div className={appUi.degreeList}>
+          <div className={appUi.degreeGrid}>
             {courses.map((course) => (
-              <button className={appUi.degreeRow} type="button" key={course.courseName} onClick={() => onSelectCourse(course)}>
+              <button className={appUi.degreeCard} type="button" key={course.courseName} onClick={() => onSelectCourse(course)}>
                 <span className={appUi.degreeRowName}>{course.courseName}</span>
                 <span className={appUi.degreeRowCp}>{course.offerings.length} universities offer this</span>
                 <span className={appUi.degreeRowArrow} aria-hidden="true">→</span>

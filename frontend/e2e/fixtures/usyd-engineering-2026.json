@@ -89,6 +89,22 @@
         ],
         "children": [],
         "pathways": []
+      },
+      {
+        "id": "engineering-stream-pool",
+        "title": "Engineering Streams stream choice pool",
+        "description": null,
+        "logic": "ONE_OF",
+        "requiredCreditPoints": null,
+        "maximumCreditPoints": null,
+        "sortOrder": 4,
+        "items": [
+          { "id": "software-stream-item", "itemType": "COMPONENT", "subject": null, "component": { "id": "software-stream", "code": "USYD:ENGINEERING:STREAM:SOFTWARE-ENGINEERING", "displayCode": null, "name": "Software Engineering", "type": "STREAM", "creditPoints": 120, "creditPointsAvailability": "EXPLICIT_COMPONENT" }, "rawCode": null, "rawName": "Software Engineering", "creditPoints": 120, "sortOrder": 0 },
+          { "id": "civil-stream-item", "itemType": "COMPONENT", "subject": null, "component": { "id": "civil-stream", "code": "USYD:ENGINEERING:STREAM:CIVIL-ENGINEERING", "displayCode": null, "name": "Civil Engineering", "type": "STREAM", "creditPoints": 120, "creditPointsAvailability": "EXPLICIT_COMPONENT" }, "rawCode": null, "rawName": "Civil Engineering", "creditPoints": 120, "sortOrder": 1 }
+        ],
+        "children": [],
+        "pathways": [],
+        "candidateSources": []
       }
     ],
     "completionSummary": [
@@ -137,6 +153,19 @@
       "years": [{ "id": "mid-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
     },
     {
+      "id": "software-computer",
+      "sourcePlanId": "BHENGINE-04:6701:14945:Software Engineering: Computer Engineering",
+      "pathway": "Software Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": 1,
+      "totalCreditPoints": null,
+      "title": "Software Engineering: 1. Stream Specialisation in Computer Engineering",
+      "description": null,
+      "sourceUrl": null,
+      "years": [{ "id": "software-computer-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
+    },
+    {
       "id": "civil-base",
       "sourcePlanId": "BHENGINE-04:CIVIL",
       "pathway": "Civil Engineering",
@@ -148,6 +177,19 @@
       "description": null,
       "sourceUrl": null,
       "years": [{ "id": "civil-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
+    },
+    {
+      "id": "civil-structures",
+      "sourcePlanId": "BHENGINE-04:6414:14201:Civil Engineering: Structures",
+      "pathway": "Civil Engineering",
+      "sourceType": "CUSP",
+      "handbookYear": 2026,
+      "variantNumber": 2,
+      "totalCreditPoints": null,
+      "title": "Civil Engineering: 02. Stream Specialisation in Structures",
+      "description": null,
+      "sourceUrl": null,
+      "years": [{ "id": "civil-structures-year-1", "name": "Year 1", "sortOrder": 0, "periods": [] }]
     }
   ]
 }

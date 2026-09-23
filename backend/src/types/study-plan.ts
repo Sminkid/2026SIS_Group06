@@ -26,6 +26,12 @@ export interface StudyPlanYearSummary {
 }
 
 export interface StudyPlanSummary {
+  sourcePlanId: string | null;
+  pathway: string | null;
+  sourceType: string | null;
+  handbookYear: number | null;
+  variantNumber: number | null;
+  totalCreditPoints: number | null;
   major?: { id: string; code: string; name: string } | null;
   relationshipBasis?: "SOURCE_TITLE_AND_SUBJECT_IDS" | null;
   commencement?: string | null;

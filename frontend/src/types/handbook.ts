@@ -5,6 +5,16 @@ export type RequirementLogic = "ALL" | "ANY" | "ONE_OF" | "UNKNOWN";
 export type RequirementItemType = "SUBJECT" | "COMPONENT" | "TABLE" | "RAW" | "OTHER";
 
 export interface RequirementSubject { id: string; code: string; name: string; creditPoints: number | null; }
+export type RequirementCandidateSourceType = "SUBJECT_FILTER" | "TABLE_SUBJECT_POOL";
+export interface RequirementCandidateSourceSummary {
+  id: string;
+  sourceKey: string;
+  type: RequirementCandidateSourceType;
+  title: string;
+  authoritative: boolean;
+  tableName: string | null;
+  candidateCount: number;
+}
 export interface RequirementComponent {
   id: string;
   code: string;
@@ -33,6 +43,7 @@ export interface RequirementGroup {
   maximumCreditPoints: number | null;
   sortOrder: number | null;
   items: RequirementItem[];
+  candidateSources: RequirementCandidateSourceSummary[];
   children: RequirementGroup[];
   pathways: Array<{
     id: string;
@@ -58,6 +69,17 @@ export interface DegreeDetailResponse {
   };
   requirements: RequirementGroup[];
   completionSummary: StudentRequirementSummary[];
+}
+
+export interface RequirementCandidateSubjectsResponse {
+  candidateSource: RequirementCandidateSourceSummary;
+  subjects: RequirementSubject[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export type RequirementObligation = "REQUIRED" | "OPTIONAL" | "CONDITIONAL" | "INFORMATIONAL";
@@ -124,6 +146,12 @@ export interface StudyPlanPeriod { id: string; name: string; sortOrder: number |
 export interface StudyPlanYear { id: string; name: string; sortOrder: number | null; periods: StudyPlanPeriod[]; }
 export interface StudyPlan {
   id: string; title: string; description: string | null; sourceUrl: string | null; years: StudyPlanYear[];
+  sourcePlanId?: string | null;
+  pathway?: string | null;
+  sourceType?: string | null;
+  handbookYear?: number | null;
+  variantNumber?: number | null;
+  totalCreditPoints?: number | null;
   major?: { id: string; code: string; name: string } | null;
   relationshipBasis?: "SOURCE_TITLE_AND_SUBJECT_IDS" | null;
   commencement?: string | null;

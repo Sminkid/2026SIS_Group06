@@ -112,7 +112,8 @@ const validateRequisiteGroup = (
       continue;
     }
     const placements = placementsByCode.get(prerequisite.code) ?? [];
-    const isCorequisite = item.requisiteType?.toLowerCase().includes("corequisite") ?? false;
+    const isCorequisite = group.groupType === "COREQUISITE"
+      || (item.requisiteType?.toLowerCase().includes("corequisite") ?? false);
     const satisfied = target.periodIndex !== null && placements.some((placement) =>
       placement.periodIndex !== null && (isCorequisite
         ? placement.periodIndex <= target.periodIndex!
@@ -125,7 +126,18 @@ const validateRequisiteGroup = (
     });
   }
   const satisfied = evaluateBooleanRule(group.rule, itemValues);
-  if (satisfied === "FALSE" || (satisfied === "UNKNOWN" && unsatisfied.length > 0)) {
+
+  /*
+   * Only a deterministically FALSE rule may produce an actionable
+   * missing/timing warning.
+   *
+   * UNKNOWN means that at least part of the handbook expression cannot be
+   * evaluated automatically (for example an admission condition or a
+   * minimum-completed-credit-point condition). In that case we must not infer
+   * that one of the referenced subjects is missing, because another branch of
+   * an OR expression may still satisfy the rule.
+   */
+  if (satisfied === "FALSE") {
     const actionable = unsatisfied.filter((prerequisite) => {
       const matchingItem = group.items.find((item) => item.referencedSubject?.code === prerequisite.code);
       if (!matchingItem) return false;
@@ -154,6 +166,7 @@ const validateRequisiteGroup = (
       }
     }
   }
+
   if (unknownItems.length > 0 || satisfied === "UNKNOWN") {
     results.push({
       severity: "info",

@@ -38,7 +38,7 @@ export interface SubjectAccessConditionItem {
 
 export interface SubjectAccessConditionGroup {
   id: string;
-  groupType: "REQUISITE" | "ANTI_REQUISITE";
+  groupType: "REQUISITE" | "ANTI_REQUISITE" | "PREREQUISITE" | "COREQUISITE" | "PROHIBITION";
   rule: string | null;
   sortOrder: number | null;
   items: SubjectAccessConditionItem[];

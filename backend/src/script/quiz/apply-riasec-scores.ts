@@ -27,6 +27,7 @@ interface DraftEntry {
     "REALISTIC" | "INVESTIGATIVE" | "ARTISTIC" | "SOCIAL" | "ENTERPRISING" | "CONVENTIONAL",
     number
   >;
+  subcategoryScores?: Record<string, number>;
 }
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -61,6 +62,9 @@ async function main() {
   const categories = await prisma.riasecCategory.findMany();
   const categoryIdByCode = new Map(categories.map((c) => [c.code, c.id]));
 
+  const subcategories = await prisma.riasecSubcategory.findMany({ select: { id: true } });
+  const validSubcategoryIds = new Set(subcategories.map((sc) => sc.id));
+
   // Prisma's compound-unique shorthand requires every field non-null, even
   // though degreeId/componentId are nullable columns - so this can't use
   // upsert()'s where shorthand. Load existing rows once and emulate it with
@@ -72,9 +76,18 @@ async function main() {
     existingRows.map((r) => [rowKey(r.degreeId, r.componentId, r.categoryId), r.id]),
   );
 
+  const existingSubcategoryRows = await prisma.riasecSubcategoryScore.findMany({
+    select: { id: true, degreeId: true, componentId: true, subcategoryId: true },
+  });
+  const existingSubcategoryIdByKey = new Map(
+    existingSubcategoryRows.map((r) => [rowKey(r.degreeId, r.componentId, r.subcategoryId), r.id]),
+  );
+
   let totalWritten = 0;
   let totalFailed = 0;
   let totalEntries = 0;
+  let totalSubcategoryWritten = 0;
+  let totalSubcategoryFailed = 0;
 
   for (const draftPath of draftFiles) {
     const raw = await readFile(draftPath, "utf-8");
@@ -83,9 +96,14 @@ async function main() {
 
     let written = 0;
     let failed = 0;
+    let subcategoryWritten = 0;
+    let subcategoryFailed = 0;
     const totalWrites = entries.reduce((sum, e) => sum + Object.keys(e.scores).length, 0);
 
     for (const entry of entries) {
+      const degreeId = entry.targetType === "degree" ? entry.targetId : null;
+      const componentId = entry.targetType === "component" ? entry.targetId : null;
+
       for (const [code, score] of Object.entries(entry.scores)) {
         const categoryId = categoryIdByCode.get(code as keyof typeof entry.scores);
         if (!categoryId) {
@@ -93,8 +111,6 @@ async function main() {
           continue;
         }
 
-        const degreeId = entry.targetType === "degree" ? entry.targetId : null;
-        const componentId = entry.targetType === "component" ? entry.targetId : null;
         const key = rowKey(degreeId, componentId, categoryId);
         const existingId = existingIdByKey.get(key);
 
@@ -120,14 +136,48 @@ async function main() {
           console.log(`  Progress: ${written + failed}/${totalWrites} (${written} written, ${failed} failed)`);
         }
       }
+
+      for (const [subcategoryId, score] of Object.entries(entry.subcategoryScores ?? {})) {
+        if (!validSubcategoryIds.has(subcategoryId)) {
+          console.warn(`Unknown RIASEC subcategory id "${subcategoryId}" for ${entry.targetType}:${entry.targetId} - skipped`);
+          continue;
+        }
+
+        const key = rowKey(degreeId, componentId, subcategoryId);
+        const existingId = existingSubcategoryIdByKey.get(key);
+
+        try {
+          if (existingId) {
+            await prisma.riasecSubcategoryScore.update({
+              where: { id: existingId },
+              data: { score, updatedAt: new Date() },
+            });
+          } else {
+            const created = await prisma.riasecSubcategoryScore.create({
+              data: { id: randomUUID(), degreeId, componentId, subcategoryId, score, updatedAt: new Date() },
+            });
+            existingSubcategoryIdByKey.set(key, created.id);
+          }
+          subcategoryWritten += 1;
+        } catch (error) {
+          subcategoryFailed += 1;
+          console.error(`Failed to write subcategory score ${entry.targetType}:${entry.targetId} / ${subcategoryId}:`, error);
+        }
+      }
     }
 
-    console.log(`  ${draftPath.split("/").pop()}: wrote ${written} RiasecScore rows from ${entries.length} records (${failed} failed).`);
+    console.log(
+      `  ${draftPath.split("/").pop()}: wrote ${written} RiasecScore rows and ${subcategoryWritten} RiasecSubcategoryScore rows from ${entries.length} records (${failed} category failures, ${subcategoryFailed} subcategory failures).`,
+    );
     totalWritten += written;
     totalFailed += failed;
+    totalSubcategoryWritten += subcategoryWritten;
+    totalSubcategoryFailed += subcategoryFailed;
   }
 
-  console.log(`Done. Wrote ${totalWritten} RiasecScore rows from ${totalEntries} reviewed records across ${draftFiles.length} file(s) (${totalFailed} failed).`);
+  console.log(
+    `Done. Wrote ${totalWritten} RiasecScore rows and ${totalSubcategoryWritten} RiasecSubcategoryScore rows from ${totalEntries} reviewed records across ${draftFiles.length} file(s) (${totalFailed} category failures, ${totalSubcategoryFailed} subcategory failures).`,
+  );
 }
 
 main()

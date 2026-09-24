@@ -7,11 +7,16 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { PrismaClient } from "../../generated/prisma/client.js";
 
 // Usage:
-//   tsx prisma/generate-riasec-scores.ts [--university=USYD] [--limit=N] [--degrees-only] [--components-only]
+//   tsx prisma/generate-riasec-scores.ts [--university=USYD] [--limit=N] [--degrees-only] [--components-only] [--rescore]
 //
 // Scores existing Degree/Component rows against the 6 RIASEC categories using
-// Claude Haiku 4.5 via the Batch API, and writes a draft file for human review.
-// Does NOT write to the database - see apply-riasec-scores.ts for that step.
+// Claude Haiku 4.5 via the Batch API, and writes one draft file per university
+// for human review (riasec-scores.<university-code>.draft.json). Does NOT write
+// to the database - see apply-riasec-scores.ts for that step.
+//
+// By default, degrees/components that already have a RiasecScore are skipped,
+// so re-running this only scores what's still missing. Pass --rescore to score
+// everything matching the other filters regardless of existing scores.
 
 const args = process.argv.slice(2);
 const universityFilter = args.find((a) => a.startsWith("--university="))?.split("=")[1];
@@ -19,6 +24,7 @@ const limitArg = args.find((a) => a.startsWith("--limit="))?.split("=")[1];
 const limit = limitArg ? Number(limitArg) : undefined;
 const degreesOnly = args.includes("--degrees-only");
 const componentsOnly = args.includes("--components-only");
+const rescore = args.includes("--rescore");
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -62,6 +68,7 @@ const RiasecScoreSchema = z.object({
 interface DraftEntry {
   targetType: "degree" | "component";
   targetId: string;
+  university: string;
   code: string;
   name: string;
   scores: Record<(typeof CATEGORY_CODES)[number], number>;
@@ -93,18 +100,26 @@ async function buildSystemPrompt(): Promise<string> {
 async function main() {
   const systemPrompt = await buildSystemPrompt();
 
-  const degreeWhere = universityFilter
-    ? { HandbookVersion: { University: { code: universityFilter } } }
-    : {};
-  const componentWhere = universityFilter
-    ? { HandbookVersion: { University: { code: universityFilter } } }
-    : {};
+  const degreeWhere = {
+    ...(universityFilter ? { HandbookVersion: { University: { code: universityFilter } } } : {}),
+    ...(rescore ? {} : { RiasecScore: { none: {} } }),
+  };
+  const componentWhere = {
+    ...(universityFilter ? { HandbookVersion: { University: { code: universityFilter } } } : {}),
+    ...(rescore ? {} : { RiasecScore: { none: {} } }),
+  };
 
   const degrees = componentsOnly
     ? []
     : await prisma.degree.findMany({
         where: degreeWhere,
-        select: { id: true, code: true, name: true, description: true },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          description: true,
+          HandbookVersion: { select: { University: { select: { code: true } } } },
+        },
         ...(limit ? { take: limit } : {}),
       });
 
@@ -112,11 +127,22 @@ async function main() {
     ? []
     : await prisma.component.findMany({
         where: componentWhere,
-        select: { id: true, code: true, name: true, type: true, rawData: true },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          type: true,
+          rawData: true,
+          HandbookVersion: { select: { University: { select: { code: true } } } },
+        },
         ...(limit ? { take: limit } : {}),
       });
 
-  console.log(`Scoring ${degrees.length} degrees and ${components.length} components...`);
+  console.log(
+    `Scoring ${degrees.length} degrees and ${components.length} components` +
+      (rescore ? "" : " (already-scored records skipped)") +
+      "...",
+  );
 
   const requests: Anthropic.Messages.Batches.BatchCreateParams["requests"] = [];
 
@@ -180,9 +206,28 @@ async function main() {
     );
   }
 
-  const byId = new Map<string, { targetType: "degree" | "component"; targetId: string; code: string; name: string }>();
-  for (const d of degrees) byId.set(`degree-${d.id}`, { targetType: "degree", targetId: d.id, code: d.code, name: d.name });
-  for (const c of components) byId.set(`component-${c.id}`, { targetType: "component", targetId: c.id, code: c.code, name: c.name });
+  const byId = new Map<
+    string,
+    { targetType: "degree" | "component"; targetId: string; university: string; code: string; name: string }
+  >();
+  for (const d of degrees) {
+    byId.set(`degree-${d.id}`, {
+      targetType: "degree",
+      targetId: d.id,
+      university: d.HandbookVersion.University.code,
+      code: d.code,
+      name: d.name,
+    });
+  }
+  for (const c of components) {
+    byId.set(`component-${c.id}`, {
+      targetType: "component",
+      targetId: c.id,
+      university: c.HandbookVersion.University.code,
+      code: c.code,
+      name: c.name,
+    });
+  }
 
   const draft: DraftEntry[] = [];
   const failures: { customId: string; reason: string }[] = [];
@@ -215,6 +260,7 @@ async function main() {
     draft.push({
       targetType: meta.targetType,
       targetId: meta.targetId,
+      university: meta.university,
       code: meta.code,
       name: meta.name,
       scores,
@@ -222,9 +268,18 @@ async function main() {
     });
   }
 
-  const outPath = new URL("./riasec-scores.draft.json", import.meta.url);
-  await writeFile(outPath, JSON.stringify(draft, null, 2));
-  console.log(`Wrote ${draft.length} scored records to ${outPath.pathname}`);
+  const byUniversity = new Map<string, DraftEntry[]>();
+  for (const entry of draft) {
+    const list = byUniversity.get(entry.university) ?? [];
+    list.push(entry);
+    byUniversity.set(entry.university, list);
+  }
+
+  for (const [university, entries] of byUniversity) {
+    const outPath = new URL(`./riasec-scores.${university.toLowerCase()}.draft.json`, import.meta.url);
+    await writeFile(outPath, JSON.stringify(entries, null, 2));
+    console.log(`Wrote ${entries.length} scored records for ${university} to ${outPath.pathname}`);
+  }
 
   if (failures.length > 0) {
     console.log(`${failures.length} failures (not written to draft):`);

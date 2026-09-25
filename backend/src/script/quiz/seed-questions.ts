@@ -4,11 +4,8 @@ import { PrismaClient } from "../../generated/prisma/client.js";
 
 // Seeds the RIASEC quiz question bank: 24 category-level (SCREENING) items and
 // 93 subcategory-level (DRILL_DOWN) items. Run via:
-//   npx tsx src/script/quiz/seed-questions.ts
-//
-// riasec-realistic-environmental-science has NO seeded DRILL_DOWN questions yet -
-// the original "Agriculture" question set (farming/land/crops) doesn't match this
-// subcategory after it was renamed to Environmental Science, and needs rewriting.
+//   npx tsx src/script/quiz/seed-questions.
+
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -92,7 +89,16 @@ const SUBCATEGORY_QUESTIONS: SubcategoryBlock[] = [
       "Using power tools to measure, cut, and fit materials together",
     ],
   },
-  // riasec-realistic-environmental-science intentionally omitted - see file header note.
+
+  {
+    subcategoryId: "riasec-realistic-environmental-science",
+    categoryId: "riasec-realistic",
+    questions: [
+      "Working outdoors to monitor or protect natural environments like rivers, forests, or coastlines",
+      "Collecting soil, water, or air samples in the field to check for pollution",
+      "Restoring damaged land, such as replanting native vegetation or cleaning up a contaminated site",
+    ],
+  },
   {
     subcategoryId: "riasec-realistic-veterinary",
     categoryId: "riasec-realistic",

@@ -64,7 +64,7 @@ export const navigationUi = {
   pageIntro: "mb-15",
   universityGrid: "grid [grid-template-columns:repeat(auto-fit,_minmax(17rem,_1fr))] gap-4 mt-5",
   universityCard: cn(
-    "university-card min-h-56 flex flex-col items-start p-7 text-left border-[1px] border-solid",
+    "university-card min-h-56 items-start p-7 text-left border-[1px] border-solid",
     "border-[color:var(--line)] bg-[var(--surface)] cursor-pointer",
     "[transition:border-color_160ms,_transform_160ms] motion-reduce:transition-none motion-reduce:transform-none",
     "[&:hover]:[border-color:var(--navy)] [&:hover]:[transform:translateY(-2px)]",

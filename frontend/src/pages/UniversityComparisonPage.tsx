@@ -21,22 +21,46 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
       <p className={appUi.eyebrow}>Explore universities</p>
       <h1>Compare</h1>
       <h2 id="compare-heading">Compare universities for {course.courseName}</h2>
-      <div className={appUi.universityGrid}>
-        {course.offerings.map(({ university, degree }) => (
-          <button
-            className={appUi.universityCard}
-            type="button"
-            key={university.id}
-            onClick={() => onSelectUniversity(university, degree)}
-          >
-            <span className={appUi.universityCardCode}>{university.code}</span>
-            <span className={appUi.universityCardName}>{university.name}</span>
-            <p>{degree.name}</p>
-            <p>{degree.creditPoints === null ? "CP not listed" : `${degree.creditPoints} CP`}</p>
-            <span className={appUi.cardAction} aria-hidden="true">View study plan →</span>
-          </button>
-        ))}
-      </div>
+      <table className="w-full h-full table-fixed text-center border-separate border-spacing-5">
+        <thead>
+          <th></th>
+          <th className={appUi.universityCard}>University one</th>
+          <th className={appUi.universityCard}>University two</th>
+          <th><button className={appUi.secondaryButton}>Add univeristy</button></th>
+        </thead>
+        <tbody>
+          <tr id="course-code">
+            <th className="border">course code</th>
+            <td>unknown</td>
+            <td>unknown</td>
+          </tr>
+          <tr id="duration">
+            <th className="border">duration</th>
+            <td>unknown</td>
+            <td>unknown</td>
+          </tr>
+          <tr id="tuition-fee">
+            <th className="border">Annual tuition fee</th>
+            <td>unknown</td>
+            <td>unknown</td>
+          </tr>
+          <tr id="ranking">
+            <th className="border">Ranking</th>
+            <td>unknown</td>
+            <td>unknown</td>
+          </tr>
+          <tr id="location">
+            <th className="border">Campus location</th>
+            <td>unknown</td>
+            <td>unknown</td>
+          </tr>
+          <tr id="employment-rate">
+            <th className="border">Employment rate</th>
+            <td>unknown</td>
+            <td>unknown</td>
+          </tr>
+        </tbody>
+      </table>
     </section>
   </main>
 );

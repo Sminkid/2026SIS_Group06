@@ -21,46 +21,60 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
       <p className={appUi.eyebrow}>Explore universities</p>
       <h1>Compare</h1>
       <h2 id="compare-heading">Compare universities for {course.courseName}</h2>
-      <table className="w-full h-full table-fixed text-center border-separate border-spacing-5">
-        <thead>
-          <th></th>
-          <th className={appUi.universityCard}>University one</th>
-          <th className={appUi.universityCard}>University two</th>
-          <th><button className={appUi.secondaryButton}>Add univeristy</button></th>
-        </thead>
-        <tbody>
-          <tr id="course-code">
-            <th className="border">course code</th>
-            <td>unknown</td>
-            <td>unknown</td>
-          </tr>
-          <tr id="duration">
-            <th className="border">duration</th>
-            <td>unknown</td>
-            <td>unknown</td>
-          </tr>
-          <tr id="tuition-fee">
-            <th className="border">Annual tuition fee</th>
-            <td>unknown</td>
-            <td>unknown</td>
-          </tr>
-          <tr id="ranking">
-            <th className="border">Ranking</th>
-            <td>unknown</td>
-            <td>unknown</td>
-          </tr>
-          <tr id="location">
-            <th className="border">Campus location</th>
-            <td>unknown</td>
-            <td>unknown</td>
-          </tr>
-          <tr id="employment-rate">
-            <th className="border">Employment rate</th>
-            <td>unknown</td>
-            <td>unknown</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className={appUi.tableWrapper}>
+        <table className={appUi.comparisonTable}>
+          <thead>
+            <tr>
+              <th></th>
+              <th className={appUi.universityCard}>University one</th>
+              <th className={appUi.universityCard}>University two</th>
+              <th><button className={appUi.secondaryButton}>Add univeristy</button></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="course-code">
+              <th className={appUi.uniInfo}>Course code</th>
+              <td className={appUi.uniInfo}>unknown</td>
+              <td className={appUi.uniInfo}>unknown</td>
+            </tr>
+            <tr id="duration">
+              <th className={appUi.uniInfoAlt}>Duration</th>
+              <td className={appUi.uniInfoAlt}>unknown</td>
+              <td className={appUi.uniInfoAlt}>unknown</td>
+            </tr>
+            <tr id="tuition-fee">
+              <th className={appUi.uniInfo}>Annual tuition fee</th>
+              <td className={appUi.uniInfo}>unknown</td>
+              <td className={appUi.uniInfo}>unknown</td>
+            </tr>
+            <tr id="ranking">
+              <th className={appUi.uniInfoAlt}>Ranking</th>
+              <td className={appUi.uniInfoAlt}>unknown</td>
+              <td className={appUi.uniInfoAlt}>unknown</td>
+            </tr>
+            <tr id="location">
+              <th className={appUi.uniInfo}>Campus location</th>
+              <td className={appUi.uniInfo}>unknown</td>
+              <td className={appUi.uniInfo}>unknown</td>
+            </tr>
+            <tr id="employment-rate">
+              <th className={appUi.uniInfoAlt}>Employment rate</th>
+              <td className={appUi.uniInfoAlt}>unknown</td>
+              <td className={appUi.uniInfoAlt}>unknown</td>
+            </tr>
+            <tr>
+              <td></td>
+              <td>
+                <button className={appUi.primaryButton}>View Study Plan</button>
+              </td>
+              <td>
+                <button className={appUi.primaryButton}>View Study Plan</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
     </section>
   </main>
 );

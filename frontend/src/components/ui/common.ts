@@ -18,7 +18,7 @@ export const commonUi = {
     "w-7 h-7 border-[2px] border-solid border-[color:var(--line)] [border-top-color:var(--blue)] rounded-full",
     "animate-spin [animation-duration:750ms] motion-reduce:animate-none",
   ),
-  secondaryButton: "h-full [padding:.65rem_1rem] border-[1px] border-solid [border-color:var(--line)] bg-[var(--surface)] [&:hover]:[border-color:var(--navy)] cursor-pointer",
+  secondaryButton: "w-full h-full p-7 border-[1px] border-solid [border-color:var(--line)] bg-[var(--surface)] [&:hover]:[border-color:var(--navy)] cursor-pointer",
   stepLabel: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   sectionHeading: cn(
     "flex items-end justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
@@ -34,7 +34,7 @@ export const commonUi = {
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
   primaryButton: cn(
-    "w-fit [padding:.9rem_1.5rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
+    "[padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
     "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
   ),
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
@@ -47,4 +47,18 @@ export const commonUi = {
   ),
   muted: "text-[var(--muted)] font-medium",
   srOnly: "sr-only",
+  tableWrapper: "w-full overflow-x-auto overscroll-x-contain",
+  comparisonTable: cn(
+    "w-full min-w-[700px] table-fixed text-center",
+    "border-separate border-spacing-x-2.5 border-spacing-y-5",
+  ),
+  uniInfo: cn(
+    "min-w-[200px] p-3 text-base align-middle",
+    "bg-[var(--surface)] shadow-sm",
+  ),
+
+  uniInfoAlt: cn(
+    "min-w-[200px] p-3 text-base align-middle",
+    "bg-[var(--amber)] shadow-sm",
+  ),
 } as const;

@@ -103,6 +103,10 @@ const tableSSource = {
   id: "table-s-source", sourceKey: "table-s", type: "TABLE_SUBJECT_POOL" as const,
   title: "Table S units", authoritative: true, tableName: "Table S", candidateCount: 1472,
 };
+const tableDSource = {
+  id: "table-d-source", sourceKey: "table-d", type: "TABLE_SUBJECT_POOL" as const,
+  title: "Table D Dalyell units", authoritative: true, tableName: "Table D", candidateCount: 17,
+};
 
 const engineeringRequirements = (): RequirementGroup[] => {
   const foundation = emptyGroup("foundation", "Foundation", "ALL");
@@ -135,7 +139,10 @@ const engineeringRequirements = (): RequirementGroup[] => {
   const electives = emptyGroup("electives", "Requirement 13", "UNKNOWN");
   electives.maximumCreditPoints = 24;
   electives.candidateSources = [engineeringSource, tableSSource];
-  return [foundation, projects, pep, electives, streamPool()];
+  const dalyell = emptyGroup("dalyell", "Requirement 12", "ALL");
+  dalyell.description = "for students enrolled in the Dalyell Stream, a minimum of 12 credit points of Dalyell units of study as specified in Table D;";
+  dalyell.candidateSources = [tableDSource];
+  return [foundation, projects, pep, electives, streamPool(), dalyell];
 };
 
 const summary = (
@@ -175,6 +182,8 @@ const engineeringDetail: DegreeDetailResponse = {
     summary("stream", "a minimum of 120 credit points from the Engineering Stream Table", 120),
     summary("electives", "a maximum of 24 credit points from Table S", 24),
     summary("specialisation", "the Engineering Specialisations Tables", null, "OPTIONAL"),
+    { ...summary("dalyell", "for students enrolled in the Dalyell Stream, a minimum of 12 credit points of Dalyell units of study as specified in Table D;", 12, "CONDITIONAL"),
+      title: "12 CP Dalyell units" },
   ],
 };
 
@@ -245,11 +254,22 @@ const candidateSubjects = {
     { id: "shared-comp", code: "COMP1000", name: "Shared Computing Subject", creditPoints: 6 },
     { id: "arts2000", code: "ARTS2000", name: "Arts and Society", creditPoints: 6 },
   ],
+  [tableDSource.id]: [
+    { id: "budl2901", code: "BUDL2901", name: "The Craft of Collaboration", creditPoints: 6 },
+    { id: "budl2902", code: "BUDL2902", name: "Innovation in Organisations", creditPoints: 6 },
+    ...Array.from({ length: 15 }, (_, index) => ({
+      id: `dalyell-${index}`,
+      code: `SCDL${String(2000 + index)}`,
+      name: index === 0 ? "Leadership in STEMM" : `Dalyell unit ${index + 1}`,
+      creditPoints: 6,
+    })),
+  ],
 };
 
 const candidateResponse = (url: URL) => {
   const sourceId = decodeURIComponent(url.pathname.split("/").at(-2)!);
-  const source = sourceId === engineeringSource.id ? engineeringSource : tableSSource;
+  const source = sourceId === engineeringSource.id ? engineeringSource
+    : sourceId === tableDSource.id ? tableDSource : tableSSource;
   const query = url.searchParams.get("q")?.toLowerCase() ?? "";
   const page = Number(url.searchParams.get("page") ?? "1");
   const matching = candidateSubjects[source.id].filter((subject) => !query
@@ -354,6 +374,59 @@ test("USYD Engineering renders nested Core and lazily pages a deduplicated Free 
   await electives.getByRole("button", { name: "Search eligible subjects" }).click();
   await expect(electives.getByRole("button", { name: /View eligible subject ACCT1006/ })).toBeVisible();
   await expect(electives.getByRole("button", { name: /View eligible subject COMP1000/ })).toHaveCount(0);
+});
+
+test("USYD Engineering lazily displays the conditional Table D pool with search", async ({ page }) => {
+  const candidateRequests: string[] = [];
+  await routeDegree(page, engineeringDetail, [], undefined, (request) => candidateRequests.push(request));
+  await openDegree(page, engineeringDetail);
+
+  const dalyellButton = page.getByRole("button", { name: /12 CP Dalyell units.*12 credit points.*CONDITIONAL/i });
+  await expect(dalyellButton).toBeVisible();
+  await expect(page.getByText("Dalyell students only.")).toHaveCount(0);
+  expect(candidateRequests.filter((request) => request.includes(tableDSource.id))).toEqual([]);
+
+  await dalyellButton.click();
+  const dalyell = dalyellButton.locator("..");
+  await expect(dalyell.getByRole("heading", { name: "Eligible Table D units" })).toBeVisible();
+  await expect(dalyell.getByText("17 subjects")).toBeVisible();
+  await expect(dalyell.getByText(/Dalyell students only/)).toBeVisible();
+  await expect.poll(() => candidateRequests.some((request) => request.includes(tableDSource.id))).toBe(true);
+  await expect(dalyell.getByRole("button", { name: /View eligible subject BUDL2901/ })).toBeVisible();
+  await dalyell.getByRole("button", { name: /View eligible subject BUDL2901/ }).click();
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "BUDL2901" })).toBeVisible();
+  await page.getByRole("button", { name: "Close subject details" }).click();
+
+  await dalyell.getByRole("searchbox", { name: "Search Table D subjects by code or name" }).fill("Leadership");
+  await dalyell.getByRole("button", { name: "Search Table D subjects" }).click();
+  await expect(dalyell.getByRole("button", { name: /View eligible subject SCDL2000/ })).toBeVisible();
+  await expect(dalyell.getByRole("button", { name: /View eligible subject BUDL2901/ })).toHaveCount(0);
+});
+
+test("another USYD degree displays its Dalyell candidate pool without Engineering hardcoding", async ({ page }) => {
+  const dalyell = emptyGroup("advanced-computing-dalyell", "Requirement 5", "ALL");
+  dalyell.description = "For students enrolled in the Dalyell Stream, a minimum of 12 credit points from Table D;";
+  dalyell.candidateSources = [tableDSource];
+  const otherDegree: DegreeDetailResponse = {
+    degree: { id: "advanced-computing", code: "BPADVCMP-01", name: "Bachelor of Advanced Computing",
+      creditPoints: 192, handbookYear: 2026, university: usyd, description: null },
+    requirements: [dalyell],
+    completionSummary: [{ ...summary("advanced-computing-dalyell",
+      "For students enrolled in the Dalyell Stream, a minimum of 12 credit points from Table D;",
+      12, "CONDITIONAL"), title: "12 CP Dalyell units" }],
+  };
+  const candidateRequests: string[] = [];
+  await routeDegree(page, otherDegree, [], undefined, (request) => candidateRequests.push(request));
+  await openDegree(page, otherDegree);
+
+  expect(candidateRequests).toEqual([]);
+  await page.getByLabel("Are you enrolled in the Dalyell Stream?").selectOption("YES");
+  const dalyellButton = page.getByRole("button", { name: /12 CP Dalyell units.*12 credit points.*CONDITIONAL/i });
+  await expect(dalyellButton).toBeVisible();
+  expect(candidateRequests).toEqual([]);
+  await dalyellButton.click();
+  await expect(dalyellButton.locator("..").getByRole("heading", { name: "Eligible Table D units" })).toBeVisible();
+  await expect.poll(() => candidateRequests.some((request) => request.includes(tableDSource.id))).toBe(true);
 });
 
 test("selecting a Software Engineering STREAM loads and renders all component subject groups", async ({ page }) => {
@@ -467,6 +540,7 @@ test("UTS selected majors keep the shared component renderer", async ({ page }) 
   const section = page.getByRole("button", { name: /Required major.*Choose one/i }).locator("..");
   await section.getByRole("radio", { name: /Biomedical Engineering/ }).check();
   await expect(section.getByText("Selected major", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Eligible Table D units" })).toHaveCount(0);
   const core = section.getByRole("button", { name: /Core units.*ALL/i });
   await core.click();
   await expect(section.getByRole("button", { name: /View 41082/i })).toBeVisible();

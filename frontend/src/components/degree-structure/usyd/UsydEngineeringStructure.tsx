@@ -87,6 +87,7 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
     })}</div>
     {conditionalGroups.length > 0 && <section aria-labelledby="usyd-conditional-heading">
       <h3 id="usyd-conditional-heading">Conditional</h3>
+      <p className={appUi.sectionNote}>These requirements apply only when their stated enrolment condition is met.</p>
       <div className={appUi.requirementsList}>{conditionalGroups.map((group) => <RequirementAccordion group={group} key={group.id}
         universityCode={universityCode} handbookYear={handbookYear} selections={selections}
         onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject} obligation="CONDITIONAL" />)}</div>

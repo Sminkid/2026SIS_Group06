@@ -46,6 +46,7 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
   let utsBiomedical: ComponentDetailResponse;
   let engineeringCandidateSourceId: string;
   let tableSCandidateSourceId: string;
+  let tableDCandidateSourceId: string;
 
   const get = async <T>(path: string): Promise<T> => {
     const response = await fetch(`${baseUrl}${path}`);
@@ -75,6 +76,13 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
       (source) => source.title === "Table S units",
     )?.id ?? "";
     assert.ok(engineeringCandidateSourceId && tableSCandidateSourceId);
+    const dalyell = flattenGroups(engineering.requirements).find((group) =>
+      group.candidateSources.some((source) => source.tableName === "Table D"));
+    assert.ok(dalyell, "BHENGINE-04 must expose its Dalyell Table D source");
+    tableDCandidateSourceId = dalyell.candidateSources.find(
+      (source) => source.tableName === "Table D",
+    )?.id ?? "";
+    assert.ok(tableDCandidateSourceId);
     const streamComponents = componentItems(engineering).filter((component) => component.type === "STREAM");
     engineeringStreams = new Map(await Promise.all(streamComponents.map(async (component) => [
       component.name,
@@ -168,7 +176,8 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
   });
 
   test("BHENGINE-04 Free Electives exposes candidate-source metadata without materialising items", () => {
-    const freeElectives = flattenGroups(engineering.requirements).find((group) => group.candidateSources.length > 0);
+    const freeElectives = flattenGroups(engineering.requirements).find((group) =>
+      group.candidateSources.some((source) => source.title === "Engineering undergraduate units"));
     assert.ok(freeElectives);
     assert.equal(freeElectives.maximumCreditPoints, 24);
     assert.equal(freeElectives.requiredCreditPoints, null);
@@ -181,6 +190,36 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
       { title: "Engineering undergraduate units", type: "SUBJECT_FILTER", candidateCount: 271 },
       { title: "Table S units", type: "TABLE_SUBJECT_POOL", candidateCount: 1472 },
     ]);
+  });
+
+  test("BHENGINE-04 exposes the conditional Table D source through the generic degree contract", () => {
+    const dalyell = flattenGroups(engineering.requirements).find((group) =>
+      group.candidateSources.some((source) => source.id === tableDCandidateSourceId));
+    assert.ok(dalyell);
+    assert.equal(dalyell.requiredCreditPoints, null);
+    assert.match(dalyell.description ?? "", /minimum of 12 credit points/i);
+    assert.deepEqual(dalyell.candidateSources.map((source) => ({
+      title: source.title,
+      type: source.type,
+      tableName: source.tableName,
+      candidateCount: source.candidateCount,
+    })), [{
+      title: "Table D Dalyell units",
+      type: "TABLE_SUBJECT_POOL",
+      tableName: "Table D",
+      candidateCount: 17,
+    }]);
+    const summary = engineering.completionSummary.find((item) => item.requirementGroupId === dalyell.id);
+    assert.equal(summary?.minimumCreditPoints, 12);
+    assert.equal(summary?.obligation, "CONDITIONAL");
+  });
+
+  test("another USYD degree exposes Table D through the same generic contract", () => {
+    const dalyell = flattenGroups(advancedComputing.requirements).find((group) =>
+      group.candidateSources.some((source) => source.tableName === "Table D"));
+    assert.ok(dalyell);
+    assert.equal(dalyell.candidateSources.length, 1);
+    assert.equal(dalyell.candidateSources[0]?.candidateCount, 17);
   });
 
   test("candidate-source subjects are canonical, searchable, unique, ordered, and paginated", async () => {
@@ -231,6 +270,27 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
     assert.equal(tableS.pagination.total, 1472);
     assert.equal(tableS.pagination.limit, 20);
     assert.equal(tableS.subjects.length, 20);
+
+    const tableD = await get<RequirementCandidateSubjectsResponse>(
+      `/api/requirement-candidate-sources/${encodeURIComponent(tableDCandidateSourceId)}/subjects?limit=50`,
+    );
+    assert.equal(tableD.candidateSource.tableName, "Table D");
+    assert.equal(tableD.candidateSource.candidateCount, 17);
+    assert.deepEqual(tableD.pagination, { page: 1, limit: 50, total: 17, totalPages: 1 });
+    assert.equal(tableD.subjects.length, 17);
+    assert.deepEqual(tableD.subjects.map((subject) => subject.code),
+      [...tableD.subjects].sort((left, right) => left.code.localeCompare(right.code)
+        || left.name.localeCompare(right.name)
+        || left.id.localeCompare(right.id)).map((subject) => subject.code));
+
+    const exactTableDCode = await get<RequirementCandidateSubjectsResponse>(
+      `/api/requirement-candidate-sources/${encodeURIComponent(tableDCandidateSourceId)}/subjects?q=BUDL2901`,
+    );
+    assert.deepEqual(exactTableDCode.subjects.map((subject) => subject.code), ["BUDL2901"]);
+    const partialTableDName = await get<RequirementCandidateSubjectsResponse>(
+      `/api/requirement-candidate-sources/${encodeURIComponent(tableDCandidateSourceId)}/subjects?q=Leadership`,
+    );
+    assert.ok(partialTableDName.subjects.some((subject) => subject.name === "Leadership in STEMM"));
 
     for (const query of ["page=0", "page=100001", "limit=0", "limit=51"]) {
       const response = await fetch(

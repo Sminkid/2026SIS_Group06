@@ -5,37 +5,27 @@ import { fetchUniversities } from "../api/universities";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import {
-  annualFee, closestCourse, estimatedTotal, filterCourses, formatAud, formatDuration, lowestOf,
-  MAX_COMPARED_COURSES, type FeeBasis,
+  annualFee, applyQuery, closestCourse, compareToLowest, courseOptions, estimatedTotal, formatAud, formatDuration,
+  initialColumns, leastUsedUniversity, lowestOf, MAX_COMPARED_COURSES, type ComparisonColumn, type FeeBasis,
 } from "../domain/feeComparison";
 import type { DegreeSummary, University } from "../types/handbook";
 import type { CourseFee } from "../types/fee";
 
 interface Props { onHome: () => void; onViewDegree: (university: University, degree: DegreeSummary) => void; }
-interface Column { universityCode: string; degreeId: string | null; query: string; }
-
-/** Opens on engineering at each university, the degrees the planner covers in most depth. */
-const DEFAULT_DEGREE_CODES = ["BHENGINE-04", "C09066"];
-
-const initialColumns = (fees: CourseFee[], universities: University[]): Column[] =>
-  universities.slice(0, 2).map((university, index) => {
-    const course = fees.find((fee) => fee.universityCode === university.code && fee.degreeCode === DEFAULT_DEGREE_CODES[index])
-      ?? fees.find((fee) => fee.universityCode === university.code);
-    return { universityCode: university.code, degreeId: course?.degreeId ?? null, query: "" };
-  });
 
 const comparisonTag = (value: number | null, lowest: number | null): ReactNode => {
-  if (value === null || lowest === null) return null;
-  return value === lowest
+  const comparison = compareToLowest(value, lowest);
+  if (comparison === null) return null;
+  return comparison.kind === "lowest"
     ? <span className={appUi.feeTagLowest}>Lowest</span>
-    : <span className={appUi.feeTagMore}>+{formatAud(value - lowest)}</span>;
+    : <span className={appUi.feeTagMore}>+{formatAud(comparison.difference)}</span>;
 };
 
 /** Compares yearly and whole-course fees for up to four courses across universities. */
 export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
   const [fees, setFees] = useState<CourseFee[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
-  const [columns, setColumns] = useState<Column[]>([]);
+  const [columns, setColumns] = useState<ComparisonColumn[]>([]);
   const [basis, setBasis] = useState<FeeBasis>("domestic");
   const [addUniversityCode, setAddUniversityCode] = useState("");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -48,7 +38,7 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
     void Promise.all([fetchCourseFees(controller.signal), fetchUniversities(controller.signal)])
       .then(([feeData, universityData]) => {
         const withFees = universityData.filter((university) => feeData.some((fee) => fee.universityCode === university.code));
-        setFees(feeData); setUniversities(withFees); setColumns(initialColumns(feeData, withFees)); setStatus("ready");
+        setFees(feeData); setUniversities(withFees); setColumns(initialColumns(feeData, withFees.map((university) => university.code))); setStatus("ready");
       })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
@@ -60,23 +50,17 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
   const selected = columns.map((column) => (column.degreeId ? courseById.get(column.degreeId) ?? null : null));
   const takenIds = (exceptIndex: number) =>
     new Set(columns.flatMap((column, index) => (index !== exceptIndex && column.degreeId ? [column.degreeId] : [])));
-  const updateColumn = (index: number, next: Column) =>
+  const updateColumn = (index: number, next: ComparisonColumn) =>
     setColumns((current) => current.map((column, i) => (i === index ? next : column)));
 
   const changeUniversity = (index: number, universityCode: string) => {
     const match = closestCourse(fees, universityCode, selected[index]?.degreeName ?? "", takenIds(index));
     updateColumn(index, { universityCode, degreeId: match?.degreeId ?? null, query: "" });
   };
-  const changeQuery = (index: number, query: string) => {
-    const column = columns[index];
-    const matches = filterCourses(fees, column.universityCode, query);
-    const keepSelection = matches.some((course) => course.degreeId === column.degreeId);
-    updateColumn(index, { ...column, query, degreeId: keepSelection || matches.length === 0 ? column.degreeId : matches[0].degreeId });
-  };
-  const columnsAt = (universityCode: string) => columns.filter((column) => column.universityCode === universityCode).length;
-  const leastUsedUniversity = [...universities].sort((a, b) => columnsAt(a.code) - columnsAt(b.code))[0]?.code ?? "";
+  const changeQuery = (index: number, query: string) => updateColumn(index, applyQuery(fees, columns[index], query));
+  const suggestedUniversity = leastUsedUniversity(universities.map((university) => university.code), columns) ?? "";
   const addColumn = () => {
-    const universityCode = addUniversityCode || leastUsedUniversity;
+    const universityCode = addUniversityCode || suggestedUniversity;
     const match = closestCourse(fees, universityCode, selected[0]?.degreeName ?? "", takenIds(-1));
     setColumns((current) => [...current, { universityCode, degreeId: match?.degreeId ?? null, query: "" }]);
     setAddUniversityCode("");
@@ -179,9 +163,7 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
                 <tr>
                   <th className={appUi.feeRowLabel} scope="row">Choose course</th>
                   {columns.map((column, index) => {
-                    const options = filterCourses(fees, column.universityCode, column.query);
-                    const current = selected[index];
-                    const listed = current && options.includes(current) ? options : current ? [current, ...options] : options;
+                    const listed = courseOptions(fees, column, selected[index]);
                     return (
                       <td className={appUi.feeCell} key={index}>
                         <div className={appUi.feeControls}>
@@ -203,7 +185,7 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
                   {canAdd && (
                     <td className={`${appUi.feeCell} ${appUi.feeAddCell}`}>
                       <div className={appUi.feeControls}>
-                        <select className={appUi.feeControl} aria-label="University for the new column" value={addUniversityCode || leastUsedUniversity}
+                        <select className={appUi.feeControl} aria-label="University for the new column" value={addUniversityCode || suggestedUniversity}
                           onChange={(event) => setAddUniversityCode(event.target.value)}>
                           {universities.map((university) => <option key={university.code} value={university.code}>{university.name}</option>)}
                         </select>

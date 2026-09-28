@@ -28,6 +28,51 @@ export const lowestOf = (values: Array<number | null>): number | null => {
   return known.length < 2 ? null : Math.min(...known);
 };
 
+/** How one column's figure compares with the cheapest in view; null when there's nothing to compare. */
+export type FeeComparison = { kind: "lowest" } | { kind: "more"; difference: number };
+
+export const compareToLowest = (value: number | null, lowest: number | null): FeeComparison | null => {
+  if (value === null || lowest === null) return null;
+  return value === lowest ? { kind: "lowest" } : { kind: "more", difference: value - lowest };
+};
+
+export interface ComparisonColumn { universityCode: string; degreeId: string | null; query: string; }
+
+/** Opens on engineering at each university, the degrees the planner covers in most depth. */
+export const DEFAULT_DEGREE_CODES = ["BHENGINE-04", "C09066"];
+
+/** One column per university (up to two), preferring the default degree and falling back to the first listed. */
+export const initialColumns = (
+  courses: CourseFee[],
+  universityCodes: string[],
+  defaultDegreeCodes: string[] = DEFAULT_DEGREE_CODES,
+): ComparisonColumn[] =>
+  universityCodes.slice(0, 2).map((universityCode, index) => {
+    const course = courses.find((item) => item.universityCode === universityCode && item.degreeCode === defaultDegreeCodes[index])
+      ?? courses.find((item) => item.universityCode === universityCode);
+    return { universityCode, degreeId: course?.degreeId ?? null, query: "" };
+  });
+
+/** Suggests the university with the fewest columns so adding a course balances the comparison; ties keep list order. */
+export const leastUsedUniversity = (universityCodes: string[], columns: ComparisonColumn[]): string | null => {
+  const count = (code: string) => columns.filter((column) => column.universityCode === code).length;
+  return [...universityCodes].sort((a, b) => count(a) - count(b))[0] ?? null;
+};
+
+/** Applies a filter query, switching to the first match only when the current course no longer matches. */
+export const applyQuery = (courses: CourseFee[], column: ComparisonColumn, query: string): ComparisonColumn => {
+  const matches = filterCourses(courses, column.universityCode, query);
+  const keepSelection = matches.length === 0 || matches.some((course) => course.degreeId === column.degreeId);
+  const closest = closestCourse(matches, column.universityCode, query) ?? matches[0];
+  return { ...column, query, degreeId: keepSelection ? column.degreeId : closest.degreeId };
+};
+
+/** Filtered options for a column's course dropdown, always including the current course so the select stays valid. */
+export const courseOptions = (courses: CourseFee[], column: ComparisonColumn, current: CourseFee | null): CourseFee[] => {
+  const options = filterCourses(courses, column.universityCode, column.query);
+  return current && !options.includes(current) ? [current, ...options] : options;
+};
+
 export const filterCourses = (courses: CourseFee[], universityCode: string, query: string): CourseFee[] => {
   const normalized = query.trim().toLowerCase();
   return courses.filter((course) => course.universityCode === universityCode
@@ -36,7 +81,7 @@ export const filterCourses = (courses: CourseFee[], universityCode: string, quer
 
 const STOP_WORDS = new Set(["bachelor", "of", "and", "the", "in", "honours"]);
 const nameWords = (name: string): string[] =>
-  name.toLowerCase().replace(/[()]/g, " ").split(/\s+/).filter((word) => word && !STOP_WORDS.has(word));
+  [...new Set(name.toLowerCase().replace(/[()]/g, " ").split(/\s+/).filter((word) => word && !STOP_WORDS.has(word)))];
 
 /**
  * Finds the course at another university whose name best matches a reference course, so switching

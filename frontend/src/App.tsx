@@ -48,7 +48,7 @@ export const App = () => {
           <button
             className={appUi.brand}
             type="button"
-            onClick={() => setScreen({ name: "universities" })}
+            onClick={() => setScreen({ name: "getStarted" })}
             aria-label="Degree planner home"
           >
             <span className={appUi.brandMark} aria-hidden="true">
@@ -56,6 +56,8 @@ export const App = () => {
             </span>
             <span>Degree planner</span>
           </button>
+        </header>
+      </div>
       <header className={appUi.siteHeader}>
         <button
           className={appUi.brand}

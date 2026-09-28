@@ -11,6 +11,7 @@ export const navigationUi = {
   brand: "inline-flex items-center gap-3 p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
   brandMark: "grid w-9 h-9 place-items-center text-[white] bg-[var(--navy)] text-[length:.72rem] [letter-spacing:.08em]",
   siteHeaderNote: "text-[var(--muted)] text-[length:.85rem] [@media(max-width:720px)]:hidden",
+  siteHeaderNav: "flex items-center gap-2",
   breadcrumbs: cn(
     "mt-1 [&_ol]:flex [&_ol]:flex-wrap [&_ol]:[gap:.45rem] [&_ol]:items-center [&_ol]:p-0 [&_ol]:m-0",
     "[&_ol]:list-none [&_ol]:text-[var(--muted)] [&_ol]:text-[length:.84rem]",

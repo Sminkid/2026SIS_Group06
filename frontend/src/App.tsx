@@ -11,7 +11,7 @@ type Screen =
   | { name: "universities" }
   | { name: "degrees"; university: University }
   | { name: "degree"; university: University; degree: DegreeSummary }
-  | { name: "quiz"; university: University; degree: DegreeSummary };
+  | { name: "quiz"; university?: University; degree?: DegreeSummary };
 
 /** Coordinates the university, degree and handbook screens within the shared navigation shell. */
 export const App = () => {
@@ -42,6 +42,23 @@ export const App = () => {
           <span className={appUi.siteHeaderNote}>
             University handbook explorer
           </span>
+
+          <nav className={appUi.siteHeaderNav} aria-label="Primary">
+            <button
+              className={appUi.textButton}
+              type="button"
+              onClick={() => setScreen({ name: "universities" })}
+            >
+              Universities
+            </button>
+            <button
+              className={appUi.textButton}
+              type="button"
+              onClick={() => setScreen({ name: "quiz" })}
+            >
+              Interest quiz
+            </button>
+          </nav>
         </header>
 
         <main id="main-content" className="min-w-0">
@@ -93,11 +110,13 @@ export const App = () => {
               university={screen.university}
               degree={screen.degree}
               onBack={() =>
-                setScreen({
-                  name: "degree",
-                  university: screen.university,
-                  degree: screen.degree,
-                })
+                screen.university && screen.degree
+                  ? setScreen({
+                      name: "degree",
+                      university: screen.university,
+                      degree: screen.degree,
+                    })
+                  : setScreen({ name: "universities" })
               }
               onHome={() => setScreen({ name: "universities" })}
             />

@@ -4,12 +4,14 @@ import type { DegreeSummary, University } from "./types/handbook";
 import { DegreePage } from "./pages/DegreePage";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
+import { QuizPage } from "./pages/QuizPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
 
 type Screen =
   | { name: "universities" }
   | { name: "degrees"; university: University }
-  | { name: "degree"; university: University; degree: DegreeSummary };
+  | { name: "degree"; university: University; degree: DegreeSummary }
+  | { name: "quiz"; university: University; degree: DegreeSummary };
 
 /** Coordinates the university, degree and handbook screens within the shared navigation shell. */
 export const App = () => {
@@ -73,6 +75,28 @@ export const App = () => {
                 setScreen({
                   name: "degrees",
                   university: screen.university,
+                })
+              }
+              onHome={() => setScreen({ name: "universities" })}
+              onStartQuiz={() =>
+                setScreen({
+                  name: "quiz",
+                  university: screen.university,
+                  degree: screen.degree,
+                })
+              }
+            />
+          )}
+
+          {screen.name === "quiz" && (
+            <QuizPage
+              university={screen.university}
+              degree={screen.degree}
+              onBack={() =>
+                setScreen({
+                  name: "degree",
+                  university: screen.university,
+                  degree: screen.degree,
                 })
               }
               onHome={() => setScreen({ name: "universities" })}

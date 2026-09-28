@@ -11,7 +11,7 @@ import { readableText } from "../domain/readableText";
 import { DegreeStructureRenderer } from "../components/degree-structure/DegreeStructureRenderer";
 import { StudyPlanRenderer } from "../components/study-plan/StudyPlanRenderer";
 
-interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; }
+interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; onStartQuiz: () => void; }
 const componentIndex = (groups: RequirementGroup[]) => {
   const index = new Map<string, { id: string; code: string }>();
   const visit = (requirements: RequirementGroup[]) => requirements.forEach((group) => {
@@ -23,7 +23,7 @@ const componentIndex = (groups: RequirementGroup[]) => {
 };
 
 /** Combines the degree overview, formal requirements and separately allocated roadmap. */
-export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
+export const DegreePage = ({ university, degree, onBack, onHome, onStartQuiz }: Props) => {
   const [detail, setDetail] = useState<DegreeDetailResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
@@ -87,6 +87,9 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
           <span><strong>{detail.degree.university.code}</strong> {detail.degree.university.name}</span>
         </div>
         {detail.degree.description && !hasSemanticOverview && <p className={appUi.degreeDescription}>{readableText(detail.degree.description)}</p>}
+        <button className={appUi.secondaryButton} type="button" onClick={onStartQuiz}>
+          Not sure this is right for you? Take the interest quiz
+        </button>
       </header>
       <DegreeStructureRenderer detail={detail} universityCode={university.code} handbookYear={degree.handbookYear}
         selections={selections} selectionNotice={selectionNotice} onSelectComponent={selectComponent} onOpenSubject={setSubjectCode} />

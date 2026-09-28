@@ -47,6 +47,30 @@ const groupByCategoryThenSubcategory = (questions: QuestionRef[]): Map<string, M
 
 export const getRiasecLabels = () => repo.findRiasecLabels();
 
+const getScreeningRecommendation = async (categoryScores: Map<string, number>, topCategoryId: string) => {
+  const degrees = await repo.findAllDegreeCandidates();
+  const candidates: ComponentCandidate[] = degrees.map((degree) => ({
+    id: degree.id,
+    code: degree.code,
+    name: degree.name,
+    type: "DEGREE",
+    categoryScores: new Map(degree.RiasecScore.map((s) => [s.categoryId, s.score])),
+    subcategoryScores: new Map(),
+  }));
+  const ranked = rankComponentCandidates(categoryScores, new Map(), topCategoryId, candidates);
+  const top = ranked[0];
+  if (!top) return null;
+  const degree = degrees.find((d) => d.id === top.candidate.id)!;
+  return {
+    degreeId: degree.id,
+    code: degree.code,
+    name: degree.name,
+    universityCode: degree.HandbookVersion.University.code,
+    year: degree.HandbookVersion.year,
+    matchScore: top.matchScore,
+  };
+};
+
 const requireSession = async (sessionId: string) => {
   const session = await repo.findSession(sessionId);
   if (!session) throw new ApiError(404, `Assessment session '${sessionId}' not found`);
@@ -85,7 +109,9 @@ export const submitScreeningResponses = async (sessionId: string, responses: Res
   const rank1Subcategories = groupBySubcategory(drillDownQuestions.filter((q) => q.categoryId === rank1CategoryId));
   const closingQuestions = pickFreeTierClosingQuestions(rank1Subcategories);
 
-  return { rankedCategoryIds, closingQuestions };
+  const recommendation = await getScreeningRecommendation(categoryScores, rank1CategoryId);
+
+  return { rankedCategoryIds, closingQuestions, recommendation };
 };
 
 export const submitClosingResponses = async (sessionId: string, responses: ResponseInput[]) => {

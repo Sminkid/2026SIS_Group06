@@ -89,4 +89,16 @@ export const findComponentCandidatesForDegree = (degreeId: string) =>
     },
   });
 
+export const findAllDegreeCandidates = () =>
+  getPrisma().degree.findMany({
+    orderBy: { code: "asc" },
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      HandbookVersion: { select: { year: true, University: { select: { code: true, name: true } } } },
+      RiasecScore: { select: { categoryId: true, score: true } },
+    },
+  });
+
 export type { QuestionRef };

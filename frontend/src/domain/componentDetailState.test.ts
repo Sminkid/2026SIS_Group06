@@ -6,7 +6,7 @@ import type { ComponentDetailResponse, RequirementGroup } from "../types/handboo
 
 const group = (id: string, title: string, subjectCode?: string): RequirementGroup => ({
   id, title, description: null, logic: "ALL", requiredCreditPoints: 6,
-  maximumCreditPoints: null, sortOrder: 0, pathways: [], children: [],
+  maximumCreditPoints: null, sortOrder: 0, pathways: [], candidateSources: [], children: [],
   items: subjectCode ? [{
     id: `${id}-item`, itemType: "SUBJECT", subject: { id: subjectCode, code: subjectCode, name: subjectCode, creditPoints: 6 },
     component: null, rawCode: subjectCode, rawName: subjectCode, creditPoints: 6, sortOrder: 0,

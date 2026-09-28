@@ -43,6 +43,19 @@ export const App = () => {
         Skip to main content
       </a>
 
+      <div className={appUi.appMain}>
+        <header className={appUi.siteHeader}>
+          <button
+            className={appUi.brand}
+            type="button"
+            onClick={() => setScreen({ name: "universities" })}
+            aria-label="Degree planner home"
+          >
+            <span className={appUi.brandMark} aria-hidden="true">
+              DP
+            </span>
+            <span>Degree planner</span>
+          </button>
       <header className={appUi.siteHeader}>
         <button
           className={appUi.brand}
@@ -53,10 +66,10 @@ export const App = () => {
           <img src={logo} className={appUi.brandMark}/>
         </button>
 
-        <span className={appUi.siteHeaderNote}>
-          University handbook explorer
-        </span>
-      </header>
+          <span className={appUi.siteHeaderNote}>
+            University handbook explorer
+          </span>
+        </header>
 
       <div className="min-w-0">
         {screen.name === "getStarted" && (
@@ -119,20 +132,34 @@ export const App = () => {
           />
         )}
 
-        {screen.name === "degrees" && (
-          <DegreeSelectionPage
-            university={screen.university}
-            onBack={() => setScreen({ name: "universities" })}
-            onSelectDegree={(degree) =>
-              setScreen({
-                name: "degree",
-                university: screen.university,
-                degree,
-              })
-            }
-          />
-        )}
+          {screen.name === "degrees" && (
+            <DegreeSelectionPage
+              university={screen.university}
+              onBack={() => setScreen({ name: "universities" })}
+              onSelectDegree={(degree) =>
+                setScreen({
+                  name: "degree",
+                  university: screen.university,
+                  degree,
+                })
+              }
+            />
+          )}
 
+          {screen.name === "degree" && (
+            <DegreePage
+              university={screen.university}
+              degree={screen.degree}
+              onBack={() =>
+                setScreen({
+                  name: "degrees",
+                  university: screen.university,
+                })
+              }
+              onHome={() => setScreen({ name: "universities" })}
+            />
+          )}
+        </main>
         {screen.name === "degree" && (
           <DegreePage
             university={screen.university}

@@ -167,6 +167,15 @@ const mapGroup = (group: GroupRecord, fallbackIndex: number): DegreeRequirementG
     maximumCreditPoints: group.maximumCreditPoints,
     sortOrder: group.sortOrder,
     items,
+    candidateSources: group.RequirementCandidateSource.map((source) => ({
+      id: source.id,
+      sourceKey: source.sourceKey,
+      type: source.type,
+      title: source.title,
+      authoritative: source.authoritative,
+      tableName: source.tableName,
+      candidateCount: source._count.RequirementCandidateSubject,
+    })),
     children: [],
     pathways: [],
   };

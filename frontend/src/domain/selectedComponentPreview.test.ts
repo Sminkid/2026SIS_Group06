@@ -33,6 +33,7 @@ const detail = (code: string, name: string, subjectCode: string): ComponentDetai
       subject: { id: `subject-${subjectCode}`, code: subjectCode, name: `${name} subject`, creditPoints: 6 },
       component: null,
     }],
+    candidateSources: [],
     children: [],
     pathways: [],
   }],

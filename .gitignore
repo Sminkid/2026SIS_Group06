@@ -24,6 +24,8 @@ test-results/
 .env.*
 !.env.example
 
+frontend/test-results
+docs
 # Machine-local extension indexing preference (not shared editor configuration)
 /.vscode/settings.json
 docs/

@@ -98,6 +98,20 @@ export const findDegreeDetailRecord = async (
                       },
                     },
                   },
+                  RequirementCandidateSource: {
+                    orderBy: [{ title: "asc" }, { id: "asc" }],
+                    select: {
+                      id: true,
+                      sourceKey: true,
+                      type: true,
+                      title: true,
+                      authoritative: true,
+                      tableName: true,
+                      _count: {
+                        select: { RequirementCandidateSubject: true },
+                      },
+                    },
+                  },
                 },
               },
             },

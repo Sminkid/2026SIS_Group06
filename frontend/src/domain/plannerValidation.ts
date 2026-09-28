@@ -112,7 +112,8 @@ const validateRequisiteGroup = (
       continue;
     }
     const placements = placementsByCode.get(prerequisite.code) ?? [];
-    const isCorequisite = item.requisiteType?.toLowerCase().includes("corequisite") ?? false;
+    const isCorequisite = group.groupType === "COREQUISITE"
+      || (item.requisiteType?.toLowerCase().includes("corequisite") ?? false);
     const satisfied = target.periodIndex !== null && placements.some((placement) =>
       placement.periodIndex !== null && (isCorequisite
         ? placement.periodIndex <= target.periodIndex!

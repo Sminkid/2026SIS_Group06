@@ -2,7 +2,8 @@ import { cn } from "./cn";
 
 /** Static Tailwind recipes preserve the handbook's navigation appearance and responsive states. */
 export const navigationUi = {
-  appShell: "flex flex-col [min-height:100vh]",
+  appShell: "flex [min-height:100vh]",
+  appMain: "flex flex-col flex-1 min-w-0",
   siteHeader: cn(
     "site-header sticky [z-index:20] top-0 h-20 flex items-center justify-between",
     "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] bg-[linear-gradient(180deg,var(--header-gradient-start)_0%,var(--header-gradient-end)_100%)]",

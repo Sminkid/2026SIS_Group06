@@ -6,6 +6,7 @@ export interface QuestionRef {
   id: string;
   categoryId: string;
   subcategoryId: string | null;
+  text: string;
 }
 
 export interface ResponseRef {

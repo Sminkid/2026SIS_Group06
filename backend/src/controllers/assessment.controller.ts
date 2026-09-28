@@ -36,6 +36,10 @@ export const startSessionController: RequestHandler = async (_request, response)
   response.status(201).json(await assessmentService.startSession());
 };
 
+export const getRiasecLabelsController: RequestHandler = async (_request, response) => {
+  response.status(200).json(await assessmentService.getRiasecLabels());
+};
+
 export const submitScreeningResponsesController: RequestHandler = async (request, response) => {
   const sessionId = parseSessionId(request.params.id);
   const responses = parseResponses(request.body);

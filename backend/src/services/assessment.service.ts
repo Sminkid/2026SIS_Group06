@@ -45,6 +45,8 @@ const groupByCategoryThenSubcategory = (questions: QuestionRef[]): Map<string, M
   return map;
 };
 
+export const getRiasecLabels = () => repo.findRiasecLabels();
+
 const requireSession = async (sessionId: string) => {
   const session = await repo.findSession(sessionId);
   if (!session) throw new ApiError(404, `Assessment session '${sessionId}' not found`);

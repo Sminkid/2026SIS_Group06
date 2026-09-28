@@ -13,6 +13,7 @@ function makeItems(subcategoryId: string, n: number): QuestionRef[] {
     id: `${subcategoryId}-${i + 1}`,
     categoryId: "cat",
     subcategoryId,
+    text: `Question ${i + 1}`,
   }));
 }
 

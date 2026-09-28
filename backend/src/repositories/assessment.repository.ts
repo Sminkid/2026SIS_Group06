@@ -6,20 +6,29 @@ const SESSION_TTL_MS = 3 * 60 * 60 * 1000; // 3 hours
 export const findScreeningQuestions = () =>
   getPrisma().question.findMany({
     where: { stage: "SCREENING" },
-    select: { id: true, categoryId: true, subcategoryId: true },
+    select: { id: true, categoryId: true, subcategoryId: true, text: true },
   });
 
 export const findDrillDownQuestions = () =>
   getPrisma().question.findMany({
     where: { stage: "DRILL_DOWN" },
-    select: { id: true, categoryId: true, subcategoryId: true },
+    select: { id: true, categoryId: true, subcategoryId: true, text: true },
   });
 
 export const findQuestionsByIds = (ids: string[]) =>
   getPrisma().question.findMany({
     where: { id: { in: ids } },
-    select: { id: true, categoryId: true, subcategoryId: true, stage: true },
+    select: { id: true, categoryId: true, subcategoryId: true, text: true, stage: true },
   });
+
+export const findRiasecLabels = async () => {
+  const prisma = getPrisma();
+  const [categories, subcategories] = await Promise.all([
+    prisma.riasecCategory.findMany({ select: { id: true, name: true } }),
+    prisma.riasecSubcategory.findMany({ select: { id: true, name: true, categoryId: true } }),
+  ]);
+  return { categories, subcategories };
+};
 
 export const createSession = (id: string) =>
   getPrisma().assessmentSession.create({

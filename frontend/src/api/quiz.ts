@@ -1,4 +1,4 @@
-import type { AssessmentResult, QuestionRef, QuestionResponse, RiasecLabels } from "../types/quiz";
+import type { AssessmentResult, DegreeRecommendation, QuestionRef, QuestionResponse, RiasecLabels } from "../types/quiz";
 import { apiGet, apiPost } from "./client";
 
 export interface DegreeMatchTarget {
@@ -23,8 +23,11 @@ export const submitScreeningResponses = (
   sessionId: string,
   responses: QuestionResponse[],
   signal?: AbortSignal,
-): Promise<{ rankedCategoryIds: string[]; closingQuestions: QuestionRef[] }> =>
-  apiPost(`/api/assessment/sessions/${encodeURIComponent(sessionId)}/screening-responses`, { responses }, signal);
+): Promise<{
+  rankedCategoryIds: string[];
+  closingQuestions: QuestionRef[];
+  recommendation: DegreeRecommendation | null;
+}> => apiPost(`/api/assessment/sessions/${encodeURIComponent(sessionId)}/screening-responses`, { responses }, signal);
 
 export const submitClosingResponses = (
   sessionId: string,

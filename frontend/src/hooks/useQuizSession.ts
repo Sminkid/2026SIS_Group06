@@ -8,11 +8,24 @@ import {
   submitScreeningResponses,
   type DegreeMatchTarget,
 } from "../api/quiz";
-import type { AssessmentResult, QuestionRef, QuestionResponse, RiasecLabels } from "../types/quiz";
+import type { AssessmentResult, DegreeRecommendation, QuestionRef, QuestionResponse, RiasecLabels } from "../types/quiz";
 
 export type QuizStep =
   | { name: "intro" }
   | { name: "screening"; sessionId: string; questions: QuestionRef[] }
+  | {
+      name: "screeningResult";
+      sessionId: string;
+      rankedCategoryIds: string[];
+      recommendation: DegreeRecommendation | null;
+      closingQuestions: QuestionRef[];
+    }
+  | {
+      name: "screeningRecommendation";
+      sessionId: string;
+      recommendation: DegreeRecommendation | null;
+      closingQuestions: QuestionRef[];
+    }
   | { name: "closing"; sessionId: string; questions: QuestionRef[] }
   | { name: "drillDown"; sessionId: string; questions: QuestionRef[] }
   | { name: "result"; result: AssessmentResult };
@@ -24,12 +37,17 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
   const [step, setStep] = useState<QuizStep>({ name: "intro" });
   const [status, setStatus] = useState<QuizStatus>("idle");
   const [labels, setLabels] = useState<RiasecLabels | null>(null);
+  // The degree recommended from screening-only (category-level) answers. Used as a fallback
+  // match target for the final, fully-personalised result when the quiz wasn't launched with
+  // an explicit degree already in context (e.g. from the global nav entry point).
+  const [screeningRecommendation, setScreeningRecommendation] = useState<DegreeRecommendation | null>(null);
 
   const start = useCallback(async () => {
     setStatus("submitting");
     try {
       const [session, riasecLabels] = await Promise.all([startAssessmentSession(), fetchRiasecLabels()]);
       setLabels(riasecLabels);
+      setScreeningRecommendation(null);
       setStep({ name: "screening", sessionId: session.sessionId, questions: session.questions });
       setStatus("idle");
     } catch {
@@ -44,7 +62,14 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
       setStatus("submitting");
       try {
         const result = await submitScreeningResponses(sessionId, responses);
-        setStep({ name: "closing", sessionId, questions: result.closingQuestions });
+        setScreeningRecommendation(result.recommendation);
+        setStep({
+          name: "screeningResult",
+          sessionId,
+          rankedCategoryIds: result.rankedCategoryIds,
+          recommendation: result.recommendation,
+          closingQuestions: result.closingQuestions,
+        });
         setStatus("idle");
       } catch {
         setStatus("error");
@@ -52,6 +77,21 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
     },
     [step],
   );
+
+  const viewRecommendation = useCallback(() => {
+    if (step.name !== "screeningResult") return;
+    setStep({
+      name: "screeningRecommendation",
+      sessionId: step.sessionId,
+      recommendation: step.recommendation,
+      closingQuestions: step.closingQuestions,
+    });
+  }, [step]);
+
+  const continueToClosing = useCallback(() => {
+    if (step.name !== "screeningRecommendation") return;
+    setStep({ name: "closing", sessionId: step.sessionId, questions: step.closingQuestions });
+  }, [step]);
 
   const submitClosing = useCallback(
     async (responses: QuestionResponse[]) => {
@@ -76,21 +116,42 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
       const sessionId = step.sessionId;
       setStatus("submitting");
       try {
-        const result = await submitDrillDownResponses(sessionId, responses, matchTarget);
+        const effectiveTarget: DegreeMatchTarget | undefined =
+          matchTarget ??
+          (screeningRecommendation
+            ? {
+                degreeCode: screeningRecommendation.code,
+                university: screeningRecommendation.universityCode,
+                year: screeningRecommendation.year,
+              }
+            : undefined);
+        const result = await submitDrillDownResponses(sessionId, responses, effectiveTarget);
         setStep({ name: "result", result });
         setStatus("idle");
       } catch {
         setStatus("error");
       }
     },
-    [step, matchTarget],
+    [step, matchTarget, screeningRecommendation],
   );
 
   const restart = useCallback(() => {
     setStep({ name: "intro" });
     setStatus("idle");
     setLabels(null);
+    setScreeningRecommendation(null);
   }, []);
 
-  return { step, status, labels, start, submitScreening, submitClosing, submitDrillDown, restart };
+  return {
+    step,
+    status,
+    labels,
+    start,
+    submitScreening,
+    viewRecommendation,
+    continueToClosing,
+    submitClosing,
+    submitDrillDown,
+    restart,
+  };
 };

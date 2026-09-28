@@ -26,6 +26,15 @@ export interface AssessmentResult {
   recommendation: Recommendation | null;
 }
 
+export interface DegreeRecommendation {
+  degreeId: string;
+  code: string;
+  name: string;
+  universityCode: string;
+  year: number;
+  matchScore: number;
+}
+
 export interface RiasecLabels {
   categories: { id: string; name: string }[];
   subcategories: { id: string; name: string; categoryId: string }[];

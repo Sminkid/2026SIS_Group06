@@ -32,11 +32,7 @@ const LikertQuestion = ({ question, value, onChange }: LikertQuestionProps) => (
           type="button"
           role="radio"
           aria-checked={value === likertValue}
-          className={
-            value === likertValue
-              ? `${appUi.quizLikertButton} ${appUi.quizLikertButtonSelected}`
-              : appUi.quizLikertButton
-          }
+          className={value === likertValue ? appUi.quizLikertButtonSelected : appUi.quizLikertButtonIdle}
           onClick={() => onChange(likertValue)}
         >
           {likertValue}
@@ -56,6 +52,7 @@ interface QuestionStepProps {
   onContinue: (responses: QuestionResponse[]) => void;
 }
 
+/** Shows exactly one question at a time, tracking position locally so it resets per step. */
 const QuestionStep = ({
   progressLabel,
   questions,
@@ -65,32 +62,42 @@ const QuestionStep = ({
   onAnswer,
   onContinue,
 }: QuestionStepProps) => {
-  const answeredCount = questions.filter((question) => answers[question.id] !== undefined).length;
+  const [index, setIndex] = useState(0);
+  const question = questions[index]!;
+  const isLast = index === questions.length - 1;
+  const hasAnswer = answers[question.id] !== undefined;
+
+  const goNext = () => {
+    if (isLast) {
+      onContinue(questions.map((q) => ({ questionId: q.id, value: answers[q.id]! })));
+    } else {
+      setIndex((current) => current + 1);
+    }
+  };
+
   return (
     <section className={appUi.contentSection}>
-      <p className={appUi.quizProgress}>{progressLabel}</p>
-      <div className={appUi.quizQuestionList}>
-        {questions.map((question) => (
-          <LikertQuestion
-            key={question.id}
-            question={question}
-            value={answers[question.id]}
-            onChange={(value) => onAnswer(question.id, value)}
-          />
-        ))}
-      </div>
+      <p className={appUi.quizProgress}>
+        {progressLabel} · Question {index + 1} of {questions.length}
+      </p>
+      <LikertQuestion question={question} value={answers[question.id]} onChange={(value) => onAnswer(question.id, value)} />
       {status === "error" && <AsyncState kind="error" label="We couldn't submit your answers. Please try again." />}
       <div className={appUi.quizFormFooter}>
-        <span className={appUi.muted}>
-          {answeredCount} of {questions.length} answered
-        </span>
+        <button
+          className={appUi.secondaryButton}
+          type="button"
+          disabled={index === 0}
+          onClick={() => setIndex((current) => Math.max(0, current - 1))}
+        >
+          Back
+        </button>
         <button
           className={appUi.primaryButton}
           type="button"
-          disabled={status === "submitting" || answeredCount < questions.length}
-          onClick={() => onContinue(questions.map((question) => ({ questionId: question.id, value: answers[question.id]! })))}
+          disabled={status === "submitting" || !hasAnswer}
+          onClick={goNext}
         >
-          {continueLabel}
+          {isLast ? continueLabel : "Next"}
         </button>
       </div>
     </section>
@@ -106,8 +113,18 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
         : undefined,
     [university, degree],
   );
-  const { step, status, labels, start, submitScreening, submitClosing, submitDrillDown, restart } =
-    useQuizSession(matchTarget);
+  const {
+    step,
+    status,
+    labels,
+    start,
+    submitScreening,
+    viewRecommendation,
+    continueToClosing,
+    submitClosing,
+    submitDrillDown,
+    restart,
+  } = useQuizSession(matchTarget);
   const [answers, setAnswers] = useState<Record<string, number>>({});
 
   const setAnswer = (questionId: string, value: number) =>
@@ -152,19 +169,71 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
 
       {step.name === "screening" && (
         <QuestionStep
-          progressLabel="Step 1 of 3 · About your interests"
+          progressLabel="General interests"
           questions={step.questions}
           answers={answers}
           status={status}
-          continueLabel="Continue"
+          continueLabel="See my initial results"
           onAnswer={setAnswer}
           onContinue={continueWith(submitScreening)}
         />
       )}
 
+      {step.name === "screeningResult" && labels && (
+        <section className={appUi.quizResultSection}>
+          <div>
+            <p className={appUi.eyebrow}>Initial results</p>
+            <h1>Your top interest areas</h1>
+          </div>
+          <ul className={appUi.quizScoreList} aria-label="Ranked RIASEC categories">
+            {step.rankedCategoryIds.map((categoryId, index) => (
+              <li key={categoryId}>
+                <strong>
+                  #{index + 1} {labels.categories.find((category) => category.id === categoryId)?.name ?? categoryId}
+                </strong>
+              </li>
+            ))}
+          </ul>
+          <div className={appUi.quizFormFooter}>
+            <button className={appUi.primaryButton} type="button" onClick={viewRecommendation}>
+              View course recommendations
+            </button>
+          </div>
+        </section>
+      )}
+
+      {step.name === "screeningRecommendation" && (
+        <section className={appUi.quizResultSection}>
+          <div>
+            <p className={appUi.eyebrow}>Based on your general answers</p>
+            <h1>A course that might suit you</h1>
+          </div>
+          {step.recommendation ? (
+            <div className={appUi.quizRecommendationCard}>
+              <p className={appUi.eyebrow}>Suggested course</p>
+              <h2>{step.recommendation.name}</h2>
+              <p className={appUi.muted}>
+                {step.recommendation.code} · {step.recommendation.universityCode} · {step.recommendation.year}
+              </p>
+            </div>
+          ) : (
+            <p className={appUi.muted}>We couldn&apos;t find a course match yet — a few more questions will help.</p>
+          )}
+          <p className={appUi.lead}>
+            Want a more precise match? A few more questions about your specific interests will refine this
+            recommendation and suggest the best major or stream within it.
+          </p>
+          <div className={appUi.quizFormFooter}>
+            <button className={appUi.primaryButton} type="button" onClick={continueToClosing}>
+              Personalise further
+            </button>
+          </div>
+        </section>
+      )}
+
       {step.name === "closing" && (
         <QuestionStep
-          progressLabel="Step 2 of 3 · A closer look"
+          progressLabel="A closer look"
           questions={step.questions}
           answers={answers}
           status={status}
@@ -176,7 +245,7 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
 
       {step.name === "drillDown" && (
         <QuestionStep
-          progressLabel="Step 3 of 3 · Fine-tuning your match"
+          progressLabel="Fine-tuning your match"
           questions={step.questions}
           answers={answers}
           status={status}

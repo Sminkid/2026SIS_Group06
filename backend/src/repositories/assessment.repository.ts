@@ -65,6 +65,7 @@ export const findComponentCandidatesForDegree = (degreeId: string) =>
       degreeId,
       Component: { type: { in: ["MAJOR", "STREAM", "SPECIALISATION"] } },
     },
+    orderBy: { Component: { code: "asc" } },
     select: {
       Component: {
         select: {

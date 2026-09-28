@@ -194,7 +194,7 @@ export function rankComponentCandidates(
       if (relevantSubcategoryIds.length > 0) {
         const matchScore =
           relevantSubcategoryIds.reduce(
-            (sum, id) => sum + studentSubcategoryScores.get(id)! * candidate.subcategoryScores.get(id)!,
+            (sum, id) => sum + (1 - Math.abs(studentSubcategoryScores.get(id)! - candidate.subcategoryScores.get(id)!)),
             0,
           ) / relevantSubcategoryIds.length;
         return { candidate, matchScore, usedSubcategoryData: true };
@@ -202,7 +202,11 @@ export function rankComponentCandidates(
 
       const candidateCategoryScore = candidate.categoryScores.get(topCategoryId) ?? 0;
       const studentCategoryScore = studentCategoryScores.get(topCategoryId) ?? 0;
-      return { candidate, matchScore: candidateCategoryScore * studentCategoryScore, usedSubcategoryData: false };
+      return {
+        candidate,
+        matchScore: 1 - Math.abs(candidateCategoryScore - studentCategoryScore),
+        usedSubcategoryData: false,
+      };
     })
     .sort((a, b) => b.matchScore - a.matchScore);
 }

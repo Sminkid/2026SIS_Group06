@@ -4,12 +4,14 @@ import type { DegreeSummary, University } from "./types/handbook";
 import { DegreePage } from "./pages/DegreePage";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
+import { FeeComparisonPage } from "./pages/FeeComparisonPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
 
 type Screen =
   | { name: "universities" }
   | { name: "degrees"; university: University }
-  | { name: "degree"; university: University; degree: DegreeSummary };
+  | { name: "degree"; university: University; degree: DegreeSummary }
+  | { name: "fees" };
 
 /** Coordinates the university, degree and handbook screens within the shared navigation shell. */
 export const App = () => {
@@ -37,9 +39,19 @@ export const App = () => {
             <span>Degree planner</span>
           </button>
 
-          <span className={appUi.siteHeaderNote}>
-            University handbook explorer
-          </span>
+          <nav className={appUi.siteHeaderNav} aria-label="Main">
+            <button
+              className={appUi.siteHeaderLink}
+              type="button"
+              onClick={() => setScreen({ name: "fees" })}
+              aria-current={screen.name === "fees" ? "page" : undefined}
+            >
+              Compare fees
+            </button>
+            <span className={appUi.siteHeaderNote}>
+              University handbook explorer
+            </span>
+          </nav>
         </header>
 
         <main id="main-content" className="min-w-0">
@@ -76,6 +88,15 @@ export const App = () => {
                 })
               }
               onHome={() => setScreen({ name: "universities" })}
+            />
+          )}
+
+          {screen.name === "fees" && (
+            <FeeComparisonPage
+              onHome={() => setScreen({ name: "universities" })}
+              onViewDegree={(university, degree) =>
+                setScreen({ name: "degree", university, degree })
+              }
             />
           )}
         </main>

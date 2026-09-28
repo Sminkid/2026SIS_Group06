@@ -42,6 +42,7 @@ model Degree {
   rawData                Json?
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
+  CourseFee              CourseFee[]
   HandbookVersion        HandbookVersion          @relation(fields: [handbookVersionId], references: [id], onDelete: Cascade)
   DegreeComponent        DegreeComponent[]
   DegreeRanking          DegreeRanking[]
@@ -542,6 +543,20 @@ model UniversityRanking {
 
   @@unique([universityId, source, category, year])
   @@index([universityId])
+}
+
+model CourseFee {
+  id               String   @id
+  degreeId         String
+  feeYear          String
+  domesticFee      Int?
+  internationalFee Int?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime
+  Degree           Degree   @relation(fields: [degreeId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([degreeId, feeYear])
+  @@index([degreeId])
 }
 
 enum ComponentType {

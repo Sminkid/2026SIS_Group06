@@ -40,7 +40,7 @@ interface GenerateContentClient {
     generateContent: (params: {
       model: string;
       contents: string;
-      config: { systemInstruction: string; maxOutputTokens: number };
+      config: { systemInstruction: string; maxOutputTokens: number; thinkingConfig?: { thinkingBudget: number } };
     }) => Promise<{ text?: string | undefined }>;
   };
 }
@@ -49,9 +49,16 @@ const generate = (client: GenerateContentClient, model: string, question: string
   return client.models.generateContent({
     model,
     contents: question,
-    config: { systemInstruction: SYSTEM_PROMPT, maxOutputTokens: 300 },
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      maxOutputTokens: 300,
+      // 2.5 Flash spends part of the output budget thinking, which cut short definitions off mid-sentence.
+      // The fallback model rejects thinkingConfig, and doesn't think anyway.
+      ...(model === PRIMARY_MODEL && { thinkingConfig: { thinkingBudget: 0 } }),
+    },
   });
 };
+
 
 export const answerGlossaryQuestion = async (
   question: string,

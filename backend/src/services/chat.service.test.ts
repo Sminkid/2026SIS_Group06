@@ -54,3 +54,17 @@ test("throws ApiError(502) when the response text is empty", async () => {
     (error: unknown) => error instanceof Error && (error as { statusCode?: number }).statusCode === 502,
   );
 });
+test("turns thinking off for the primary model so short answers aren't cut off", async () => {
+  const generateContent = mock.fn(async (_params: { model: string; config?: { thinkingConfig?: unknown } }) => ({ text: "Answer" }));
+  await answerGlossaryQuestion("What is WAM?", makeClient(generateContent));
+  assert.deepEqual(generateContent.mock.calls[0]?.arguments[0].config?.thinkingConfig, { thinkingBudget: 0 });
+});
+
+test("does not send thinkingConfig to the fallback model, which rejects it", async () => {
+  const generateContent = mock.fn(async (params: { model: string; config?: { thinkingConfig?: unknown } }) => {
+    if (params.model === "gemini-2.5-flash") throw new Error("primary model unavailable");
+    return { text: "Fallback answer" };
+  });
+  await answerGlossaryQuestion("What is WAM?", makeClient(generateContent));
+  assert.equal(generateContent.mock.calls[1]?.arguments[0].config?.thinkingConfig, undefined);
+});

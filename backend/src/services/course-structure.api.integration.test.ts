@@ -168,7 +168,8 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
   });
 
   test("BHENGINE-04 Free Electives exposes candidate-source metadata without materialising items", () => {
-    const freeElectives = flattenGroups(engineering.requirements).find((group) => group.candidateSources.length > 0);
+    const freeElectives = flattenGroups(engineering.requirements)
+      .find((group) => group.candidateSources.some((source) => source.title === "Table S units"));
     assert.ok(freeElectives);
     assert.equal(freeElectives.maximumCreditPoints, 24);
     assert.equal(freeElectives.requiredCreditPoints, null);

@@ -1,7 +1,16 @@
+export interface UniversityRankingSummary {
+  source: string;
+  category: string;
+  year: number;
+  rank: number;
+  rankBand: string | null;
+}
+
 export interface UniversitySummary {
   id: string;
   code: string;
   name: string;
+  rankings: UniversityRankingSummary[];
 }
 
 export interface HandbookSummary {

@@ -11,6 +11,11 @@ export const navigationUi = {
   brand: "inline-flex items-center p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
   brandMark: "w-30 h-10 object-contain",
   siteHeaderNote: "text-[var(--muted)] text-[length:.85rem] [@media(max-width:720px)]:hidden",
+  siteHeaderNav: "flex items-center gap-6",
+  siteHeaderLink: cn(
+    "p-0 border-0 bg-transparent text-[var(--blue)] text-[length:.9rem] font-bold cursor-pointer [&:hover]:underline",
+    "aria-[current=page]:text-[var(--navy)] aria-[current=page]:underline",
+  ),
   breadcrumbs: cn(
     "mt-1 [&_ol]:flex [&_ol]:flex-wrap [&_ol]:[gap:.45rem] [&_ol]:items-center [&_ol]:p-0 [&_ol]:m-0",
     "[&_ol]:list-none [&_ol]:text-[var(--muted)] [&_ol]:text-[length:.84rem]",
@@ -30,6 +35,11 @@ export const navigationUi = {
     "[@media(max-width:720px)]:[&_span:first-child]:border-0",
   ),
   degreeDescription: "max-w-216 mt-8 text-[#4d596d] [line-height:1.75]",
+  rankingList: "flex flex-wrap gap-2 mt-4 p-0 m-0 list-none",
+  rankingChip: cn(
+    "[padding:.35rem_.7rem] border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
+    "text-[length:.82rem] text-[var(--muted)] [&_strong]:text-[var(--navy)] [&_strong]:font-extrabold",
+  ),
   resultCount: "text-[var(--muted)] text-[length:.88rem] whitespace-nowrap",
   pageIntroCompact: " [margin:2.5rem_0_3.5rem]",
   searchField: cn(
@@ -70,5 +80,6 @@ export const navigationUi = {
   ),
   universityCardCode: "mb-10 text-[var(--blue)] text-[length:.8rem] font-extrabold [letter-spacing:.12em]",
   universityCardName: "max-w-72 text-[length:1.25rem] font-bold [line-height:1.35]",
+  universityCardRanking: "mt-2 text-[var(--muted)] text-[length:.82rem] [&_strong]:text-[var(--navy)] [&_strong]:font-extrabold",
   cardAction: "mt-auto pt-6 text-[var(--muted)] text-[length:.88rem] [font-weight:650]",
 } as const;

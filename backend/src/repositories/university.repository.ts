@@ -1,15 +1,24 @@
 import { getPrisma } from "../db/prisma.js";
-import type { UniversitySummary } from "../types/university.js";
 
 const handbookFilter = (year: number | undefined) =>
   year === undefined ? {} : { year };
 
-export const findUniversities = async (): Promise<UniversitySummary[]> =>
+export const findUniversities = async () =>
   getPrisma().university.findMany({
     select: {
       id: true,
       code: true,
       name: true,
+      UniversityRanking: {
+        orderBy: [{ year: "desc" }, { source: "asc" }, { category: "asc" }],
+        select: {
+          source: true,
+          category: true,
+          year: true,
+          rank: true,
+          rankBand: true,
+        },
+      },
     },
     orderBy: {
       name: "asc",

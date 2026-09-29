@@ -2,6 +2,7 @@ import { appUi } from "./components/ui";
 import { useState } from "react";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
+import { FeeComparisonPage } from "./pages/FeeComparisonPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
 import { GetStartedPage } from "./pages/GetStartedPage";
 import { InterestQuizPage } from "./pages/InterestQuizPage";

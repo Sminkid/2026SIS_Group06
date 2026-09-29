@@ -1,7 +1,7 @@
 import { cn } from "./cn";
 
 const feeCellBase = "[padding:1rem_1.25rem] [border-bottom:1px_solid_var(--line)] text-left align-middle";
-const feeTagBase = "inline-block mt-1 [padding:.15rem_.45rem] text-[length:.72rem] font-extrabold";
+const feeTagBase = "inline-block [padding:.15rem_.45rem] text-[length:.7rem] font-bold";
 
 /** Static Tailwind recipes for the side-by-side course fee comparison. */
 export const feeComparisonUi = {
@@ -29,7 +29,7 @@ export const feeComparisonUi = {
   feeValue: "block font-medium",
   feeMoney: "block text-[length:1.1rem] font-bold",
   feeMissing: "text-[var(--muted)] italic",
-  feeTagLowest: cn(feeTagBase, "bg-[var(--navy)] text-[white] uppercase [letter-spacing:.08em]"),
-  feeTagMore: cn(feeTagBase, "border-[1px] border-solid border-[color:var(--navy)] text-[var(--navy)]"),
+  feeTagLowest: cn(feeTagBase, "bg-[var(--darkgreen)] [border-radius:var(--radius)] text-[white] uppercase [letter-spacing:.08em]"),
+  feeTagMore: cn(feeTagBase, "border-[1px] [border-radius:var(--radius)] border-solid border-[color:var(--navy)] text-[var(--navy)]"),
   feeNotes: "grid gap-2 mt-6 max-w-168 text-[var(--muted)] text-[length:.85rem] [&_p]:m-0",
 } as const;

@@ -57,7 +57,7 @@ export const commonUi = {
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
   eyebrow: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   lead: "text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
-  contentSection: "pt-8 [border-top:2px_solid_var(--line)]",
+  contentSection: "mt-8 p-4 [border-top:2px_solid_var(--line)]",
   degreeTools: cn(
     "flex items-center justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
     "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",
@@ -71,11 +71,13 @@ export const commonUi = {
     "[&_th]:p-0 [&_td]:p-0",
   ),
   uniInfo: cn(
+    "flex flex-row justify-center items-center gap-2",
     "min-w-[200px] p-3 text-base align-middle",
     "bg-[var(--surface)] shadow-sm",
   ),
 
   uniInfoAlt: cn(
+    "flex flex-row justify-center items-center gap-2",
     "min-w-[200px] p-3 text-base align-middle",
     "bg-[var(--amber)] shadow-sm",
   ),

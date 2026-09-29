@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { appUi, cn } from "../components/ui";
+import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { fetchCourseFees } from "../api/fees";
 import { fetchUniversities, fetchLatestHandbook, fetchDegrees } from "../api/universities";
-import { formatDuration, formatAud, annualFee } from "../domain/feeComparison";
+import {
+  annualFee, compareToLowest, estimatedTotal, formatAud, formatDuration, lowestOf,
+  MAX_COMPARED_COURSES, type FeeBasis,
+} from "../domain/feeComparison";
 import { latestRanking, rankingPosition } from "../domain/rankingLabel";
 import { trapDialogFocus } from "../components/ui/dialog";
 import { lockPageScroll } from "../components/ui/pageScroll";
@@ -24,11 +28,17 @@ type Offering = { university: University; degree: DegreeSummary };
 const feeFor = (fees: CourseFee[], universityCode: string, degree: DegreeSummary): CourseFee | null => {
   const matches = fees.filter((fee) => fee.universityCode === universityCode && fee.degreeId === degree.id);
   if (matches.length === 0) return null;
-  // Prefer the fee row matching this degree's own handbook edition...
   const exactYear = matches.find((fee) => fee.feeYear === String(degree.handbookYear));
   if (exactYear) return exactYear;
-  // ...otherwise fall back to the most recent feeYear available.
   return [...matches].sort((a, b) => Number(b.feeYear) - Number(a.feeYear))[0];
+};
+
+const comparisonTag = (value: number | null, lowest: number | null): ReactNode => {
+  const comparison = compareToLowest(value, lowest);
+  if (comparison === null) return null;
+  return comparison.kind === "lowest"
+    ? <span className={appUi.feeTagLowest}>Lowest</span>
+    : <span className={appUi.feeTagMore}>+{formatAud(comparison.difference)}</span>;
 };
 
 /** Lets the user pick any university + degree not already in the comparison and add it as a column. */
@@ -119,36 +129,40 @@ function AddUniversityDialog({ excludedCodes, onClose, onAdd }: {
           </button>
           <button type="button" className={appUi.cancelButton} onClick={onClose}>Cancel</button>
         </div>
-        
       </div>
     </dialog>
   );
 }
 
 export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, onBackToQuizResult, onBackToRecommendations }: Props) => {
-  // One bulk fetch for every offering, not one call per university — /api/fees already returns
-  // the whole table, so we just look up each offering's row client-side.
-  const [fees, setFees] = useState<CourseFee[] | null>(null);
+  const [fees, setFees] = useState<CourseFee[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [reloadKey, setReloadKey] = useState(0);
   const [extraOfferings, setExtraOfferings] = useState<Offering[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [basis, setBasis] = useState<FeeBasis>("domestic");
   const offerings = [...course.offerings, ...extraOfferings];
+  const canAdd = offerings.length < MAX_COMPARED_COURSES;
 
   useEffect(() => {
     const controller = new AbortController();
+    setStatus("loading");
     fetchCourseFees(controller.signal)
-      .then(setFees)
+      .then((data) => { setFees(data); setStatus("ready"); })
       .catch((error) => {
-        if (!(error instanceof DOMException && error.name === "AbortError")) setFees([]);
+        if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
       });
     return () => controller.abort();
-  }, []);
+  }, [reloadKey]);
 
-  const tuitionFor = (university: University, degree: DegreeSummary): string => {
-    if (fees === null) return "Loading…";
-    const fee = feeFor(fees, university.code, degree);
-    const domestic = fee ? annualFee(fee, "domestic") : null;
-    return domestic === null ? "Not available" : formatAud(domestic);
-  };
+  // One fee record per offering, looked up client-side from the single bulk fetch above.
+  const feeRecords = offerings.map(({ university, degree }) => feeFor(fees, university.code, degree));
+  const annuals = feeRecords.map((fee) => (fee ? annualFee(fee, basis) : null));
+  const totals = offerings.map((offering, index) =>
+    (annuals[index] === null ? null : estimatedTotal(annuals[index], offering.degree.creditPoints)));
+  const lowestAnnual = lowestOf(annuals);
+  const lowestTotal = lowestOf(totals);
+  const feeYear = feeRecords.find((fee) => fee !== null)?.feeYear;
 
   const rankingFor = (university: University): string => {
     const ranking = latestRanking(university.rankings);
@@ -157,6 +171,31 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
 
   const removeExtraOffering = (universityId: string) =>
     setExtraOfferings((prev) => prev.filter((offering) => offering.university.id !== universityId));
+
+  const rows: Array<{ id: string; label: ReactNode; render: (offering: Offering, index: number) => ReactNode }> = [
+    { id: "course-code", label: "Course code", render: ({ degree }) => degree.code },
+    {
+      id: "credit-points",
+      label: "Credit points",
+      render: ({ degree }) => (degree.creditPoints === null ? "Not listed" : `${degree.creditPoints} CP`),
+    },
+    { id: "duration", label: "Duration (full-time)", render: ({ degree }) => formatDuration(degree.creditPoints) },
+    {
+      id: "annual-fee",
+      label: `Annual fee (${basis})`,
+      render: (_offering, index) => (annuals[index] === null
+        ? <span className={appUi.feeMissing}>Not offered</span>
+        : <>{formatAud(annuals[index])}{comparisonTag(annuals[index], lowestAnnual)}</>),
+    },
+    {
+      id: "estimated-total",
+      label: "Estimated total",
+      render: (_offering, index) => (totals[index] === null
+        ? <span className={appUi.feeMissing}>Not offered</span>
+        : <>{formatAud(totals[index])}{comparisonTag(totals[index], lowestTotal)}</>),
+    },
+    { id: "ranking", label: "Ranking", render: ({ university }) => rankingFor(university) },
+  ];
 
   return (
     <main className={appUi.page} id="main-content">
@@ -169,81 +208,98 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
         <h1>Compare</h1>
         <h2 id="compare-heading">Compare universities for {course.courseName}</h2>
 
-        <div className={appUi.tableWrapper}>
-          <table className={appUi.comparisonTable}>
-            <thead>
-              <tr>
-                <th></th>
-                {offerings.map(({ university }) => {
-                  const isExtra = extraOfferings.some((offering) => offering.university.id === university.id);
-                  return (
-                    <th key={university.id}>
-                      <div className={cn(appUi.universityCard, "relative")}>
-                        {isExtra && (
-                          <button
-                            type="button"
-                            className={appUi.closeButton}
-                            aria-label={`Remove ${university.name}`}
-                            onClick={() => removeExtraOffering(university.id)}
-                          >
-                            ✕
-                          </button>
-                        )}
-                        {university.name}
+        <section className={appUi.contentSection}></section>
+        <div className={appUi.sectionHeading}>
+          <div>{feeYear && <p className={appUi.stepLabel}>{feeYear} fee guide</p>}</div>
+          {status === "ready" && (
+            <div className={appUi.feeToolbar}>
+              <div className={appUi.feeBasisToggle} role="group" aria-label="Fee basis">
+                {(["domestic", "international"] as const).map((option) => (
+                  <button className={appUi.feeBasisButton} type="button" key={option}
+                    aria-pressed={basis === option} onClick={() => setBasis(option)}>
+                    {option === "domestic" ? "Domestic" : "International"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {status === "loading" && <AsyncState kind="loading" label="Loading course fees" />}
+        {status === "error" && (
+          <AsyncState kind="error" label="We couldn't load course fees. Check that the backend is running."
+            onRetry={() => setReloadKey((key) => key + 1)} />
+        )}
+
+        {status !== "loading" && (
+          <div className={appUi.tableWrapper}>
+            <table className={appUi.comparisonTable}>
+              <thead>
+                <tr>
+                  <th></th>
+                  {offerings.map(({ university }) => {
+                    const isExtra = extraOfferings.some((offering) => offering.university.id === university.id);
+                    return (
+                      <th key={university.id}>
+                        <div className={cn(appUi.universityCard, "relative")}>
+                          {isExtra && (
+                            <button type="button" className={appUi.closeButton}
+                              aria-label={`Remove ${university.name}`}
+                              onClick={() => removeExtraOffering(university.id)}>
+                              ✕
+                            </button>
+                          )}
+                          {university.name}
+                        </div>
+                      </th>
+                    );
+                  })}
+                  {canAdd && (
+                    <th>
+                      <button className={appUi.secondaryButton} type="button" onClick={() => setIsAddOpen(true)}>
+                        Add university
+                      </button>
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, rowIndex) => (
+                  <tr key={row.id} id={row.id}>
+                    <th>
+                      <div className={rowIndex % 2 === 0 ? appUi.uniInfo : appUi.uniInfoAlt}>
+                         {row.label}
                       </div>
                     </th>
-                  );
-                })}
-                <th>
-                  <button className={appUi.secondaryButton} type="button" onClick={() => setIsAddOpen(true)}>
-                    Add university
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr id="course-code">
-                <th className={appUi.uniInfo}>Course code</th>
-                {offerings.map(({ university, degree }) => (
-                  <td key={university.id}><div className={appUi.uniInfo}>{degree.code}</div></td>
+                    {offerings.map((offering, index) => (
+                      <td key={offering.university.id}>
+                        <div className={rowIndex % 2 === 0 ? appUi.uniInfo : appUi.uniInfoAlt}>
+                          {row.render(offering, index)}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-              <tr id="duration">
-                <th className={appUi.uniInfoAlt}>Duration</th>
-                {offerings.map(({ university, degree }) => (
-                  <td key={university.id}><div className={appUi.uniInfoAlt}>{formatDuration(degree.creditPoints)}</div></td>
-                ))}
-              </tr>
-              <tr id="tuition-fee">
-                <th className={appUi.uniInfo}>Annual tuition fee</th>
-                {offerings.map(({ university, degree }) => (
-                  <td key={university.id}><div className={appUi.uniInfo}>{tuitionFor(university, degree)}</div></td>
-                ))}
-              </tr>
-              <tr id="ranking">
-                <th className={appUi.uniInfoAlt}>Ranking</th>
-                {offerings.map(({ university }) => (
-                  <td key={university.id}><div className={appUi.uniInfoAlt}>{rankingFor(university)}</div></td>
-                ))}
-              </tr>
-              <tr id="employment-rate">
-                <th className={appUi.uniInfo}>Employment rate</th>
-                {offerings.map(({ university }) => (
-                  <td key={university.id}><div className={appUi.uniInfo}>Not available</div></td>
-                ))}
-              </tr>
-              <tr>
-                <td></td>
-                {offerings.map(({ university, degree }) => (
-                  <td key={university.id}>
-                    <button className={appUi.viewPlanButton} type="button" onClick={() => onSelectUniversity(university, degree)}>
-                      View Study Plan
-                    </button>
-                  </td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
+                <tr>
+                  <td></td>
+                  {offerings.map(({ university, degree }) => (
+                    <td key={university.id}>
+                      <button className={appUi.viewPlanButton} type="button"
+                        onClick={() => onSelectUniversity(university, degree)}>
+                        View Study Plan
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <div className={appUi.feeNotes}>
+          <p>Annual fee is each university's guide price for 48 credit points, which is one year of full-time study.</p>
+          <p>Estimated total multiplies the annual fee by the course length at current rates, so real totals will be higher as fees rise each year.</p>
+          <p>Domestic figures are Commonwealth supported student contributions and vary with the units you take.</p>
         </div>
       </section>
 

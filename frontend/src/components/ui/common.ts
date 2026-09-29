@@ -46,6 +46,14 @@ export const commonUi = {
     "w-full [padding:.7rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
     "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
   ),
+  cancelButton: cn(
+    "[padding:.7rem_1rem] [border-radius:var(--radius)] border border-[color:var(--line)] bg-[var(--line)]",
+    "font-bold cursor-pointer [&:hover]:bg-white",
+  ),
+  closeButton: cn(
+    "bg-transparent border-none cursor-pointer",
+    "absolute right-2 top-2 text-[color:var(--muted)]",
+  ),
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
   eyebrow: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   lead: "text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",

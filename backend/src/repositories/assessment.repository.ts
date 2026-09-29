@@ -24,8 +24,8 @@ export const findQuestionsByIds = (ids: string[]) =>
 export const findRiasecLabels = async () => {
   const prisma = getPrisma();
   const [categories, subcategories] = await Promise.all([
-    prisma.riasecCategory.findMany({ select: { id: true, name: true } }),
-    prisma.riasecSubcategory.findMany({ select: { id: true, name: true, categoryId: true } }),
+    prisma.riasecCategory.findMany({ select: { id: true, name: true, description: true } }),
+    prisma.riasecSubcategory.findMany({ select: { id: true, name: true, categoryId: true, description: true } }),
   ]);
   return { categories, subcategories };
 };
@@ -96,6 +96,7 @@ export const findAllDegreeCandidates = () =>
       id: true,
       code: true,
       name: true,
+      description: true,
       HandbookVersion: { select: { year: true, University: { select: { code: true, name: true } } } },
       RiasecScore: { select: { categoryId: true, score: true } },
     },

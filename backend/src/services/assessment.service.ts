@@ -47,7 +47,9 @@ const groupByCategoryThenSubcategory = (questions: QuestionRef[]): Map<string, M
 
 export const getRiasecLabels = () => repo.findRiasecLabels();
 
-const getScreeningRecommendation = async (categoryScores: Map<string, number>, topCategoryId: string) => {
+const SCREENING_RECOMMENDATION_COUNT = 4;
+
+const getScreeningRecommendations = async (categoryScores: Map<string, number>, topCategoryId: string) => {
   const degrees = await repo.findAllDegreeCandidates();
   const candidates: ComponentCandidate[] = degrees.map((degree) => ({
     id: degree.id,
@@ -58,17 +60,19 @@ const getScreeningRecommendation = async (categoryScores: Map<string, number>, t
     subcategoryScores: new Map(),
   }));
   const ranked = rankComponentCandidates(categoryScores, new Map(), topCategoryId, candidates);
-  const top = ranked[0];
-  if (!top) return null;
-  const degree = degrees.find((d) => d.id === top.candidate.id)!;
-  return {
-    degreeId: degree.id,
-    code: degree.code,
-    name: degree.name,
-    universityCode: degree.HandbookVersion.University.code,
-    year: degree.HandbookVersion.year,
-    matchScore: top.matchScore,
-  };
+  const degreeById = new Map(degrees.map((d) => [d.id, d]));
+  return ranked.slice(0, SCREENING_RECOMMENDATION_COUNT).map((match) => {
+    const degree = degreeById.get(match.candidate.id)!;
+    return {
+      degreeId: degree.id,
+      code: degree.code,
+      name: degree.name,
+      description: degree.description,
+      universityCode: degree.HandbookVersion.University.code,
+      year: degree.HandbookVersion.year,
+      matchScore: match.matchScore,
+    };
+  });
 };
 
 const requireSession = async (sessionId: string) => {
@@ -109,9 +113,9 @@ export const submitScreeningResponses = async (sessionId: string, responses: Res
   const rank1Subcategories = groupBySubcategory(drillDownQuestions.filter((q) => q.categoryId === rank1CategoryId));
   const closingQuestions = pickFreeTierClosingQuestions(rank1Subcategories);
 
-  const recommendation = await getScreeningRecommendation(categoryScores, rank1CategoryId);
+  const recommendations = await getScreeningRecommendations(categoryScores, rank1CategoryId);
 
-  return { rankedCategoryIds, closingQuestions, recommendation };
+  return { rankedCategoryIds, closingQuestions, recommendations };
 };
 
 export const submitClosingResponses = async (sessionId: string, responses: ResponseInput[]) => {

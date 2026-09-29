@@ -2,8 +2,8 @@ import { cn } from "./cn";
 
 /** Static Tailwind recipes preserve the handbook's navigation appearance and responsive states. */
 export const navigationUi = {
-  appShell: "flex [min-height:100vh]",
-  appMain: "flex flex-col flex-1 min-w-0",
+  appShell: "flex flex-col [min-height:100vh]",
+  appMain: "flex flex-1 min-w-0",
   siteHeader: cn(
     "site-header sticky [z-index:20] top-0 h-20 flex items-center justify-between",
     "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] bg-[linear-gradient(180deg,var(--header-gradient-start)_0%,var(--header-gradient-end)_100%)]",
@@ -18,7 +18,7 @@ export const navigationUi = {
     "[&_li:not(:last-child)::after]:text-[#a3aab7] [&_button]:p-0 [&_button]:border-0",
     "[&_button]:text-[var(--blue)] [&_button]:bg-transparent [&_button]:cursor-pointer [&_button:hover]:underline",
   ),
-  page: "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
+  page: "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_0] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
   degreeHero: "degree-hero [margin:3rem_0_clamp(4rem,_8vw,_7rem)] [&_h1]:[max-width:18ch]",
   degreeHeroCode: "[margin-bottom:.8rem] text-[var(--blue)] text-[length:.9rem] [font-weight:850] [letter-spacing:.1em]",
   degreeFacts: cn(
@@ -65,10 +65,8 @@ export const navigationUi = {
   pageIntro: "mb-15",
   universityGrid: "grid [grid-template-columns:repeat(auto-fit,_minmax(17rem,_1fr))] gap-4 mt-5",
   universityCard: cn(
-    "university-card min-h-56 items-start p-7 text-left border-[1px] border-solid",
-    "border-[color:var(--line)] bg-[var(--surface)] cursor-pointer",
-    "[transition:border-color_160ms,_transform_160ms] motion-reduce:transition-none motion-reduce:transform-none",
-    "[&:hover]:[border-color:var(--navy)] [&:hover]:[transform:translateY(-2px)]",
+    "flex university-card min-h-30 text-center justify-center items-center border-[1px] border-solid",
+    "border-[color:var(--line)] [border-radius:var(--radius)] bg-[var(--surface)]",
   ),
   universityCardCode: "mb-10 text-[var(--blue)] text-[length:.8rem] font-extrabold [letter-spacing:.12em]",
   universityCardName: "max-w-72 text-[length:1.25rem] font-bold [line-height:1.35]",

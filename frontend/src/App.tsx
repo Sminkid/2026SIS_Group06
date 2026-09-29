@@ -40,76 +40,73 @@ export const App = () => {
         Skip to main content
       </a>
 
-      <div className={appUi.appMain}>
-        <header className={appUi.siteHeader}>
-          <button
-            className={appUi.brand}
-            type="button"
-            onClick={() => setScreen({ name: "getStarted" })}
-            aria-label="Degree planner home"
-          >
-            <img src={logo} className={appUi.brandMark}/>
-          </button>
+      <header className={appUi.siteHeader}>
+        <button
+          className={appUi.brand}
+          type="button"
+          onClick={() => setScreen({ name: "getStarted" })}
+          aria-label="Degree planner home"
+        >
+          <img src={logo} className={appUi.brandMark}/>
+        </button>
 
-            <span className={appUi.siteHeaderNote}>
-              University handbook explorer
-            </span>
-        </header>
+          <span className={appUi.siteHeaderNote}>
+            University handbook explorer
+          </span>
+      </header>
 
-        <main className="min-w-0">
-          {screen.name === "getStarted" && (
-            <GetStartedPage onStart={() => setScreen({ name: "quiz" })} />
-          )}
+      <main className={appUi.appMain}>
+        {screen.name === "getStarted" && (
+          <GetStartedPage onStart={() => setScreen({ name: "quiz" })} />
+        )}
 
-          {screen.name === "quiz" && (
-            <InterestQuizPage 
-              onComplete={(result) => setScreen({ name: "quizResult", result })}
-              onBack={() => setScreen({ name: "getStarted" })} 
+        {screen.name === "quiz" && (
+          <InterestQuizPage 
+            onComplete={(result) => setScreen({ name: "quizResult", result })}
+            onBack={() => setScreen({ name: "getStarted" })} 
+          />
+        )}
+
+        {screen.name === "quizResult" && (
+          <QuizResultPage 
+            result={screen.result}
+            onViewCourses={() => setScreen({ name: "courseRecommendation", result: screen.result })}
+            onHome={() => setScreen({ name: "getStarted" })}
+          />
+        )}
+
+        {screen.name === "courseRecommendation" && (
+          <CourseRecommendationsPage 
+            result={screen.result}
+            onSelectCourse={(course) => setScreen({ name: "universityComparison", result: screen.result, course })}
+            onHome={() => setScreen({ name: "getStarted" })}
+            onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result})}
             />
-          )}
+        )}
 
-          {screen.name === "quizResult" && (
-            <QuizResultPage 
-              result={screen.result}
-              onViewCourses={() => setScreen({ name: "courseRecommendation", result: screen.result })}
-              onHome={() => setScreen({ name: "getStarted" })}
-            />
-          )}
+        {screen.name === "universityComparison" && (
+          <UniversityComparisonPage 
+            course={screen.course} 
+            onSelectUniversity={(university, degree) =>
+              setScreen({ name: "degree", result: screen.result, course: screen.course, university, degree })
+            }
+            onHome={() => setScreen({ name: "getStarted" })}
+            onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result })}
+            onBackToRecommendations={() => setScreen({ name: "courseRecommendation", result: screen.result })}
+          />
+        )}
 
-          {screen.name === "courseRecommendation" && (
-            <CourseRecommendationsPage 
-              result={screen.result}
-              onSelectCourse={(course) => setScreen({ name: "universityComparison", result: screen.result, course })}
-              onHome={() => setScreen({ name: "getStarted" })}
-              onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result})}
-              />
-          )}
-
-          {screen.name === "universityComparison" && (
-            <UniversityComparisonPage 
-              course={screen.course} 
-              onSelectUniversity={(university, degree) =>
-                setScreen({ name: "degree", result: screen.result, course: screen.course, university, degree })
-              }
-              onHome={() => setScreen({ name: "getStarted" })}
-              onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result })}
-              onBackToRecommendations={() => setScreen({ name: "courseRecommendation", result: screen.result })}
-            />
-          )}
-
-          {screen.name === "degree" && (
-            <DegreePage 
-              university={screen.university} degree={screen.degree}
-              onHome={() => setScreen({ name: "getStarted" })}
-              onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result })}
-              onBackToRecommendations={() => setScreen({ name: "courseRecommendation", result: screen.result })}
-              onBackToComparison={() => setScreen({ name: "universityComparison", result: screen.result, course: screen.course })}
-            />
-          )}
-
-        </main>
-      </div>
-
+        {screen.name === "degree" && (
+          <DegreePage 
+            university={screen.university} degree={screen.degree}
+            onHome={() => setScreen({ name: "getStarted" })}
+            onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result })}
+            onBackToRecommendations={() => setScreen({ name: "courseRecommendation", result: screen.result })}
+            onBackToComparison={() => setScreen({ name: "universityComparison", result: screen.result, course: screen.course })}
+          />
+        )}
+      </main>
+      
       <GlossaryChatWidget />
     </div>
   );

@@ -18,7 +18,12 @@ export const commonUi = {
     "w-7 h-7 border-[2px] border-solid border-[color:var(--line)] [border-top-color:var(--blue)] rounded-full",
     "animate-spin [animation-duration:750ms] motion-reduce:animate-none",
   ),
-  secondaryButton: "w-full h-full p-7 border-[1px] border-solid [border-color:var(--line)] bg-[var(--surface)] [&:hover]:[border-color:var(--navy)] cursor-pointer",
+  secondaryButton: cn(
+    "w-full h-full min-h-30 p-7 cursor-pointer",
+    "border-[1px] [border-radius:var(--radius)] border-solid [border-color:var(--line)] bg-[var(--surface)]",
+    "[transition:border-color_160ms,_transform_160ms] motion-reduce:transition-none motion-reduce:transform-none",
+    "[&:hover]:[border-color:var(--navy)] [&:hover]:[transform:translateY(-2px)]",
+  ),
   stepLabel: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   sectionHeading: cn(
     "flex items-end justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
@@ -37,6 +42,10 @@ export const commonUi = {
     "[padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
     "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
   ),
+  viewPlanButton: cn(
+    "w-full [padding:.7rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
+    "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
+  ),
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
   eyebrow: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   lead: "text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
@@ -50,7 +59,8 @@ export const commonUi = {
   tableWrapper: "w-full overflow-x-auto overscroll-x-contain",
   comparisonTable: cn(
     "w-full min-w-[700px] table-fixed text-center",
-    "border-separate border-spacing-x-2.5 border-spacing-y-5",
+    "border-separate border-spacing-x-2 border-spacing-y-4",
+    "[&_th]:p-0 [&_td]:p-0",
   ),
   uniInfo: cn(
     "min-w-[200px] p-3 text-base align-middle",

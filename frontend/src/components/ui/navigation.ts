@@ -44,7 +44,7 @@ export const navigationUi = {
   pageIntroCompact: " [margin:2.5rem_0_3.5rem]",
   searchField: cn(
     "[width:min(100%,_25rem)] flex items-center [gap:.65rem] [padding:0_1rem] border-[1px] border-solid",
-    "border-[color:#bfc6d1] bg-[var(--surface)] [&_input]:w-full [&_input]:[padding:.85rem_0] [&_input]:border-0",
+    "border-[color:#bfc6d1] [border-radius:var(--radius)] bg-[var(--surface)] [&_input]:w-full [&_input]:[padding:.85rem_0] [&_input]:border-0",
     "[&_input]:outline-none [&:focus-within]:outline-[3px] [&:focus-within]:outline-[#78a4e5]",
     "[&:focus-within]:outline-offset-2 [&_input]:bg-transparent [@media(max-width:720px)]:w-full",
   ),
@@ -54,9 +54,8 @@ export const navigationUi = {
     "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(400px,1fr))]",
   ),
   degreeCard: cn(
-    "flex flex-col gap-2 [padding:1.1rem] [border-radius:var(--radius)] border-[1px] border-solid border-[color:var(--line)]",
-    "bg-[var(--surface)] text-left cursor-pointer transition-shadow",
-    "hover:bg-[var(--amber)]",
+    "flex flex-col gap-2 [padding:1.2rem] [border-radius:var(--radius)] border-[1px] border-solid border-[color:var(--line)]",
+    "bg-[var(--surface)] text-left transition-shadow",
   ),
   degreeRow: cn(
     "degree-row w-full grid [grid-template-columns:6rem_minmax(0,1fr)_7rem_1rem] gap-5 items-center",
@@ -65,7 +64,7 @@ export const navigationUi = {
     "[@media(max-width:720px)]:[grid-template-columns:5.25rem_minmax(0,1fr)_auto] [@media(max-width:720px)]:gap-3",
   ),
   degreeRowCode: "text-[var(--blue)] text-[length:.88rem] font-extrabold",
-  degreeRowName: "[font-weight:650]",
+  degreeRowName: "[font-weight:500]",
   degreeRowCp: "text-[var(--muted)] text-[length:.85rem] text-right [@media(max-width:720px)]:[grid-column:2] [@media(max-width:720px)]:text-left",
   degreeRowArrow: "text-[var(--blue)] [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
   pageLanding: cn(

@@ -35,14 +35,18 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
         {status === "ready" && (
           <div className={appUi.degreeGrid}>
             {courses.map((course) => (
-              <button className={appUi.degreeCard} type="button" key={course.courseName} onClick={() => onSelectCourse(course)}>
-                <span className={appUi.degreeRowName}>{course.courseName}</span>
-                <span className={appUi.degreeRowCp}>{course.offerings.length} universities offer this</span>
-                <span className={appUi.degreeRowArrow} aria-hidden="true">→</span>
-              </button>
+              <div className={appUi.degreeCard}>
+                <h3>{course.courseName}</h3>
+                <div className={appUi.degreeRowArrow}>
+                  <button className={appUi.textButton} type="button" key={course.courseName} onClick={() => onSelectCourse(course)} aria-hidden="true">
+                    {course.offerings.length} universities offer this →
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
+        <section className={appUi.contentSection}></section>
       </section>
     </main>
   );

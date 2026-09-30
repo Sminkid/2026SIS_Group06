@@ -66,7 +66,7 @@ export const navigationUi = {
   degreeRowCode: "text-[var(--blue)] text-[length:.88rem] font-extrabold",
   degreeRowName: "[font-weight:500]",
   degreeRowCp: "text-[var(--muted)] text-[length:.85rem] text-right [@media(max-width:720px)]:[grid-column:2] [@media(max-width:720px)]:text-left",
-  degreeRowArrow: "text-[var(--blue)] [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
+  degreeRowArrow: "text-[var(--blue)] mt-auto [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
   pageLanding: cn(
     "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem]",
     "[padding-top:clamp(3.5rem,_8vw,_7rem)] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",

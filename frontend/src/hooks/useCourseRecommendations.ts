@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { fetchUniversities, fetchLatestHandbook, fetchDegrees } from "../api/universities";
-import { matchCourses, type CourseRecommendation } from "../domain/courseAggregation";
+import { matchCourses, otherCourses as buildOtherCourses, type CourseRecommendation } from "../domain/courseAggregation";
 import type { QuizResult } from "../domain/quizRecommendation";
 
 export const useCourseRecommendations = (result: QuizResult) => {
   const [courses, setCourses] = useState<CourseRecommendation[]>([]);
+  const [otherCourses, setOtherCourses] = useState<CourseRecommendation[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
@@ -17,13 +18,15 @@ export const useCourseRecommendations = (result: QuizResult) => {
         const handbook = await fetchLatestHandbook(university.code, controller.signal);
         degreesByUniversity[university.code] = await fetchDegrees(university.code, handbook.year, controller.signal);
       }
-      setCourses(matchCourses(result.recommendedCourseKeywords, universities, degreesByUniversity));
+      const recommended = matchCourses(result.recommendedCourseKeywords, universities, degreesByUniversity);
+      setCourses(recommended);
+      setOtherCourses(buildOtherCourses(recommended, universities, degreesByUniversity));
       setStatus("ready");
     })().catch((error: unknown) => {
       if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
     });
     return () => controller.abort();
   }, [result]);
-
-  return { courses, status };
+ 
+  return { courses, otherCourses, status };
 };

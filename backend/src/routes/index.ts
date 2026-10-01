@@ -7,6 +7,7 @@ import { subjectsRouter } from "./subjects.routes.js";
 import { chatRouter } from "./chat.routes.js";
 import { requirementCandidateSourcesRouter } from "./requirement-candidate-sources.routes.js";
 import { feesRouter } from "./fees.routes.js";
+import { assessmentRouter } from "./assessment.routes.js";
 
 export const apiRouter = Router();
 
@@ -18,3 +19,4 @@ apiRouter.use("/subjects", subjectsRouter);
 apiRouter.use("/requirement-candidate-sources", requirementCandidateSourcesRouter);
 apiRouter.use("/chat", chatRouter);
 apiRouter.use("/fees", feesRouter);
+apiRouter.use("/assessment", assessmentRouter);

@@ -6,6 +6,7 @@ import { studyPathUi } from "./studyPath";
 import { studyPlanUi } from "./studyPlan";
 import { subjectChoiceUi } from "./subjectChoice";
 import { feeComparisonUi } from "./feeComparison";
+import { quizUi } from "./quiz";
 export { cn } from "./cn";
 
 /** Named, statically discoverable recipes shared by the existing frontend views. */
@@ -18,4 +19,5 @@ export const appUi = {
   ...studyPlanUi,
   ...subjectChoiceUi,
   ...feeComparisonUi,
+  ...quizUi,
 } as const;

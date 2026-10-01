@@ -39,7 +39,7 @@ export const commonUi = {
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
   primaryButton: cn(
-    "[padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
+    "min-w-30 [padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
     "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
   ),
   viewPlanButton: cn(
@@ -55,6 +55,11 @@ export const commonUi = {
     "absolute right-2 top-2 text-[color:var(--muted)]",
   ),
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
+  backButton: cn(
+    "min-w-30 [padding:.7rem_1rem]",
+    "border-[1px] [border-radius:var(--radius)] border-solid [border-color:var(--line)] bg-[var(--surface)]",
+    "font-bold cursor-pointer [&:hover]:bg-[var(--line)]",
+  ),
   eyebrow: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   lead: "text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
   contentSection: "mt-8 p-4 [border-top:2px_solid_var(--line)]",
@@ -81,4 +86,6 @@ export const commonUi = {
     "min-w-[200px] p-3 text-base align-middle",
     "bg-[var(--amber)] shadow-sm",
   ),
+  buttonContainer: "flex flex-row justify-between",
+  description: "m-0 text-xs text-[var(--muted)]",
 } as const;

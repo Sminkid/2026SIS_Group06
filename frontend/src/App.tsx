@@ -3,7 +3,6 @@ import { useState } from "react";
 import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
 import { FeeComparisonPage } from "./pages/FeeComparisonPage";
-import { QuizPage } from "./pages/QuizPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
 import { GetStartedPage } from "./pages/GetStartedPage";
 import { InterestQuizPage } from "./pages/InterestQuizPage";
@@ -29,7 +28,6 @@ type Screen =
       university: University; 
       degree: DegreeSummary; 
     }
-  | { name: "quiz"; university?: University; degree?: DegreeSummary };
 
 /** Coordinates the university, degree and handbook screens within the shared navigation shell. */
 export const App = () => {
@@ -56,23 +54,6 @@ export const App = () => {
           <span className={appUi.siteHeaderNote}>
             University handbook explorer
           </span>
-
-          <nav className={appUi.siteHeaderNav} aria-label="Primary">
-            <button
-              className={appUi.textButton}
-              type="button"
-              onClick={() => setScreen({ name: "universities" })}
-            >
-              Universities
-            </button>
-            <button
-              className={appUi.textButton}
-              type="button"
-              onClick={() => setScreen({ name: "quiz" })}
-            >
-              Interest quiz
-            </button>
-          </nav>
       </header>
 
       <main className={appUi.appMain}>
@@ -92,6 +73,7 @@ export const App = () => {
             result={screen.result}
             onViewCourses={() => setScreen({ name: "courseRecommendation", result: screen.result })}
             onHome={() => setScreen({ name: "getStarted" })}
+            onRetakeQuiz={() => setScreen({ name: "quiz" })}
           />
         )}
 
@@ -123,32 +105,8 @@ export const App = () => {
             onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result })}
             onBackToRecommendations={() => setScreen({ name: "courseRecommendation", result: screen.result })}
             onBackToComparison={() => setScreen({ name: "universityComparison", result: screen.result, course: screen.course })}
-              onStartQuiz={() =>
-                setScreen({
-                  name: "quiz",
-                  university: screen.university,
-                  degree: screen.degree,
-                })
-              }
-            />
-          )}
-
-          {screen.name === "quiz" && (
-            <QuizPage
-              university={screen.university}
-              degree={screen.degree}
-              onBack={() =>
-                screen.university && screen.degree
-                  ? setScreen({
-                      name: "degree",
-                      university: screen.university,
-                      degree: screen.degree,
-                    })
-                  : setScreen({ name: "universities" })
-              }
-              onHome={() => setScreen({ name: "universities" })}
           />
-        )}
+          )}
       </main>
       
       <GlossaryChatWidget />

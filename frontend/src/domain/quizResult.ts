@@ -1,4 +1,3 @@
-import { readableText } from "./readableText";
 import type { AssessmentResult, RiasecLabels } from "../types/quiz";
 
 export interface ScoredLabel {
@@ -17,12 +16,3 @@ export const rankedCategoryLabels = (result: AssessmentResult, labels: RiasecLab
 };
 
 export const formatScorePercent = (score: number): string => `${Math.round(score * 100)}%`;
-
-/** Strips HTML/entities from a handbook description and truncates it to a short blurb. */
-export const briefDescription = (description: string, maxLength = 160): string => {
-  const clean = readableText(description);
-  if (clean.length <= maxLength) return clean;
-  const truncated = clean.slice(0, maxLength);
-  const lastSpace = truncated.lastIndexOf(" ");
-  return `${(lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated).trimEnd()}…`;
-};

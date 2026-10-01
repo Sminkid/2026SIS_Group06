@@ -31,7 +31,7 @@ export const GetStartedPage = ({ onStart }: Props) => (
         suggest courses and universities that fit.
       </p>
       <button className={appUi.primaryButton} type="button" onClick={onStart}>
-        Start the quiz
+        Get Started
       </button>
     </section>
   </main>

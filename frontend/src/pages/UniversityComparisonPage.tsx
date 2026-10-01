@@ -118,7 +118,7 @@ function AddUniversityDialog({ excludedCodes, onClose, onAdd }: {
           </select>
         </label>
 
-        <div className="flex flex-row justify-between">
+        <div className={appUi.buttonContainer}>
           <button
             type="button"
             className={appUi.primaryButton}

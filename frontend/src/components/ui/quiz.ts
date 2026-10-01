@@ -25,13 +25,13 @@ export const quizUi = {
   quizFormFooter: "flex items-center justify-between gap-4 flex-wrap",
   quizResultSection: "grid gap-8 [margin:1.5rem_0]",
   quizScoreList: cn(
-    "grid gap-2 p-0 m-0 list-none [&_li]:flex [&_li]:items-baseline [&_li]:justify-between [&_li]:gap-4",
-    "[&_li]:[padding:.6rem_.8rem] [&_li]:border-[1px] [&_li]:border-solid [&_li]:border-[color:var(--line)]",
-    "[&_li]:bg-[var(--surface)] [&_li_strong]:text-[var(--navy)] [&_li_span]:text-[var(--muted)]",
+    "grid grid-cols-3 gap-2 p-0 m-0 list-none [&_li]:flex [&_li]:items-baseline [&_li]:justify-between [&_li]:gap-4",
+    "[&_li]:[padding:.6rem_.8rem] [&_li]:border-[1px] [&_li]:[border-radius:var(--radius)] [&_li]:border-solid [&_li]:border-[color:var(--line)]",
+    "[&_li]:bg-[var(--surface)] [&_li_strong]:text-[var(--blue)] [&_li_span]:text-[var(--muted)]",
   ),
   quizRecommendationCard: cn(
-    "[padding:1.25rem] border-[1px] border-solid border-[color:var(--line)] [border-top:3px_solid_var(--navy)]",
-    "bg-[var(--surface)] grid gap-2",
+    "mt-5 mb-8 [padding:1.25rem] border-[1px] border-solid border-[color:var(--line)] [border-top:3px_solid_var(--navy)]",
+    "[border-radius:var(--radius)] bg-[var(--surface)] grid gap-2",
   ),
   quizCourseList: "grid [grid-template-columns:repeat(auto-fit,_minmax(16rem,_1fr))] gap-4",
 } as const;

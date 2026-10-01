@@ -30,4 +30,5 @@ export const quizUi = {
     "[padding:1.25rem] border-[1px] border-solid border-[color:var(--line)] [border-top:3px_solid_var(--navy)]",
     "bg-[var(--surface)] grid gap-2",
   ),
+  quizCourseList: "grid [grid-template-columns:repeat(auto-fit,_minmax(16rem,_1fr))] gap-4",
 } as const;

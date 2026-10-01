@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { appUi } from "../components/ui";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { formatScorePercent, rankedCategoryLabels, topSubcategoryLabels } from "../domain/quizResult";
+import { briefDescription, formatScorePercent, rankedCategoryLabels } from "../domain/quizResult";
 import { useQuizSession } from "../hooks/useQuizSession";
 import type { DegreeSummary, University } from "../types/handbook";
 import type { QuestionRef, QuestionResponse } from "../types/quiz";
@@ -63,17 +63,28 @@ const QuestionStep = ({
   onContinue,
 }: QuestionStepProps) => {
   const [index, setIndex] = useState(0);
-  const question = questions[index]!;
+  const question = questions[index];
   const isLast = index === questions.length - 1;
-  const hasAnswer = answers[question.id] !== undefined;
+  const hasAnswer = question ? answers[question.id] !== undefined : false;
 
   const goNext = () => {
-    if (isLast) {
-      onContinue(questions.map((q) => ({ questionId: q.id, value: answers[q.id]! })));
-    } else {
-      setIndex((current) => current + 1);
-    }
+    if (isLast) onContinue(questions.map((q) => ({ questionId: q.id, value: answers[q.id]! })));
+    // Always advance, even on the last question: if this step's question list is about to
+    // grow (e.g. screening's 2 bonus questions arriving after the initial 18), the index
+    // needs to already be pointing past the old last item so the new one renders next. If
+    // the step is instead about to transition away entirely, this is a harmless no-op.
+    setIndex((current) => current + 1);
   };
+
+  if (!question) {
+    // Between finishing the last currently-known question and the next batch (if any)
+    // being appended - e.g. the screening step's 2 bonus questions arriving mid-quiz.
+    return (
+      <section className={appUi.contentSection}>
+        <AsyncState kind="loading" label="Loading next question" />
+      </section>
+    );
+  }
 
   return (
     <section className={appUi.contentSection}>
@@ -119,9 +130,9 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
     labels,
     start,
     submitScreening,
-    viewRecommendation,
-    continueToClosing,
-    submitClosing,
+    viewRecommendations,
+    skipToDrillDown,
+    continueToDrillDown,
     submitDrillDown,
     restart,
   } = useQuizSession(matchTarget);
@@ -151,7 +162,7 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
           <h1>Find degrees that match your interests</h1>
           <div className={appUi.quizIntro}>
             <p className={appUi.lead}>
-              Answer a short set of questions about what you enjoy, and we&apos;ll match your interest profile
+              Answer a short set of 20 questions about what you enjoy, and we&apos;ll match your interest profile
               against real majors and streams.
             </p>
             {status === "error" && <AsyncState kind="error" label="We couldn't start the quiz." onRetry={start} />}
@@ -169,7 +180,7 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
 
       {step.name === "screening" && (
         <QuestionStep
-          progressLabel="General interests"
+          progressLabel={step.phase === "generic" ? "General interests" : "A closer look"}
           questions={step.questions}
           answers={answers}
           status={status}
@@ -186,16 +197,25 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
             <h1>Your top interest areas</h1>
           </div>
           <ul className={appUi.quizScoreList} aria-label="Ranked RIASEC categories">
-            {step.rankedCategoryIds.map((categoryId, index) => (
-              <li key={categoryId}>
-                <strong>
-                  #{index + 1} {labels.categories.find((category) => category.id === categoryId)?.name ?? categoryId}
-                </strong>
-              </li>
-            ))}
+            {step.rankedCategoryIds.map((categoryId, index) => {
+              const category = labels.categories.find((c) => c.id === categoryId);
+              return (
+                <li key={categoryId}>
+                  <div>
+                    <strong>
+                      #{index + 1} {category?.name ?? categoryId}
+                    </strong>
+                    {index < 3 && category?.description && <p className={appUi.muted}>{category.description}</p>}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
           <div className={appUi.quizFormFooter}>
-            <button className={appUi.primaryButton} type="button" onClick={viewRecommendation}>
+            <button className={appUi.secondaryButton} type="button" onClick={skipToDrillDown}>
+              Skip to personalise further
+            </button>
+            <button className={appUi.primaryButton} type="button" onClick={viewRecommendations}>
               View course recommendations
             </button>
           </div>
@@ -206,41 +226,33 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
         <section className={appUi.quizResultSection}>
           <div>
             <p className={appUi.eyebrow}>Based on your general answers</p>
-            <h1>A course that might suit you</h1>
+            <h1>Courses that might suit you</h1>
           </div>
-          {step.recommendation ? (
-            <div className={appUi.quizRecommendationCard}>
-              <p className={appUi.eyebrow}>Suggested course</p>
-              <h2>{step.recommendation.name}</h2>
-              <p className={appUi.muted}>
-                {step.recommendation.code} · {step.recommendation.universityCode} · {step.recommendation.year}
-              </p>
+          {step.recommendations.length > 0 ? (
+            <div className={appUi.quizCourseList}>
+              {step.recommendations.map((recommendation) => (
+                <div className={appUi.quizRecommendationCard} key={recommendation.degreeId}>
+                  <h2>{recommendation.name}</h2>
+                  <p className={appUi.muted}>
+                    {recommendation.code} · {recommendation.universityCode} · {recommendation.year}
+                  </p>
+                  {recommendation.description && <p>{briefDescription(recommendation.description)}</p>}
+                </div>
+              ))}
             </div>
           ) : (
             <p className={appUi.muted}>We couldn&apos;t find a course match yet — a few more questions will help.</p>
           )}
           <p className={appUi.lead}>
-            Want a more precise match? A few more questions about your specific interests will refine this
-            recommendation and suggest the best major or stream within it.
+            Want a more precise match? A few more questions about your specific interests will refine this and
+            suggest the best major or stream within your matched course.
           </p>
           <div className={appUi.quizFormFooter}>
-            <button className={appUi.primaryButton} type="button" onClick={continueToClosing}>
+            <button className={appUi.primaryButton} type="button" onClick={continueToDrillDown}>
               Personalise further
             </button>
           </div>
         </section>
-      )}
-
-      {step.name === "closing" && (
-        <QuestionStep
-          progressLabel="A closer look"
-          questions={step.questions}
-          answers={answers}
-          status={status}
-          continueLabel="Continue"
-          onAnswer={setAnswer}
-          onContinue={continueWith(submitClosing)}
-        />
       )}
 
       {step.name === "drillDown" && (
@@ -270,18 +282,6 @@ export const QuizPage = ({ university, degree, onBack, onHome }: Props) => {
               </li>
             ))}
           </ul>
-
-          <div>
-            <p className={appUi.eyebrow}>Top specific interests</p>
-            <ul className={appUi.quizScoreList} aria-label="Top RIASEC subcategory scores">
-              {topSubcategoryLabels(step.result, labels).map((subcategory) => (
-                <li key={subcategory.id}>
-                  <strong>{subcategory.name}</strong>
-                  <span>{formatScorePercent(subcategory.score)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
 
           {step.result.recommendation && (
             <div className={appUi.quizRecommendationCard}>

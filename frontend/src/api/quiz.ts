@@ -26,7 +26,7 @@ export const submitScreeningResponses = (
 ): Promise<{
   rankedCategoryIds: string[];
   closingQuestions: QuestionRef[];
-  recommendation: DegreeRecommendation | null;
+  recommendations: DegreeRecommendation[];
 }> => apiPost(`/api/assessment/sessions/${encodeURIComponent(sessionId)}/screening-responses`, { responses }, signal);
 
 export const submitClosingResponses = (

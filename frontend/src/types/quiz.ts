@@ -30,12 +30,13 @@ export interface DegreeRecommendation {
   degreeId: string;
   code: string;
   name: string;
+  description: string | null;
   universityCode: string;
   year: number;
   matchScore: number;
 }
 
 export interface RiasecLabels {
-  categories: { id: string; name: string }[];
-  subcategories: { id: string; name: string; categoryId: string }[];
+  categories: { id: string; name: string; description: string | null }[];
+  subcategories: { id: string; name: string; categoryId: string; description: string | null }[];
 }

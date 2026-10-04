@@ -18,6 +18,10 @@ export interface ChoiceScope {
   requirementGroupId?: string;
   groups?: RequirementGroup[];
   selectableGroupIds?: string[];
+  /** A single deduplicated union with explicit requirement attribution. */
+  union?: boolean;
+  componentCodesByGroup?: Record<string, string>;
+  limitation?: string;
 }
 
 const flatten = (

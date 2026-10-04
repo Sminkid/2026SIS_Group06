@@ -6,5 +6,5 @@ export const StudyPlanRenderer = (props: StudyPlansSectionProps) =>
     ? <UsydEngineeringStudyPlanController degreeCode={props.degreeCode} universityCode={props.universityCode}
       degreeName={props.degreeName} handbookYear={props.handbookYear} onOpenSubject={props.onOpenSubject} requirements={props.requirements}
       selectedComponents={props.selectedComponents} componentDetails={props.componentDetails}
-      componentDetailsStatus={props.componentDetailsStatus} />
+      componentDetailsStatus={props.componentDetailsStatus} degreeCreditPoints={props.degreeCreditPoints} />
     : <StudyPlansSection {...props} />;

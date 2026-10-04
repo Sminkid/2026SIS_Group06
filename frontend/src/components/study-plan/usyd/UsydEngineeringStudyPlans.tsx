@@ -3,6 +3,7 @@ import type {
   UsydEngineeringStudyPlanPreview,
 } from "../../../domain/usydStudyPlan";
 import type { StudyPlan } from "../../../types/handbook";
+import type { ReactNode } from "react";
 import { AsyncState } from "../../AsyncState";
 import { RoadmapCard } from "../../planner/RoadmapCard";
 import { appUi } from "../../ui";
@@ -22,6 +23,7 @@ interface Props {
   onCommencementChange: (commencement: UsydCommencement) => void;
   onPlanChange: (planId: string) => void;
   onOpenSubject: (subjectCode: string) => void;
+  personalPlan?: ReactNode;
 }
 
 /** Presents independent USYD Engineering CUSP preview controls and a read-only roadmap. */
@@ -38,6 +40,7 @@ export const UsydEngineeringStudyPlans = ({
   onCommencementChange,
   onPlanChange,
   onOpenSubject,
+  personalPlan,
 }: Props) => (
   <section className={appUi.studyPlansSection} aria-labelledby="study-plan-heading">
     <div className={appUi.sectionHeading}>
@@ -45,7 +48,7 @@ export const UsydEngineeringStudyPlans = ({
         <p className={appUi.stepLabel}>Official roadmap and personal planner</p>
         <h2 id="study-plan-heading">Study plan</h2>
       </div>
-      <span className={appUi.readOnlyLabel}>Official roadmap</span>
+      <span className={appUi.readOnlyLabel}>USYD Engineering</span>
     </div>
     <p className={appUi.sectionNote}>
       This is the university&apos;s recommended sequence, not the formal degree requirement definition.
@@ -68,7 +71,7 @@ export const UsydEngineeringStudyPlans = ({
         onPlanChange={onPlanChange}
       />
     )}
-    {visiblePlan && (
+    {status === "ready" && visiblePlan && (
       <>
         <div className={appUi.planIntro}>
           <h3>{visiblePlan.title}</h3>
@@ -77,7 +80,7 @@ export const UsydEngineeringStudyPlans = ({
             <p><a href={visiblePlan.sourceUrl} target="_blank" rel="noreferrer">View official CUSP source</a></p>
           )}
         </div>
-        <OfficialPlanRoadmap
+        {personalPlan ?? <OfficialPlanRoadmap
           plan={visiblePlan}
           renderItem={(item, scheduled) => (
             <RoadmapCard
@@ -92,7 +95,7 @@ export const UsydEngineeringStudyPlans = ({
               key={item.id}
             />
           )}
-        />
+        />}
       </>
     )}
   </section>

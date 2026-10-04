@@ -298,7 +298,7 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
   await expect(electivesSection).toContainText("a maximum of 24 credit points from Table S");
   await expect(electivesSection).not.toContainText("eligible-subject list");
   await expect(page.locator(".plan-year")).toHaveCount(4);
-  await expect(page.getByRole("button", { name: "Customize plan", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Customize Plan", exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Engineering Stream" })).toHaveValue("Software Engineering");
   await expect(page.getByText("Suggested from Course Structure")).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Specialisation" })).toHaveValue("BASE");
@@ -309,7 +309,7 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
   await expect(page.locator(".plan-period").first()).toContainText("Semester 1");
   await expect(page.locator(".plan-item").filter({ hasText: "INFO1110" })).toBeVisible();
   await expect(page.locator(".plan-item--choice")).toContainText("Software Stream 1000/2000 Level Electives");
-  await expect(page.locator(".plan-item--choice")).toContainText("Eligible subject options are not yet mapped");
+  await expect(page.locator(".plan-item--choice")).toContainText("Customize to choose from eligible subjects");
   await expect(page.getByText("Year 0", { exact: true })).toHaveCount(0);
 
   await streamSection.getByRole("button", { name: /Software Engineering Specialisations.*Choose one/i }).click();

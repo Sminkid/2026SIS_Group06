@@ -43,7 +43,48 @@ test("mixed scopes preserve distinct source ownership and require Dalyell applic
   const scope = resolveUsydEngineeringChoice(choice, [free, dalyell], detail, undefined, false);
   assert.deepEqual(scope.groups?.map(group => group.id), ["stream-options", "free"]);
   assert.equal(scope.componentCodesByGroup?.[streamGroup.id], "software");
+  assert.equal(scope.defaultPoolGroupId, streamGroup.id);
   assert.deepEqual(resolveUsydEngineeringChoice(choice, [free, dalyell], detail, undefined, true).groups?.map(group => group.id), ["stream-options", "free", "d"]);
+});
+
+test("choice defaults follow the first uniquely mapped formal alternative across stream pool patterns", () => {
+  const titles = ["1000/2000 Level Stream Elective units", "3000+ Level Stream Elective Units", "Stream Elective units",
+    "Space Elective units", "Machine Learning Elective units", "AMMExxxx Specialist Elective units", "Stream Core Extension units", "Industry/Enterprise units"];
+  const pools = titles.map((title, index) => ({ ...group(`pool-${index}`, title), items: [{ id: `unit-${index}`, itemType: "SUBJECT" as const,
+    subject: { id: `unit-${index}`, code: `TEST${1000 + index}`, name: "Test unit", creditPoints: 6 }, component: null,
+    rawCode: null, rawName: null, creditPoints: 6, sortOrder: 0 }] }));
+  const free = group("free", "Free Electives");
+  free.candidateSources = [{ id: "ug", sourceKey: "ug", type: "SUBJECT_FILTER", title: "Engineering undergraduate units", authoritative: true, candidateCount: 271, tableName: null },
+    { id: "s", sourceKey: "s", type: "TABLE_SUBJECT_POOL", title: "Table S units", authoritative: true, candidateCount: 1472, tableName: "Table S" }];
+  const detail = { component: { code: "test-stream" }, requirements: pools } as ComponentDetailResponse;
+  const slot = source.years.flatMap(year => year.periods).flatMap(period => period.items).find(item => item.itemType === "CHOICE")!;
+  for (const [index, title] of titles.entries()) {
+    const scope = resolveUsydEngineeringChoice({ ...slot, title: `Example ${title} or Free Electives` }, [free], detail, undefined, false);
+    assert.equal(scope.defaultPoolGroupId, pools[index].id, title);
+    assert.equal(scope.componentCodesByGroup?.[scope.defaultPoolGroupId!], "test-stream");
+    assert.equal(scope.groups?.at(-1)?.id, "free");
+  }
+  const mixed = resolveUsydEngineeringChoice({ ...slot, title: "Example 1000/2000 Level Electives or Example 3000+ Level Elective Units" }, [free], detail, undefined, false);
+  assert.equal(mixed.defaultPoolGroupId, pools[0].id);
+  const reversed = resolveUsydEngineeringChoice({ ...slot, title: "Example 3000+ Level Elective Units or Example 1000/2000 Level Electives" }, [free], detail, undefined, false);
+  assert.equal(reversed.defaultPoolGroupId, pools[1].id);
+});
+
+test("ambiguous or unmapped primary alternatives do not guess a default from later verified pools", () => {
+  const choice = source.years.flatMap(year => year.periods).flatMap(period => period.items).find(item => item.itemType === "CHOICE")!;
+  const ambiguous = group("ambiguous-a", "1000/2000 Level Stream Elective units");
+  ambiguous.items = [{ id: "info", itemType: "SUBJECT", subject: { id: "info", code: "INFO1111", name: "Computing", creditPoints: 6 }, component: null, rawCode: null, rawName: null, creditPoints: 6, sortOrder: 0 }];
+  const free = group("free", "Free Electives");
+  free.candidateSources = [{ id: "ug", sourceKey: "ug", type: "SUBJECT_FILTER", title: "Engineering undergraduate units", authoritative: true, candidateCount: 271, tableName: null },
+    { id: "s", sourceKey: "s", type: "TABLE_SUBJECT_POOL", title: "Table S units", authoritative: true, candidateCount: 1472, tableName: "Table S" }];
+  const detail = { component: { code: "test-stream" }, requirements: [ambiguous, { ...ambiguous, id: "ambiguous-b" }] } as ComponentDetailResponse;
+  const scope = resolveUsydEngineeringChoice(choice, [free], detail, undefined, false);
+  assert.equal(scope.defaultPoolGroupId, undefined);
+  assert.deepEqual(scope.groups?.map(group => group.id), ["free"]);
+  assert.ok(scope.limitation);
+  const unknown = resolveUsydEngineeringChoice({ ...choice, title: "Unmapped primary elective or Free Electives" }, [free], detail, undefined, false);
+  assert.equal(unknown.defaultPoolGroupId, undefined);
+  assert.equal(resolveUsydEngineeringChoice({ ...choice, title: "Free Electives" }, [free], detail, undefined, false).defaultPoolGroupId, "free");
 });
 
 test("INFO1113 is evaluated from normalized OR tokens; prose stays unknown and raw source is unchanged", () => {

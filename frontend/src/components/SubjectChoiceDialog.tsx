@@ -1,7 +1,7 @@
 import { trapDialogFocus } from "./ui/dialog";
 import { lockPageScroll } from "./ui/pageScroll";
 import { appUi } from "./ui";
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { fetchSubjectAccessConditionsBatch, searchSubjects } from "../api/subjects";
 import { validateSubjectCandidate } from "../domain/plannerValidation";
 import { collectRequirementPoolContexts, getSubjectSelectionAction } from "../domain/subjectChoiceEligibility";
@@ -25,10 +25,11 @@ const requiredPoints = (group: RequirementGroup) => group.requiredCreditPoints ?
   : null);
 
 /** Lists candidate subjects with independent requirement-match, access and selection states. */
-const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner, choiceItem, accessConditions, componentCode, onOpenSubject, onSelect, recognizeOfficialSubjects }: {
+const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner, choiceItem, accessConditions, componentCode, onOpenSubject, onSelect, recognizeOfficialSubjects, attributionFor }: {
   results: SubjectSearchResult[]; selectable: boolean; requiredCore: boolean; planner: PlannerState | null; choiceItem: StudyPlanItem;
   quotaGroup?: RequirementGroup; accessConditions: Record<string, SubjectAccessConditions>; componentCode?: string; onOpenSubject: Props["onOpenSubject"]; onSelect: Props["onSelect"];
   recognizeOfficialSubjects?: boolean;
+  attributionFor?: (subject: SubjectSearchResult) => { group: RequirementGroup; componentCode?: string; controls: ReactNode };
 }) => {
   const placements = new Map<string, string>();
   planner?.years.forEach((year) => year.periods.forEach((period) => period.items.forEach((item) => {
@@ -36,20 +37,23 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
   })));
   const planned = new Set([...placements.keys(), ...(planner?.unassignedItems.flatMap((item) => item.subject ? [item.subject.code] : []) ?? [])]);
   const allItems = [...(planner?.years.flatMap((year) => year.periods.flatMap((period) => period.items)) ?? []), ...(planner?.unassignedItems ?? [])];
-  const quotaIds = quotaGroup ? groupIdsIn(quotaGroup) : new Set<string>();
-  const quotaRequired = quotaGroup ? requiredPoints(quotaGroup) : null;
-  const currentBelongsToGroup = Boolean(choiceItem.choiceOrigin?.formalRequirementGroupId && quotaIds.has(choiceItem.choiceOrigin.formalRequirementGroupId));
-  const officialCodes = new Set(quotaGroup ? flattenGroups([quotaGroup]).flatMap(group => group.items.flatMap(item => item.subject ? [item.subject.code] : [])) : []);
-  const credited = new Set<string>();
-  const selectedPoints = quotaGroup ? allItems.reduce((total, item) => {
-    if (!item.subject) return total;
-    const counts = Boolean(item.choiceOrigin?.formalRequirementGroupId && quotaIds.has(item.choiceOrigin.formalRequirementGroupId))
-      || Boolean(recognizeOfficialSubjects && !item.choiceOrigin && officialCodes.has(item.subject.code));
-    if (!counts || credited.has(item.subject.code)) return total;
-    credited.add(item.subject.code); return total + (item.subject.creditPoints ?? item.creditPoints ?? 0);
-  }, 0) : 0;
-  const maximumPoints = quotaGroup?.maximumCreditPoints ?? (recognizeOfficialSubjects ? null : quotaRequired);
   return <div className={appUi.subjectResultList}>{results.map((subject) => {
+    const attribution = attributionFor?.(subject);
+    const candidateGroup = attribution?.group ?? quotaGroup;
+    const candidateComponent = attribution?.componentCode ?? componentCode;
+    const quotaIds = candidateGroup ? groupIdsIn(candidateGroup) : new Set<string>();
+    const quotaRequired = candidateGroup ? requiredPoints(candidateGroup) : null;
+    const currentBelongsToGroup = Boolean(choiceItem.choiceOrigin?.formalRequirementGroupId && quotaIds.has(choiceItem.choiceOrigin.formalRequirementGroupId));
+    const officialCodes = new Set(candidateGroup ? flattenGroups([candidateGroup]).flatMap(group => group.items.flatMap(item => item.subject ? [item.subject.code] : [])) : []);
+    const credited = new Set<string>();
+    const selectedPoints = candidateGroup ? allItems.reduce((total, item) => {
+      if (!item.subject) return total;
+      const counts = Boolean(item.choiceOrigin?.formalRequirementGroupId && quotaIds.has(item.choiceOrigin.formalRequirementGroupId))
+        || Boolean(recognizeOfficialSubjects && !item.choiceOrigin && officialCodes.has(item.subject.code));
+      if (!counts || credited.has(item.subject.code)) return total;
+      credited.add(item.subject.code); return total + (item.subject.creditPoints ?? item.creditPoints ?? 0);
+    }, 0) : 0;
+    const maximumPoints = candidateGroup?.maximumCreditPoints ?? (recognizeOfficialSubjects ? null : quotaRequired);
     const access = accessConditions[subject.code];
     const actionableIssues = (planner ? validateSubjectCandidate(planner, choiceItem.id, subject, access) : []).filter((issue) => issue.severity !== "info");
     const duplicate = planned.has(subject.code) && choiceItem.subject?.code !== subject.code;
@@ -63,9 +67,10 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
       candidateCreditPoints: subject.creditPoints ?? 0,
       replacingCurrent: currentBelongsToGroup && Boolean(choiceItem.subject),
     });
-    return <article className={appUi.subjectResult} key={subject.id}><div className={appUi.subjectResultMain}>
+    return <article className={appUi.subjectResult} data-candidate-code={attributionFor ? subject.code : undefined} key={subject.id}><div className={appUi.subjectResultMain}>
       <span className={appUi.subjectResultCode}>{subject.code}</span><h3>{subject.name}</h3><div className={appUi.subjectResultMeta}>
-        <span>{subject.creditPoints === null ? "CP not listed" : `${subject.creditPoints} CP`}</span>{(componentCode || quotaGroup) && <span className={appUi.matchBadge}>Requirement match ✓</span>}</div>
+        <span>{subject.creditPoints === null ? "CP not listed" : `${subject.creditPoints} CP`}</span>{(candidateComponent || candidateGroup) && <span className={appUi.matchBadge}>Requirement match ✓</span>}</div>
+      {attribution?.controls}
       {requiredCore && <p className={appUi.candidateAccess}><strong>Required Core</strong></p>}
       {requiredCore && <p className={placements.has(subject.code) ? appUi.candidateAccessSatisfied : appUi.candidateAccessWarning}>
         {placements.has(subject.code) ? `✓ Planned — ${placements.get(subject.code)}` : planned.has(subject.code) ? "✓ Planned — not yet assigned to a period" : "⚠ Not currently planned"}</p>}
@@ -75,7 +80,7 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
       {(access?.hasConditions || subject.prerequisiteStatus === "HAS_CONDITIONS") && <button className={appUi.textButton} type="button" onClick={() => onOpenSubject(subject.code)}>View requirements</button>}
       {action.visible && <button className={appUi.secondaryButton} type="button"
         disabled={action.disabled || subject.creditPoints === null || subject.creditPoints <= 0 || subject.creditPoints > (choiceItem.choiceOrigin?.maximumCreditPoints ?? choiceItem.choiceOrigin?.creditPoints ?? choiceItem.creditPoints ?? Infinity)}
-        onClick={() => onSelect(subject, componentCode, quotaGroup?.id)}>
+        onClick={() => onSelect(subject, candidateComponent, candidateGroup?.id)}>
         {action.label}
       </button>}
     </div></article>;
@@ -90,7 +95,7 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
   const [accessConditions, setAccessConditions] = useState<Record<string, SubjectAccessConditions>>({}); const [message, setMessage] = useState("");
   const [candidateQuery, setCandidateQuery] = useState("");
   const [ownership, setOwnership] = useState<Record<string, string>>({});
-  const [poolFilter, setPoolFilter] = useState("");
+  const [poolFilter, setPoolFilter] = useState(scope.defaultPoolGroupId ?? "");
   const sourceGroups = useMemo(() => flattenGroups(scope.groups ?? []).filter(group => group.candidateSources.length), [scope.groups]);
   const sources = useMemo(() => [...new Map(sourceGroups.flatMap(group => group.candidateSources).map(source => [source.id, source])).values()], [sourceGroups]);
   const candidates = useRequirementCandidateSubjects(sources, Boolean(choiceItem && scope.kind === "FORMAL" && scope.union), candidateQuery);
@@ -114,6 +119,15 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
     }
     return [...rows.values()].sort((a, b) => a.subject.code.localeCompare(b.subject.code));
   }, [pools, candidates.results, sourceGroups, candidateQuery]);
+  const unionById = useMemo(() => new Map(union.map(row => [row.subject.id, row])), [union]);
+  const sourcesBySubject = useMemo(() => new Map(candidates.results.map(subject => [subject.id, subject.eligibilitySources])), [candidates.results]);
+  const visiblePools = useMemo(() => (scope.groups ?? []).map(group => ({ group, rows: union.filter(row => {
+    if (poolFilter) return group.id === poolFilter && row.groups.some(member => member.id === poolFilter);
+    const primary = row.groups.find(member => member.id === scope.defaultPoolGroupId) ?? row.groups[0];
+    return primary?.id === group.id;
+  }) })).filter(pool => pool.rows.length), [scope.groups, scope.defaultPoolGroupId, union, poolFilter]);
+  const visibleSources = sources.filter(source => !poolFilter || sourceGroups.some(group => group.id === poolFilter && group.candidateSources.some(member => member.id === source.id)));
+  const showSourceStatus = !poolFilter || visibleSources.length > 0;
   const codes = useMemo(() => [...new Set([...pools.flatMap((pool) => pool.subjects.map((subject) => subject.code)), ...externalResults.map((subject) => subject.code), ...candidates.results.map(subject => subject.code)])].sort(), [externalResults, pools, candidates.results]);
   const codeKey = codes.join("|");
   useEffect(() => {
@@ -137,7 +151,8 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       if (!(error instanceof DOMException && error.name === "AbortError")) setAccessConditions({});
     }); return () => controller.abort();
   }, [choiceItem, codeKey, handbookYear, universityCode, adaptAccess]);
-  useEffect(() => { if (!choiceItem) return; setQuery(""); setCandidateQuery(""); setPoolFilter(""); setOwnership({}); setExternalResults([]); setMessage(""); setExternalStatus("idle"); return () => requestRef.current?.abort(); }, [choiceItem?.id]);
+  useEffect(() => { if (!choiceItem) return; setQuery(""); setCandidateQuery(""); setPoolFilter(scope.defaultPoolGroupId ?? ""); setOwnership({}); setExternalResults([]); setMessage(""); setExternalStatus("idle"); return () => requestRef.current?.abort(); }, [choiceItem?.id, scope.defaultPoolGroupId]);
+  useEffect(() => { if (poolFilter && !scope.groups?.some(group => group.id === poolFilter)) { setPoolFilter(scope.defaultPoolGroupId ?? ""); setOwnership({}); } }, [scope.groups, scope.defaultPoolGroupId, poolFilter]);
   const submitSearch = (event: FormEvent) => {
     event.preventDefault(); const normalized = query.trim(); if (normalized.length < 2) { setMessage("Enter at least two characters."); return; }
     const controller = new AbortController(); requestRef.current = controller; setMessage(""); setExternalStatus("loading");
@@ -162,29 +177,35 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       : scope.kind === "BROAD" ? <><strong>Broad choice: {scope.label}</strong><br />Search results are not automatically verified to count.</> : <>{scope.label ?? "No exact requirement mapping is available. Choose a pathway or component first; missing mappings need handbook verification."}</>}</div>
     {scope.limitation && <p className={appUi.candidateAccessWarning}>{scope.limitation}</p>}
     {scope.union && scope.kind === "FORMAL" && <>
-      {sources.length > 0 && <ul className="mx-6 my-4 pl-4 text-sm" aria-label="Eligible candidate sources">{sources.map(source => <li key={source.id}>{source.title}: {source.candidateCount.toLocaleString()} subjects</li>)}</ul>}
-      {(scope.groups?.length ?? 0) > 1 && <label className="mx-6 mb-3 grid gap-2 text-sm">Eligible pool<select value={poolFilter} onChange={event => setPoolFilter(event.target.value)}>
+      {(scope.groups?.length ?? 0) > 0 && <div className={appUi.eligiblePoolFilter}><label htmlFor="eligible-pool-filter">Eligible pool</label><select id="eligible-pool-filter" value={poolFilter} onChange={event => { setPoolFilter(event.target.value); setOwnership({}); }}>
         <option value="">All eligible pools</option>{scope.groups?.map(group => <option value={group.id} key={group.id}>{group.title}</option>)}
-      </select></label>}
+      </select></div>}
+      {visibleSources.length > 0 && <ul className="mx-6 mb-0 mt-3 pl-4 text-sm" aria-label="Eligible candidate sources">{visibleSources.map(source => <li key={source.id}>{source.title}: {source.candidateCount.toLocaleString()} subjects</li>)}</ul>}
       <form className={appUi.subjectSearch} onSubmit={event => { event.preventDefault(); setCandidateQuery(query.trim()); }}>
         <label htmlFor="eligible-subject-query">Search eligible subjects by code or name</label>
         <div><input id="eligible-subject-query" type="search" value={query} onChange={event => setQuery(event.target.value)} /><button type="submit" className={appUi.primaryButton}>Search eligible subjects</button></div>
       </form>
-      {candidates.status === "loading" && <AsyncState kind="loading" label="Loading eligible subjects" />}
-      {candidates.status === "error" && <AsyncState kind="error" label="Couldn't load eligible subjects." onRetry={candidates.retry} />}
-      <div aria-live="polite" className="grid gap-3 px-6 pb-4">{union.filter(row => !poolFilter || row.groups.some(group => group.id === poolFilter)).map(({ subject, groups }) => {
-        const group = groups.find(group => group.id === ownership[subject.id]) ?? groups.find(group => group.id === poolFilter) ?? groups[0];
-        return <section data-candidate-code={subject.code} key={subject.id}>
-          {groups.length > 1 ? <label className="block text-sm">Credit {subject.code} to
-            <select className="block max-w-full" value={group.id} onChange={event => setOwnership(value => ({ ...value, [subject.id]: event.target.value }))}>
-              {groups.map(group => <option value={group.id} key={group.id}>{group.title}</option>)}
-            </select></label> : <p className="mb-1 text-sm text-slate-600">Eligible for: {group.title}</p>}
-          <SubjectResults {...resultProps} results={[subject]} selectable requiredCore={false} quotaGroup={group} componentCode={scope.componentCodesByGroup?.[group.id]} recognizeOfficialSubjects />
-        </section>;
-      })}</div>
-      {union.filter(row => !poolFilter || row.groups.some(group => group.id === poolFilter)).length === 0 && candidates.status !== "loading" && candidates.status !== "error" && <AsyncState kind="empty" label="No eligible subjects match this search." />}
-      {candidates.pageError && <p role="alert">{candidates.pageError}</p>}
-      <div className="flex flex-wrap gap-2 px-6 pb-4">{Object.values(candidates.pages).map(page => page.pagination.page < page.pagination.totalPages && <button type="button" className={appUi.secondaryButton} disabled={page.loadingMore}
+      {showSourceStatus && candidates.status === "loading" && <AsyncState kind="loading" label="Loading eligible subjects" />}
+      {showSourceStatus && candidates.status === "error" && <AsyncState kind="error" label="Couldn't load eligible subjects." onRetry={candidates.retry} />}
+      <div aria-live="polite" className="grid gap-6 px-6 py-4">{visiblePools.map(({ group: heading, rows }) => <section className={appUi.eligiblePoolGroup} data-eligible-pool={heading.id} key={heading.id} aria-label={heading.title ?? "Eligible subjects"}>
+        <header><h3>{heading.title ?? "Eligible subjects"}</h3><span>{rows.length} {rows.length === 1 ? "subject" : "subjects"} shown</span></header>
+        <SubjectResults {...resultProps} results={rows.map(row => row.subject)} selectable requiredCore={false} recognizeOfficialSubjects
+          attributionFor={subject => {
+            const { groups } = unionById.get(subject.id)!;
+            const group = groups.find(member => member.id === ownership[subject.id]) ?? groups.find(member => member.id === heading.id) ?? groups[0];
+            const eligibilitySources = sourcesBySubject.get(subject.id) ?? [];
+            return { group, componentCode: scope.componentCodesByGroup?.[group.id], controls: <>
+              {groups.length > 1 && <label className={appUi.candidateOwnership}>Credit {subject.code} to
+                <select value={group.id} onChange={event => setOwnership(value => ({ ...value, [subject.id]: event.target.value }))}>
+                  {groups.map(member => <option value={member.id} key={member.id}>{member.title}</option>)}
+                </select></label>}
+              {eligibilitySources.length > 0 && <div className={appUi.candidateSourceBadges} aria-label={`${subject.code} candidate sources`}>{eligibilitySources.map(source => <span key={source.id}>{source.title}</span>)}</div>}
+            </> };
+          }} />
+      </section>)}</div>
+      {visiblePools.length === 0 && (!showSourceStatus || (candidates.status !== "loading" && candidates.status !== "error")) && <AsyncState kind="empty" label="No eligible subjects match this search." />}
+      {showSourceStatus && candidates.pageError && <p role="alert">{candidates.pageError}</p>}
+      <div className="flex flex-wrap gap-2 px-6 pb-4">{Object.values(candidates.pages).filter(page => visibleSources.some(source => source.id === page.candidateSource.id)).map(page => page.pagination.page < page.pagination.totalPages && <button type="button" className={appUi.secondaryButton} disabled={page.loadingMore}
         key={page.candidateSource.id} onClick={() => candidates.loadMore(page.candidateSource.id)}>Load more from {page.candidateSource.title} ({page.pagination.page} of {page.pagination.totalPages})</button>)}</div>
     </>}
     <div className={appUi.subjectResultsGrouped} aria-live="polite">{!scope.union && scope.kind === "FORMAL" && pools.length === 0 && <AsyncState kind="empty" label="No verified subject list is available for this requirement. This requirement cannot currently be verified." />}

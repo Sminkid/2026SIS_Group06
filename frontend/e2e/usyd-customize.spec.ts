@@ -109,6 +109,7 @@ test("drafts survive reload and remain isolated by base, commencement and specia
 test("mixed embedded/source union is deduplicated and persists explicit requirement ownership", async ({ page }) => {
   await open(page); await customize(page); await fill(page);
   await page.locator(".plan-item--filled").getByRole("button", { name: "Change", exact: true }).click();
+  await choice(page).getByLabel("Eligible pool", { exact: true }).selectOption("");
   await expect(choice(page).getByLabel("Eligible candidate sources")).toContainText("271 subjects");
   await expect(choice(page).getByLabel("Eligible candidate sources")).toContainText("1,472 subjects");
   await expect(choice(page).locator('[data-candidate-code="COMP2022"]')).toHaveCount(1);
@@ -121,6 +122,79 @@ test("mixed embedded/source union is deduplicated and persists explicit requirem
   await expect(choice(page).locator('[data-candidate-code="COMP2022"]').getByRole("button", { name: "Select", exact: true })).toBeDisabled();
   await page.keyboard.press("Escape"); await page.getByRole("button", { name: "Remove subject & restore choice" }).click();
   await expect(page.locator(".plan-item--filled")).toHaveCount(0);
+});
+
+test("contextual low-level pool groups results once; filters reconcile overlapping ownership and search", async ({ page }) => {
+  await open(page); await customize(page);
+  await page.locator(".plan-item--choice").first().getByRole("button", { name: "Choose", exact: true }).click();
+  const dialog = choice(page); const filter = dialog.getByLabel("Eligible pool", { exact: true });
+  await expect(filter).toHaveValue("software-stream:options");
+  await expect(filter.getByRole("option", { name: "All eligible pools", exact: true })).toHaveCount(1);
+  await expect(dialog.locator("[data-eligible-pool]")).toHaveCount(1);
+  await expect(dialog.getByRole("heading", { name: "1000/2000 Level Stream Elective units", exact: true })).toHaveCount(1);
+  await expect(dialog.locator("[data-candidate-code]")).toHaveCount(2);
+  await expect(dialog).not.toContainText("Eligible for:");
+  await filter.selectOption("");
+  await expect(dialog.locator('[data-candidate-code="ACCT1006"]')).toBeVisible();
+  await expect(dialog.locator("[data-eligible-pool]")).toHaveCount(2);
+  await expect(dialog.locator('[data-candidate-code="COMP2022"]')).toHaveCount(1);
+  await expect(dialog.getByLabel("COMP2022 candidate sources")).toContainText("Engineering undergraduate units");
+  await expect(dialog.getByLabel("COMP2022 candidate sources")).toContainText("Table S units");
+  await dialog.getByLabel("Credit COMP2022 to").selectOption("free");
+  await filter.selectOption("software-stream:options");
+  await expect(dialog.getByLabel("Credit COMP2022 to")).toHaveValue("software-stream:options");
+  await expect(dialog.getByRole("heading", { name: "Free Electives", exact: true })).toHaveCount(0);
+  await filter.selectOption("free");
+  await expect(dialog.locator("[data-eligible-pool]")).toHaveAttribute("data-eligible-pool", "free");
+  await expect(dialog.getByLabel("Credit COMP2022 to")).toHaveValue("free");
+  await dialog.getByRole("button", { name: /Load more from Table S/ }).click();
+  await expect(dialog.locator('[data-candidate-code="DATA1002"]')).toBeVisible();
+  await expect(dialog.locator('[data-candidate-code="COMP2022"]')).toHaveCount(1);
+  for (const [query, count] of [["COMP2022", 1], ["Financial Management", 1], ["no-such-unit", 0], ["", 3]] as const) {
+    await dialog.getByLabel("Search eligible subjects by code or name").fill(query);
+    await dialog.getByRole("button", { name: "Search eligible subjects", exact: true }).click();
+    await expect(dialog.locator("[data-candidate-code]")).toHaveCount(count);
+  }
+  await expect(dialog.locator('[data-candidate-code="DATA1002"]')).toHaveCount(0);
+  await dialog.getByRole("button", { name: /Load more from Table S/ }).click();
+  await expect(dialog.locator('[data-candidate-code="DATA1002"]')).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await filter.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(48);
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await dialog.locator('[data-candidate-code="COMP2022"]').getByRole("button", { name: "Select", exact: true }).click();
+  await open(page);
+  const saved = await page.evaluate(() => Object.entries(localStorage).filter(([key]) => key.startsWith("planner:USYD")).map(([, value]) => JSON.parse(value)));
+  const allocation = saved[0].years[0].periods[0].items.find((item: { subject?: { code: string } }) => item.subject?.code === "COMP2022");
+  expect(allocation.choiceOrigin.formalRequirementGroupId).toBe("free");
+  expect(allocation.choiceOrigin.formalComponentCode).toBeUndefined();
+});
+
+test("high-level primary defaults correctly and an ambiguous primary keeps All eligible pools", async ({ page }) => {
+  const high = group("software-high", "3000+ Level Stream Elective Units");
+  high.items = [{ id: "comp3608", itemType: "SUBJECT", subject: subject("COMP3608", "Introduction to Artificial Intelligence"), component: null,
+    rawCode: "COMP3608", rawName: null, creditPoints: 6, sortOrder: 0 }];
+  const changedPlans = structuredClone(plans);
+  changedPlans[0].years[0].periods[0].items[1].title = "Software Stream 3000+ Level Elective Units or Free Electives";
+  let ambiguous = false;
+  await page.route("**/api/degrees/BHENGINE-04/study-plans?**", route => route.fulfill({ json: changedPlans }));
+  await page.route("**/api/components/software-stream?**", route => {
+    const component = structuredClone(components.find(component => component.component.id === "software-stream")!);
+    component.requirements.push(high);
+    if (ambiguous) component.requirements.push({ ...high, id: "ambiguous-high" });
+    return route.fulfill({ json: component });
+  });
+  await open(page); await customize(page);
+  await page.locator(".plan-item--choice").first().getByRole("button", { name: "Choose", exact: true }).click();
+  await expect(choice(page).getByLabel("Eligible pool", { exact: true })).toHaveValue(high.id);
+  await expect(choice(page).getByRole("heading", { name: high.title!, exact: true })).toHaveCount(1);
+  await expect(choice(page).locator('[data-candidate-code="COMP3608"]')).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  ambiguous = true; await open(page);
+  await page.locator(".plan-item--choice").first().getByRole("button", { name: "Choose", exact: true }).click();
+  await expect(choice(page).getByLabel("Eligible pool", { exact: true })).toHaveValue("");
+  await expect(choice(page)).toContainText("Some CUSP alternatives could not be mapped.");
+  await expect(choice(page).locator('[data-candidate-code="COMP3608"]')).toHaveCount(0);
+  await expect(choice(page).getByRole("heading", { name: "Free Electives", exact: true })).toBeVisible();
 });
 
 test("Free Electives page/search, capacity checks and explicit Table D applicability", async ({ page }) => {

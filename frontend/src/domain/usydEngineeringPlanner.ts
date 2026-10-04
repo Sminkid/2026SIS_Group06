@@ -74,13 +74,17 @@ export function resolveUsydEngineeringChoice(item: StudyPlanItem | null, require
   const phrases = title.split(/\s+or\s+/i).map(phrase => phrase.split(/Note:/i)[0].trim()).filter(Boolean);
   const groups = new Map<string, RequirementGroup>();
   const owners: Record<string, string> = {};
+  let defaultPoolGroupId: string | undefined;
   const allDegree = usydGroups(requirements);
   let missing = false;
   for (const phrase of phrases) {
     if (/^Free Electives?$/i.test(phrase)) {
       const free = allDegree.find(group => group.candidateSources.some(source => source.title === "Engineering undergraduate units")
         && group.candidateSources.some(source => source.tableName === "Table S"));
-      if (free) groups.set(free.id, { ...free, title: "Free Electives", logic: "ANY" }); else missing = true;
+      if (free) {
+        groups.set(free.id, { ...free, title: "Free Electives", logic: "ANY" });
+        if (phrase === phrases[0]) defaultPoolGroupId = free.id;
+      } else missing = true;
       if (dalyell) {
         const tableD = allDegree.find(group => group.candidateSources.some(source => source.tableName === "Table D"));
         if (tableD) groups.set(tableD.id, { ...tableD, title: "Dalyell · Table D", logic: "ANY",
@@ -92,8 +96,11 @@ export function resolveUsydEngineeringChoice(item: StudyPlanItem | null, require
     if (/Table S/i.test(phrase) || /Dalyell|Table D/i.test(phrase)) {
       const table = /Table S/i.test(phrase) ? "Table S" : "Table D";
       const group = allDegree.find(group => group.candidateSources.some(source => source.tableName === table));
-      if (group && (table !== "Table D" || dalyell)) groups.set(group.id, { ...group, title: table,
-        candidateSources: group.candidateSources.filter(source => source.tableName === table), logic: "ANY" });
+      if (group && (table !== "Table D" || dalyell)) {
+        groups.set(group.id, { ...group, title: table,
+          candidateSources: group.candidateSources.filter(source => source.tableName === table), logic: "ANY" });
+        if (phrase === phrases[0]) defaultPoolGroupId = group.id;
+      }
       else missing = true;
       continue;
     }
@@ -106,6 +113,7 @@ export function resolveUsydEngineeringChoice(item: StudyPlanItem | null, require
     const matches = candidates.filter(group => poolTokens(group.title ?? "").length === longest);
     if (matches.length === 1) {
       const group = matches[0]; groups.set(group.id, allocationGroup(group)); owners[group.id] = stream!.component.code;
+      if (phrase === phrases[0]) defaultPoolGroupId = group.id;
     } else missing = true;
   }
   // Specialisation options count toward that specialisation only when they are also eligible for this CUSP slot.
@@ -120,6 +128,7 @@ export function resolveUsydEngineeringChoice(item: StudyPlanItem | null, require
     ? "Table D is available only when you confirm Dalyell enrolment." : "This CUSP choice does not identify an available eligible pool. Check the official source." };
   return { kind: "FORMAL", label: title, groups: [...groups.values()], selectableGroupIds: [...groups.keys()],
     union: true, componentCodesByGroup: owners,
+    defaultPoolGroupId,
     ...(missing ? { limitation: "Some CUSP alternatives could not be mapped. Only the verified pools below are available." } : {}),
   };
 }

@@ -20,6 +20,8 @@ export interface ChoiceScope {
   selectableGroupIds?: string[];
   /** A single deduplicated union with explicit requirement attribution. */
   union?: boolean;
+  /** Verified pool mapped from the first CUSP alternative; absent when that mapping is ambiguous. */
+  defaultPoolGroupId?: string;
   componentCodesByGroup?: Record<string, string>;
   limitation?: string;
 }

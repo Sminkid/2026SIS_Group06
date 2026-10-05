@@ -23,6 +23,13 @@ const components: ComponentDetailResponse[] = streamRefs.map(ref => {
   pool.items = units.slice(0, 2).map(s => ({ id: s.id, subject: s, component: null, itemType: "SUBJECT", rawCode: s.code, rawName: s.name, creditPoints: s.creditPoints, sortOrder: 0 }));
   return { component: { ...ref, originalType: "STREAM", handbookYear: 2026, sourceUrl: null, university: detail.degree.university }, requirements: [pool] };
 });
+// Formal references accompany CUSP preview aliases; scheduling titles alone are insufficient.
+const computerRef = { id: "computer", code: "USYD:ENGINEERING:SPECIALISATION:COMPUTER", name: "Computer", type: "SPECIALISATION",
+  displayCode: null, creditPoints: 30, creditPointsAvailability: "EXPLICIT_COMPONENT" as const };
+components.find(c => c.component.id === "software-stream")!.requirements.push({ ...group("software-specialisations", "Specialisation"), logic: "ONE_OF",
+  items: [{ id: "computer-ref", itemType: "COMPONENT", component: computerRef, subject: null, rawCode: computerRef.code,
+    rawName: computerRef.name, creditPoints: 30, sortOrder: 0 }] });
+components.push({ component: { ...computerRef, originalType: "SPECIALISATION", sourceUrl: null, handbookYear: 2026, university: detail.degree.university }, requirements: [] });
 const plans: StudyPlan[] = fixture.plans.map(p => ({ ...p, years: structuredClone(fixture.plans[0].years) } as StudyPlan));
 for (const plan of plans) {
   const first = plan.years[0].periods[0]; first.items[1].creditPoints = 12;
@@ -98,9 +105,9 @@ test("drafts survive reload and remain isolated by base, commencement and specia
   await expect(page.locator(".plan-item--filled")).toContainText("COMP2022");
   await page.getByRole("combobox", { name: "Commencement", exact: true }).selectOption("STANDARD");
   await expect(page.locator(".plan-item--filled")).toContainText("INFO1111");
-  await page.getByRole("combobox", { name: "Specialisation", exact: true }).selectOption({ label: "Stream · Computer Engineering" });
+  await page.getByRole("combobox", { name: "Study plan focus", exact: true }).selectOption({ label: "Computer · 30 CP" });
   await page.getByRole("button", { name: "Customize Plan", exact: true }).click(); await fill(page, 0, "COMP2022");
-  await page.getByRole("combobox", { name: "Specialisation", exact: true }).selectOption("BASE");
+  await page.getByRole("combobox", { name: "Study plan focus", exact: true }).selectOption("BASE");
   await expect(page.locator(".plan-item--filled")).toContainText("INFO1111");
   await page.getByRole("button", { name: "Remove personal draft" }).click(); await expect(page.getByRole("button", { name: "Customize Plan", exact: true })).toBeVisible();
   await open(page); await expect(page.locator(".plan-item--filled")).toHaveCount(0);

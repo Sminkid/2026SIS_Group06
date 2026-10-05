@@ -462,7 +462,8 @@ test("selecting a Software Engineering STREAM loads and renders all component su
   const specialisation = streamSection.getByRole("button", { name: /Specialisation.*Choose one/i });
   await specialisation.click();
   const specialisationSection = specialisation.locator("..");
-  await expect(specialisationSection.getByRole("radio")).toHaveCount(4);
+  await expect(specialisationSection.getByRole("radio")).toHaveCount(5);
+  await expect(specialisationSection.getByRole("radio", { name: /No optional component/ })).toBeChecked();
   await specialisationSection.getByRole("radio", { name: /Computer/ }).check();
   await expect.poll(() => componentRequests).toContain("software-specialisation-component-0");
   await expect(specialisationSection.getByText("Selected specialisation", { exact: true })).toBeVisible();

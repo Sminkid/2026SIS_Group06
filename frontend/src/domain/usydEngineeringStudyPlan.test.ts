@@ -51,7 +51,7 @@ test("Course Structure choices seed, but do not own, the preview selection", () 
   const academic = selected("Software Engineering", "Computer");
   assert.deepEqual(suggestUsydEngineeringStudyPlanPreview(academic, plans), {
     stream: "Software Engineering",
-    specialisation: "SPECIALISATION:computer",
+    specialisation: "STREAM_SPECIALISATION:computer",
   });
   const manuallyChanged = preview({ stream: "Civil Engineering", specialisation: "BASE" });
   assert.equal(manuallyChanged.selectedStream, "Civil Engineering");
@@ -73,7 +73,7 @@ test("specialisations are filtered per stream and retain Base, Stream, and Bread
 test("stream changes discard incompatible specialisations while preserving a valid commencement", () => {
   const changed = preview({
     stream: "Electrical Engineering",
-    specialisation: "SPECIALISATION:computer",
+    specialisation: "STREAM_SPECIALISATION:computer",
     commencement: "MID_YEAR",
   });
   assert.equal(changed.selectedSpecialisation, "BASE");
@@ -86,7 +86,7 @@ test("the final variant list is filtered and supports an explicit override when 
     "Software Engineering: 9. Stream Specialisation in Computer Engineering");
   const input = {
     stream: "Software Engineering",
-    specialisation: "SPECIALISATION:computer",
+    specialisation: "STREAM_SPECIALISATION:computer",
     commencement: "STANDARD" as const,
     plans: [...plans, duplicate],
   };

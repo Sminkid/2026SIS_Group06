@@ -1,4 +1,6 @@
 import type { ComponentDetailResponse, RequirementGroup, StudyPlan } from "../types/handbook";
+import { matchUsydEngineeringSpecialisation, usydEngineeringSpecialisations, usydFormalFocusId,
+  usydSpecialisationNameKey, type UsydFormalSpecialisation, type UsydSpecialisationKind } from "./usydEngineeringSpecialisations";
 
 export type UsydCommencement = "STANDARD" | "MID_YEAR";
 export type UsydPlanVariantKind = "BASE" | "STREAM_SPECIALISATION" | "BREADTH_SPECIALISATION" | "OTHER";
@@ -26,6 +28,7 @@ export interface UsydPreviewSpecialisation {
   label: string;
   name: string | null;
   kind: UsydPlanVariantKind;
+  component?: UsydFormalSpecialisation["component"];
 }
 
 export interface UsydEngineeringStudyPlanPreview {
@@ -86,7 +89,7 @@ export const groupUsydStudyPlans = (plans: StudyPlan[]): UsydPlanStreamGroup[] =
 
 export interface UsydEngineeringAcademicSelection {
   stream: { code: string; name: string } | null;
-  specialisations: Array<{ code: string; name: string }>;
+  specialisations: Array<{ code: string; name: string; kind?: UsydSpecialisationKind }>;
 }
 
 export type UsydStudyPlanResolutionKind = "waiting" | "base" | "exact" | "fallback" | "ambiguous";
@@ -121,10 +124,9 @@ export const usydEngineeringAcademicSelection = (
     : null;
   if (!stream) return { stream: null, specialisations: [] };
 
-  const activeGroups = flattenRequirements(componentDetails[stream.code]?.requirements ?? []);
-  const specialisations = activeGroups.flatMap((group) => componentOptions(group, "SPECIALISATION")
-    .filter((option) => selections[group.id] === option.code)
-    .map((option) => ({ code: option.code, name: option.name })));
+  const specialisations = usydEngineeringSpecialisations(componentDetails[stream.code])
+    .filter(option => selections[option.requirementGroupId] === option.component.code)
+    .map(option => ({ code: option.component.code, name: option.component.name, kind: option.kind }));
   return { stream: { code: stream.code, name: stream.name }, specialisations };
 };
 
@@ -142,23 +144,12 @@ const normalizedPathway = (value: string): string => normalizedWords(value)
   .filter((word) => word !== "and")
   .join(" ");
 
-/**
- * CUSP expands terse Course Structure labels (for example "Computer" to
- * "Computer Engineering" and "Internet Things" to "Internet of Things (IoT)").
- * Removing only those connective/category words keeps matching data-driven.
- */
-const specialisationNoiseWords = new Set([
-  "and", "breadth", "civil", "engineering", "for", "iot", "of", "specialisation", "stream", "the",
-]);
-
-const normalizedSpecialisation = (value: string): string => normalizedWords(value)
-  .filter((word) => !specialisationNoiseWords.has(word))
-  .join(" ");
+const normalizedSpecialisation = usydSpecialisationNameKey;
 
 const specialisationId = (candidate: UsydPlanVariant): string => {
   if (candidate.kind === "BASE") return "BASE";
   if (candidate.specialisationName) {
-    return `SPECIALISATION:${normalizedSpecialisation(candidate.specialisationName)}`;
+    return `${candidate.kind}:${normalizedSpecialisation(candidate.specialisationName)}`;
   }
   return "OTHER";
 };
@@ -198,6 +189,16 @@ const previewSpecialisations = (group: UsydPlanStreamGroup): UsydPreviewSpeciali
 const variantsForSpecialisation = (variants: UsydPlanVariant[], id: string): UsydPlanVariant[] =>
   variants.filter((candidate) => specialisationId(candidate) === id);
 
+const formalVariantOption = (candidate: UsydPlanVariant, options: UsydFormalSpecialisation[]) =>
+  candidate.specialisationName ? matchUsydEngineeringSpecialisation(options, candidate.specialisationName,
+    candidate.kind === "OTHER" ? undefined : candidate.kind === "BASE" ? undefined : candidate.kind) : undefined;
+
+const formalPreviewChoices = (group: UsydPlanStreamGroup, options: UsydFormalSpecialisation[]): UsydPreviewSpecialisation[] => [
+  ...previewSpecialisations(group).filter(choice => choice.kind === "BASE" || (choice.kind === "OTHER" && !choice.name)),
+  ...options.map(option => ({ id: usydFormalFocusId(option), label: option.component.name,
+    name: option.component.name, kind: option.kind, component: option.component })),
+].sort((a, b) => specialisationKindOrder[a.kind] - specialisationKindOrder[b.kind] || a.label.localeCompare(b.label));
+
 const matchingStream = (groups: UsydPlanStreamGroup[], name: string): UsydPlanStreamGroup | null => {
   const matches = groups.filter((group) => normalizedPathway(group.pathway) === normalizedPathway(name));
   return matches.length === 1 ? matches[0]! : null;
@@ -213,12 +214,14 @@ export const resolveUsydEngineeringStudyPlanPreview = ({
   commencement: selectedCommencement,
   planId,
   plans,
+  streamDetail,
 }: {
   stream: string;
   specialisation: string;
   commencement: UsydCommencement | "";
   planId: string;
   plans: StudyPlan[];
+  streamDetail?: ComponentDetailResponse | null;
 }): UsydEngineeringStudyPlanPreview => {
   const streams = groupUsydStudyPlans(plans);
   const group = streams.find((candidate) => candidate.pathway === stream) ?? null;
@@ -230,17 +233,41 @@ export const resolveUsydEngineeringStudyPlanPreview = ({
     };
   }
 
-  const specialisations = previewSpecialisations(group);
-  const selectedSpecialisation = specialisations.some((candidate) => candidate.id === specialisation)
-    ? specialisation
+  if (streamDetail === null) return {
+    resolution: "waiting", streams, specialisations: [], commencements: [], variants: [],
+    selectedStream: group.pathway, selectedSpecialisation: "", selectedCommencement: "", selectedPlan: null,
+    reason: "Loading formal specialisations for this stream.",
+  };
+  if (streamDetail && (streamDetail.component.type !== "STREAM"
+    || streamDetail.component.university.code !== "USYD"
+    || normalizedPathway(streamDetail.component.name) !== normalizedPathway(group.pathway))) return {
+    resolution: "fallback", streams, specialisations: [], commencements: [], variants: [],
+    selectedStream: group.pathway, selectedSpecialisation: "", selectedCommencement: "", selectedPlan: null,
+    reason: "The formal component does not belong to this Engineering stream.",
+  };
+  const options = usydEngineeringSpecialisations(streamDetail);
+  const specialisations = streamDetail ? formalPreviewChoices(group, options) : previewSpecialisations(group);
+  const compatible = (variants: UsydPlanVariant[], id: string) => streamDetail
+    ? variants.filter(candidate => candidate.specialisationName
+      ? usydFormalFocusIdOrUndefined(formalVariantOption(candidate, options)) === id
+      : specialisationId(candidate) === id)
+    : variantsForSpecialisation(variants, id);
+  // Migrate saved title aliases only when exactly one formal component matches inside this stream.
+  const legacyName = /^(?:SPECIALISATION|STREAM_SPECIALISATION|BREADTH_SPECIALISATION|OTHER):(.+)$/.exec(specialisation)?.[1];
+  const legacyKind = specialisation.startsWith("STREAM_SPECIALISATION:") ? "STREAM_SPECIALISATION"
+    : specialisation.startsWith("BREADTH_SPECIALISATION:") ? "BREADTH_SPECIALISATION" : undefined;
+  const migrated = legacyName && streamDetail ? matchUsydEngineeringSpecialisation(options, legacyName, legacyKind) : undefined;
+  const requested = migrated ? usydFormalFocusId(migrated) : specialisation;
+  const selectedSpecialisation = specialisations.some((candidate) => candidate.id === requested)
+    ? requested
     : specialisations.find((candidate) => candidate.id === "BASE")?.id ?? specialisations[0]?.id ?? "";
   const commencements = group.commencements.filter((candidate) =>
-    variantsForSpecialisation(candidate.variants, selectedSpecialisation).length > 0);
+    compatible(candidate.variants, selectedSpecialisation).length > 0);
   const selectedCommencementValue = commencements.some((candidate) => candidate.id === selectedCommencement)
     ? selectedCommencement
     : commencements.find((candidate) => candidate.id === "STANDARD")?.id ?? commencements[0]?.id ?? "";
   const commencementGroup = commencements.find((candidate) => candidate.id === selectedCommencementValue);
-  const variants = variantsForSpecialisation(commencementGroup?.variants ?? [], selectedSpecialisation);
+  const variants = compatible(commencementGroup?.variants ?? [], selectedSpecialisation);
   const selectedVariant = variants.find((candidate) => candidate.plan.id === planId) ?? variants[0] ?? null;
   const choice = specialisations.find((candidate) => candidate.id === selectedSpecialisation);
 
@@ -270,16 +297,21 @@ export const resolveUsydEngineeringStudyPlanPreview = ({
 export const suggestUsydEngineeringStudyPlanPreview = (
   selection: UsydEngineeringAcademicSelection,
   plans: StudyPlan[],
+  streamDetail?: ComponentDetailResponse,
 ): { stream: string; specialisation: string } | null => {
   if (!selection.stream) return null;
   const group = matchingStream(groupUsydStudyPlans(plans), selection.stream.name);
   if (!group) return null;
-  const choices = previewSpecialisations(group);
+  const choices = streamDetail ? formalPreviewChoices(group, usydEngineeringSpecialisations(streamDetail)) : previewSpecialisations(group);
   if (selection.specialisations.length !== 1) {
     return { stream: group.pathway, specialisation: choices.some((choice) => choice.id === "BASE") ? "BASE" : "" };
   }
+  if (streamDetail) {
+    const selected = choices.find(choice => choice.component?.code === selection.specialisations[0]!.code);
+    return { stream: group.pathway, specialisation: selected?.id ?? "BASE" };
+  }
   const allVariants = group.commencements.flatMap((item) => item.variants);
-  const matches = specialisationCandidates(allVariants, selection.specialisations[0]!.name);
+  const matches = specialisationCandidates(allVariants, selection.specialisations[0]!.name, selection.specialisations[0]!.kind);
   const ids = [...new Set(matches.map(specialisationId))];
   return {
     stream: group.pathway,
@@ -287,9 +319,11 @@ export const suggestUsydEngineeringStudyPlanPreview = (
   };
 };
 
-const specialisationCandidates = (variants: UsydPlanVariant[], selectedName: string): UsydPlanVariant[] => {
+const usydFormalFocusIdOrUndefined = (option: UsydFormalSpecialisation | undefined) => option ? usydFormalFocusId(option) : undefined;
+
+const specialisationCandidates = (variants: UsydPlanVariant[], selectedName: string, kind?: UsydSpecialisationKind): UsydPlanVariant[] => {
   const selected = normalizedSpecialisation(selectedName);
-  const named = variants.filter((candidate) => candidate.specialisationName);
+  const named = variants.filter((candidate) => candidate.specialisationName && (!kind || candidate.kind === kind || candidate.kind === "OTHER"));
   const exact = named.filter((candidate) => normalizedSpecialisation(candidate.specialisationName!) === selected);
   if (exact.length > 0) return exact;
 
@@ -362,7 +396,7 @@ export const resolveUsydEngineeringStudyPlan = ({
 
   const specialisation = selection.specialisations[0];
   const candidates = specialisation
-    ? specialisationCandidates(variants, specialisation.name)
+    ? specialisationCandidates(variants, specialisation.name, specialisation.kind)
     : variants.filter((candidate) => candidate.kind === "BASE");
   if (candidates.length === 1) {
     return { resolution: specialisation ? "exact" : "base", pathway: group.pathway,

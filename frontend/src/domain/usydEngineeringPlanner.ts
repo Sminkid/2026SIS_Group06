@@ -1,24 +1,20 @@
 import type { ComponentDetailResponse, RequirementComponent, RequirementGroup, StudyPlan, StudyPlanItem } from "../types/handbook";
 import type { PlannerContext, PlannerItem } from "../types/planner";
 import type { ChoiceScope } from "./studyPathChoiceScope";
+import { matchUsydEngineeringSpecialisation, usydEngineeringSpecialisations, type UsydSpecialisationKind } from "./usydEngineeringSpecialisations";
 
 export const usydGroups = (groups: RequirementGroup[]): RequirementGroup[] => groups.flatMap(group => [group, ...usydGroups(group.children)]);
 const words = (value: string) => value.toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
-const nameKey = (value: string) => words(value).filter(word => !["and", "engineering", "specialisation", "stream", "breadth", "of", "for", "the", "iot", "civil"].includes(word)).join(" ");
 
 export function usydPreviewStream(requirements: RequirementGroup[], pathway: string): RequirementComponent | undefined {
   return usydGroups(requirements).flatMap(group => group.items).flatMap(item => item.component?.type === "STREAM" ? [item.component] : [])
     .find(component => words(component.name).join(" ") === words(pathway).join(" "));
 }
 
-export function usydPreviewSpecialisation(detail: ComponentDetailResponse | undefined, name: string | null): RequirementComponent | undefined {
+export function usydPreviewSpecialisation(detail: ComponentDetailResponse | undefined, name: string | null,
+  kind?: UsydSpecialisationKind): RequirementComponent | undefined {
   if (!detail || !name) return undefined;
-  const candidates = usydGroups(detail.requirements).flatMap(group => group.items).flatMap(item => item.component?.type === "SPECIALISATION" ? [item.component] : []);
-  const exact = candidates.filter(component => nameKey(component.name) === nameKey(name));
-  if (exact.length === 1) return exact[0];
-  const target = new Set(words(nameKey(name)));
-  const partial = candidates.filter(component => words(nameKey(component.name)).every(word => target.has(word)));
-  return partial.length === 1 ? partial[0] : undefined;
+  return matchUsydEngineeringSpecialisation(usydEngineeringSpecialisations(detail), name, kind)?.component;
 }
 
 /** Copy only capacity and provenance. No CUSP subject or handbook relationship is invented. */
@@ -68,7 +64,7 @@ const poolTokens = (value: string) => words(value).filter(word => !["unit", "uni
 
 /** Match named source tables within the selected stream; missing alternatives remain explicitly limited. */
 export function resolveUsydEngineeringChoice(item: StudyPlanItem | null, requirements: RequirementGroup[],
-  stream: ComponentDetailResponse | undefined, specialisation: ComponentDetailResponse | undefined, dalyell: boolean): ChoiceScope {
+  stream: ComponentDetailResponse | undefined, _specialisation: ComponentDetailResponse | undefined, dalyell: boolean): ChoiceScope {
   if (!item) return { kind: "UNRESOLVED" };
   const title = item.choiceOrigin?.title ?? item.title;
   const phrases = title.split(/\s+or\s+/i).map(phrase => phrase.split(/Note:/i)[0].trim()).filter(Boolean);
@@ -82,7 +78,13 @@ export function resolveUsydEngineeringChoice(item: StudyPlanItem | null, require
       const free = allDegree.find(group => group.candidateSources.some(source => source.title === "Engineering undergraduate units")
         && group.candidateSources.some(source => source.tableName === "Table S"));
       if (free) {
-        groups.set(free.id, { ...free, title: "Free Electives", logic: "ANY" });
+        // USYD 2026 Environmental table explicitly permits Stream Electives within the Free Elective block.
+        // https://www.sydney.edu.au/handbooks/engineering/engineering-honours/streams/environmental/unit-of-study-table.html
+        const environmental = stream?.component.code === "USYD:ENGINEERING:STREAM:ENVIRONMENTAL-ENGINEERING"
+          && stream.component.handbookYear === 2026 && stream.component.university.code === "USYD"
+          ? usydGroups(stream.requirements).filter(group => group.title === "Stream Elective units").flatMap(group => group.items.filter(item => item.subject)) : [];
+        groups.set(free.id, { ...free, title: "Free Electives", logic: "ANY",
+          items: [...new Map([...free.items, ...environmental].map(item => [item.subject?.id ?? item.id, item])).values()] });
         if (phrase === phrases[0]) defaultPoolGroupId = free.id;
       } else missing = true;
       if (dalyell) {
@@ -116,14 +118,7 @@ export function resolveUsydEngineeringChoice(item: StudyPlanItem | null, require
       if (phrase === phrases[0]) defaultPoolGroupId = group.id;
     } else missing = true;
   }
-  // Specialisation options count toward that specialisation only when they are also eligible for this CUSP slot.
-  const eligible = new Set([...groups.values()].flatMap(group => group.items.flatMap(item => item.subject ? [item.subject.code] : [])));
-  for (const group of usydGroups(specialisation?.requirements ?? [])) {
-    const candidates = group.items.filter(item => item.subject && eligible.has(item.subject.code));
-    if (candidates.length && group.items.length > 1) {
-      groups.set(group.id, { ...allocationGroup(group), items: candidates }); owners[group.id] = specialisation!.component.code;
-    }
-  }
+  // Specialisation membership is a separate focused view. Allocation always uses actual slot pools.
   if (!groups.size) return { kind: "UNRESOLVED", label: /Dalyell|Table D/i.test(title) && !dalyell
     ? "Table D is available only when you confirm Dalyell enrolment." : "This CUSP choice does not identify an available eligible pool. Check the official source." };
   return { kind: "FORMAL", label: title, groups: [...groups.values()], selectableGroupIds: [...groups.keys()],

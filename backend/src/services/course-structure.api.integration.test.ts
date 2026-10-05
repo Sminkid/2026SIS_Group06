@@ -133,6 +133,38 @@ describe("database-backed Course Structure API", { skip: !process.env.DATABASE_U
     assert.deepEqual(streams, [...expectedEngineeringStreams].sort());
   });
 
+  test("formal Breadth specialisations expose distinct identities, 24 CP requirements and stream availability", async () => {
+    const expectedCounts: Record<string, number> = {
+      "Chemical and Biomolecular Engineering": 1, "Civil Engineering": 3,
+      "Electrical Engineering": 2, "Software Engineering": 2,
+    };
+    const references = new Map<string, NonNullable<DegreeRequirementGroup["items"][number]["component"]>>();
+    for (const [name, detail] of engineeringStreams) {
+      const group = flattenGroups(detail.requirements).find(g => /^Optional Breadth specialisation/i.test(g.title ?? ""));
+      assert.ok(group, name);
+      assert.equal(group.logic, "ONE_OF");
+      assert.equal(group.items.length, expectedCounts[name] ?? 4, name);
+      for (const item of group.items) {
+        assert.equal(item.component?.type, "SPECIALISATION");
+        assert.equal(item.component?.creditPoints, 24);
+        assert.ok(item.component?.code.endsWith("-BREADTH"));
+        references.set(item.component!.id, item.component!);
+      }
+    }
+    assert.equal(references.size, 4);
+    for (const ref of references.values()) {
+      const detail = await get<ComponentDetailResponse>(`/api/components/${ref.id}?university=USYD&year=2026`);
+      assert.equal(detail.component.id, ref.id);
+      assert.equal(detail.component.creditPoints, 24);
+      assert.equal(detail.requirements.reduce((sum, g) => sum + (g.requiredCreditPoints ?? 0), 0), 24);
+      assert.ok(detail.requirements.flatMap(g => g.items).every(i => i.subject?.id && i.subject.code));
+    }
+    const streamDataScience = flattenGroups(software.requirements).flatMap(g => g.items)
+      .find(i => i.component?.code.endsWith(":ENGINEERING-DATA-SCIENCE"))?.component;
+    assert.equal(streamDataScience?.creditPoints, 30);
+    assert.ok(!references.has(streamDataScience!.id));
+  });
+
   test("BHENGINE-04 exposes the repaired Engineering Core groups", () => {
     const groups = new Map(flattenGroups(engineering.requirements).map((group) => [group.title, group]));
     const foundation = groups.get("Foundation");

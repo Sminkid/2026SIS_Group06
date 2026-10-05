@@ -3,6 +3,7 @@ import type {
   UsydEngineeringStudyPlanPreview,
 } from "../../../domain/usydStudyPlan";
 import { appUi } from "../../ui";
+import { usydStudyPlanFocusGroups, usydStudyPlanFocusHelper } from "../../../domain/usydEngineeringSpecialisations";
 
 interface Props {
   degreeName: string;
@@ -43,17 +44,27 @@ export const UsydEngineeringPlanSelector = ({
 
       <section className={appUi.pathDecision}>
         <label className={appUi.studyPathField}>
-          <span>Specialisation</span>
+          <span>Study plan focus</span>
           <select
+            aria-describedby="usyd-focus-help usyd-preview-help"
             value={preview.selectedSpecialisation}
-            disabled={!preview.selectedStream}
+            disabled={preview.specialisations.length === 0}
             onChange={(event) => onSpecialisationChange(event.target.value)}
           >
-            <option value="">Select a specialisation</option>
-            {preview.specialisations.map((choice) => <option value={choice.id} key={choice.id}>{choice.label}</option>)}
+            <option value="">Select a study plan focus</option>
+            {usydStudyPlanFocusGroups.map(group => {
+              const choices = preview.specialisations.filter(choice => choice.kind === group.kind);
+              return choices.length ? <optgroup label={group.label} key={group.kind}>
+                {choices.map(choice => <option value={choice.id} key={choice.id}>{choice.kind === "BASE" ? "Base roadmap" : choice.label}
+                  {choice.component?.creditPoints != null ? ` · ${choice.component.creditPoints} CP` : ""}</option>)}
+              </optgroup> : null;
+            })}
           </select>
         </label>
+        <p id="usyd-focus-help" className={appUi.studyPathContext}>{usydStudyPlanFocusHelper(
+          preview.specialisations.find(choice => choice.id === preview.selectedSpecialisation)?.kind)}</p>
       </section>
+      <p id="usyd-preview-help" className={appUi.studyPathContext}>These controls choose a roadmap preview. Changing the preview does not change your Course Structure selections.</p>
 
       <section className={appUi.pathDecision}>
         <label className={appUi.studyPathField}>

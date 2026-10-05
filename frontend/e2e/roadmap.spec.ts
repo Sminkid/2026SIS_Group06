@@ -199,16 +199,16 @@ test("UTS Course Structure still selects a major and renders its nested subject 
 test("USYD Study Plan can be explored independently without mutating Course Structure", async ({ page }) => {
   await openDegree(page, "BHENGINE-04", "USYD");
   const previewStream = page.getByRole("combobox", { name: "Engineering Stream" });
-  const previewSpecialisation = page.getByRole("combobox", { name: "Specialisation" });
+  const previewSpecialisation = page.getByRole("combobox", { name: "Study plan focus" });
   const previewCommencement = page.getByRole("combobox", { name: "Commencement" });
   const previewVariant = page.getByRole("combobox", { name: "Study plan variant" });
 
   await expect(previewStream).toHaveValue("");
   await previewStream.selectOption("Civil Engineering");
   await expect(previewSpecialisation).toHaveValue("BASE");
-  await expect(previewSpecialisation.locator("option")).toHaveText(["Select a specialisation", "Base plan", "Stream · Structures"]);
+  await expect(previewSpecialisation.locator("option")).toHaveText(["Select a study plan focus", "Base roadmap", "Structures · 24 CP", "Water Engineering · 24 CP"]);
   await expect(previewCommencement).toHaveValue("STANDARD");
-  await previewSpecialisation.selectOption({ label: "Stream · Structures" });
+  await previewSpecialisation.selectOption({ label: "Structures · 24 CP" });
   await expect(previewVariant).toHaveValue("civil-structures");
   await expect(page.locator(".plan-intro h3")).toHaveText(/Stream Specialisation in Structures/);
 
@@ -217,7 +217,7 @@ test("USYD Study Plan can be explored independently without mutating Course Stru
   await expect(streamSection.getByRole("radio", { name: /Civil Engineering/ })).not.toBeChecked();
   await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
   await expect(previewStream).toHaveValue("Civil Engineering");
-  await expect(previewSpecialisation).toHaveValue(/structures/);
+  await expect(previewSpecialisation).toHaveValue(/STRUCTURES/);
 });
 
 test("USYD Engineering suggests canonical Course Structure choices in the independent CUSP preview", async ({ page }) => {
@@ -301,7 +301,7 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
   await expect(page.getByRole("button", { name: "Customize Plan", exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Engineering Stream" })).toHaveValue("Software Engineering");
   await expect(page.getByText("Suggested from Course Structure")).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Specialisation" })).toHaveValue("BASE");
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("BASE");
   await expect(page.getByRole("combobox", { name: "Commencement" })).toHaveValue("STANDARD");
   await expect(page.getByRole("combobox", { name: "Study plan variant" })).toHaveValue("software-base");
   await expect(page.locator(".plan-year")).toHaveCount(4);
@@ -315,17 +315,17 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
   await streamSection.getByRole("button", { name: /Software Engineering Specialisations.*Choose one/i }).click();
   await streamSection.getByRole("radio", { name: /Computer/ }).check();
   await expect(page.locator(".plan-intro h3")).toHaveText(/Stream Specialisation in Computer Engineering/);
-  await expect(page.getByRole("combobox", { name: "Specialisation" })).toHaveValue("SPECIALISATION:computer");
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("COMPONENT:USYD:ENGINEERING:SPECIALISATION:COMPUTER");
 
   await streamSection.getByRole("radio", { name: /Civil Engineering/ }).check();
   await expect(page.locator(".plan-intro h3")).toHaveText("Civil Engineering");
   await expect(page.getByRole("combobox", { name: "Commencement" })).toHaveValue("STANDARD");
   await expect(page.getByRole("combobox", { name: "Engineering Stream" })).toHaveValue("Civil Engineering");
-  await expect(page.getByRole("combobox", { name: "Specialisation" })).toHaveValue("BASE");
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("BASE");
   await streamSection.getByRole("button", { name: /Civil Engineering Specialisations.*Choose one/i }).click();
   await streamSection.getByRole("radio", { name: /Structures/ }).check();
   await expect(page.locator(".plan-intro h3")).toHaveText(/Stream Specialisation in Structures/);
-  await expect(page.getByRole("combobox", { name: "Specialisation" })).toHaveValue("SPECIALISATION:structures");
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("COMPONENT:USYD:ENGINEERING:SPECIALISATION:STRUCTURES");
 });
 
 test("Narrow layout and compact empty dialog retain a visible close control", async ({ page }) => {

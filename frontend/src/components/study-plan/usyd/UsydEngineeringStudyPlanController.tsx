@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchDegreeStudyPlans } from "../../../api/degrees";
+import { fetchComponentDetail } from "../../../api/components";
+import { usydPreviewStream } from "../../../domain/usydEngineeringPlanner";
+import { usydEngineeringSpecialisations } from "../../../domain/usydEngineeringSpecialisations";
+import { AsyncState } from "../../AsyncState";
 import {
   resolveUsydEngineeringStudyPlanPreview,
   suggestUsydEngineeringStudyPlanPreview,
@@ -47,6 +51,21 @@ export const UsydEngineeringStudyPlanController = ({
   const [planId, setPlanId] = useState(typeof saved?.planId === "string" ? saved.planId : "");
   const pathWasEdited = useRef(Boolean(saved?.stream));
   const retry = useCallback(() => setReloadKey((key) => key + 1), []);
+  const streamReference = useMemo(() => usydPreviewStream(requirements, stream), [requirements, stream]);
+  const knownStream = streamReference ? componentDetails[streamReference.code] : undefined;
+  const [loadedStream, setLoadedStream] = useState<ComponentDetailResponse>();
+  const [streamStatus, setStreamStatus] = useState<"loading" | "ready" | "error">("loading");
+  const streamDetail = knownStream ?? (loadedStream?.component.id === streamReference?.id ? loadedStream : undefined);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoadedStream(undefined);
+    if (!streamReference || knownStream) { setStreamStatus("ready"); return; }
+    setStreamStatus("loading");
+    void fetchComponentDetail(streamReference.id, universityCode, handbookYear, controller.signal)
+      .then(detail => { if (!controller.signal.aborted) { setLoadedStream(detail); setStreamStatus("ready"); } })
+      .catch(() => { if (!controller.signal.aborted) setStreamStatus("error"); });
+    return () => controller.abort();
+  }, [streamReference?.id, knownStream, universityCode, handbookYear, reloadKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -66,8 +85,9 @@ export const UsydEngineeringStudyPlanController = ({
     requirements, selectedComponents, componentDetails,
   ), [componentDetails, requirements, selectedComponents]);
   const suggestion = useMemo(
-    () => suggestUsydEngineeringStudyPlanPreview(academicSelection, plans),
-    [academicSelection, plans],
+    () => suggestUsydEngineeringStudyPlanPreview(academicSelection, plans,
+      academicSelection.stream ? componentDetails[academicSelection.stream.code] : undefined),
+    [academicSelection, plans, componentDetails],
   );
 
   useEffect(() => {
@@ -83,7 +103,8 @@ export const UsydEngineeringStudyPlanController = ({
     commencement,
     planId,
     plans,
-  }), [commencement, planId, plans, specialisation, stream]);
+    streamDetail: streamDetail ?? null,
+  }), [commencement, planId, plans, specialisation, stream, streamDetail]);
   useEffect(() => {
     if (status !== "ready" || !preview.selectedPlan) return;
     try { localStorage.setItem(preferencesKey, JSON.stringify({ stream: preview.selectedStream, specialisation: preview.selectedSpecialisation,
@@ -95,8 +116,14 @@ export const UsydEngineeringStudyPlanController = ({
   const isCourseStructureSuggestion = Boolean(suggestion
     && preview.selectedStream === suggestion.stream
     && preview.selectedSpecialisation === suggestion.specialisation);
+  const academicComponents = usydEngineeringSpecialisations(academicSelection.stream ? componentDetails[academicSelection.stream.code] : undefined)
+    .filter(option => academicSelection.specialisations.some(selected => selected.code === option.component.code))
+    .map(option => ({ reference: option.component, detail: componentDetails[option.component.code] }));
 
-  return (
+  return <>
+    {stream && !streamDetail && streamStatus === "error" && <AsyncState kind="error"
+      label="Couldn't load formal specialisations for this stream." onRetry={retry} />}
+    {stream && !streamReference && <p role="status">No formal stream component is available for this roadmap.</p>}
     <UsydEngineeringStudyPlans
       status={status}
       hasPlans={plans.length > 0}
@@ -125,7 +152,9 @@ export const UsydEngineeringStudyPlanController = ({
       onOpenSubject={onOpenSubject}
       personalPlan={status === "ready" && visiblePlan ? <UsydEngineeringPersonalPlan key={`${universityCode}:${handbookYear}:${degreeCode}:${visiblePlan.id}`}
         plan={visiblePlan} requirements={requirements} handbookYear={handbookYear} degreeCode={degreeCode} degreeCreditPoints={degreeCreditPoints}
-        specialisationName={preview.specialisations.find(choice => choice.id === preview.selectedSpecialisation)?.name ?? null} /> : undefined}
+        academicComponents={academicSelection.stream?.code === streamReference?.code ? academicComponents : []}
+        academicStreamMismatch={academicComponents.length > 0 && academicSelection.stream?.code !== streamReference?.code ? academicSelection.stream?.name : undefined}
+        focusComponent={preview.specialisations.find(choice => choice.id === preview.selectedSpecialisation)?.component} /> : undefined}
     />
-  );
+  </>;
 };

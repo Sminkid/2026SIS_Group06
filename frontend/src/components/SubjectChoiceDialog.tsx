@@ -6,7 +6,7 @@ import { fetchSubjectAccessConditionsBatch, searchSubjects } from "../api/subjec
 import { validateSubjectCandidate } from "../domain/plannerValidation";
 import { collectRequirementPoolContexts, getSubjectSelectionAction } from "../domain/subjectChoiceEligibility";
 import type { ChoiceScope } from "../domain/studyPathChoiceScope";
-import type { RequirementGroup, StudyPlanItem } from "../types/handbook";
+import type { RequirementGroup, RequirementSubject, StudyPlanItem } from "../types/handbook";
 import type { PlannerState } from "../types/planner";
 import type { SubjectAccessConditions, SubjectSearchResult } from "../types/subject";
 import { AsyncState } from "./AsyncState";
@@ -17,6 +17,13 @@ interface Props {
   onClose: () => void; onOpenSubject: (code: string) => void;
   onSelect: (subject: SubjectSearchResult, componentCode?: string, groupId?: string) => void;
   adaptAccess?: (access: SubjectAccessConditions) => SubjectAccessConditions;
+  focusedView?: FocusedChoiceView;
+}
+/** Optional presentation of verified rows; allocation still uses the original eligible groups. */
+export interface FocusedChoiceView {
+  id: string; label: string; status: "loading" | "ready" | "error"; retry: () => void;
+  notice?: string;
+  sections: Array<{ group: RequirementGroup; rows: Array<{ subject: RequirementSubject; eligibleGroupIds: string[] }> }>;
 }
 const flattenGroups = (groups: RequirementGroup[]): RequirementGroup[] => groups.flatMap((group) => [group, ...flattenGroups(group.children)]);
 const groupIdsIn = (group: RequirementGroup) => new Set(flattenGroups([group]).map((candidate) => candidate.id));
@@ -88,7 +95,7 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
 };
 
 /** Shows verified component pools or broad search in a keyboard-accessible native dialog. */
-export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, scope, planner, onClose, onOpenSubject, onSelect, adaptAccess }: Props) => {
+export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, scope, planner, onClose, onOpenSubject, onSelect, adaptAccess, focusedView }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null); const requestRef = useRef<AbortController | null>(null);
   const [query, setQuery] = useState(""); const [externalResults, setExternalResults] = useState<SubjectSearchResult[]>([]);
   const [externalStatus, setExternalStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
@@ -117,18 +124,27 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       for (const group of sourceGroups) if (group.candidateSources.some(source => subject.eligibilitySources.some(eligible => eligible.id === source.id)) && !row.groups.some(old => old.id === group.id)) row.groups.push(group);
       rows.set(subject.id, row);
     }
+    for (const entry of focusedView?.sections.flatMap(section => section.rows) ?? []) {
+      if (candidateQuery && !`${entry.subject.code} ${entry.subject.name}`.toLowerCase().includes(candidateQuery.toLowerCase())) continue;
+      const row = rows.get(entry.subject.id) ?? { subject: { ...entry.subject, prerequisiteStatus: "UNKNOWN" as const, recommendation: "REQUIREMENT_MATCH" as const }, groups: [] };
+      for (const group of scope.groups ?? []) if (entry.eligibleGroupIds.includes(group.id) && !row.groups.some(member => member.id === group.id)) row.groups.push(group);
+      if (row.groups.length) rows.set(entry.subject.id, row);
+    }
     return [...rows.values()].sort((a, b) => a.subject.code.localeCompare(b.subject.code));
-  }, [pools, candidates.results, sourceGroups, candidateQuery]);
+  }, [pools, candidates.results, sourceGroups, candidateQuery, focusedView?.sections, scope.groups]);
   const unionById = useMemo(() => new Map(union.map(row => [row.subject.id, row])), [union]);
   const sourcesBySubject = useMemo(() => new Map(candidates.results.map(subject => [subject.id, subject.eligibilitySources])), [candidates.results]);
-  const visiblePools = useMemo(() => (scope.groups ?? []).map(group => ({ group, rows: union.filter(row => {
+  const focusActive = Boolean(focusedView && poolFilter === focusedView.id);
+  const visiblePools = useMemo(() => focusActive ? focusedView!.sections.map(section => ({ group: section.group,
+    rows: section.rows.flatMap(entry => unionById.has(entry.subject.id) ? [unionById.get(entry.subject.id)!] : []) })).filter(section => section.rows.length)
+    : (scope.groups ?? []).map(group => ({ group, rows: union.filter(row => {
     if (poolFilter) return group.id === poolFilter && row.groups.some(member => member.id === poolFilter);
     const primary = row.groups.find(member => member.id === scope.defaultPoolGroupId) ?? row.groups[0];
     return primary?.id === group.id;
-  }) })).filter(pool => pool.rows.length), [scope.groups, scope.defaultPoolGroupId, union, poolFilter]);
-  const visibleSources = sources.filter(source => !poolFilter || sourceGroups.some(group => group.id === poolFilter && group.candidateSources.some(member => member.id === source.id)));
-  const showSourceStatus = !poolFilter || visibleSources.length > 0;
-  const codes = useMemo(() => [...new Set([...pools.flatMap((pool) => pool.subjects.map((subject) => subject.code)), ...externalResults.map((subject) => subject.code), ...candidates.results.map(subject => subject.code)])].sort(), [externalResults, pools, candidates.results]);
+  }) })).filter(pool => pool.rows.length), [scope.groups, scope.defaultPoolGroupId, union, poolFilter, focusActive, focusedView?.sections, unionById]);
+  const visibleSources = focusActive ? [] : sources.filter(source => !poolFilter || sourceGroups.some(group => group.id === poolFilter && group.candidateSources.some(member => member.id === source.id)));
+  const showSourceStatus = !focusActive && (!poolFilter || visibleSources.length > 0);
+  const codes = useMemo(() => [...new Set([...pools.flatMap((pool) => pool.subjects.map((subject) => subject.code)), ...externalResults.map((subject) => subject.code), ...candidates.results.map(subject => subject.code), ...(focusedView?.sections.flatMap(section => section.rows.map(row => row.subject.code)) ?? [])])].sort(), [externalResults, pools, candidates.results, focusedView?.sections]);
   const codeKey = codes.join("|");
   useEffect(() => {
     if (import.meta.env.DEV && choiceItem?.choiceOrigin?.formalComponentId && scope.componentId
@@ -151,8 +167,11 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       if (!(error instanceof DOMException && error.name === "AbortError")) setAccessConditions({});
     }); return () => controller.abort();
   }, [choiceItem, codeKey, handbookYear, universityCode, adaptAccess]);
-  useEffect(() => { if (!choiceItem) return; setQuery(""); setCandidateQuery(""); setPoolFilter(scope.defaultPoolGroupId ?? ""); setOwnership({}); setExternalResults([]); setMessage(""); setExternalStatus("idle"); return () => requestRef.current?.abort(); }, [choiceItem?.id, scope.defaultPoolGroupId]);
-  useEffect(() => { if (poolFilter && !scope.groups?.some(group => group.id === poolFilter)) { setPoolFilter(scope.defaultPoolGroupId ?? ""); setOwnership({}); } }, [scope.groups, scope.defaultPoolGroupId, poolFilter]);
+  useEffect(() => { if (!choiceItem) return; setQuery(""); setCandidateQuery(""); setPoolFilter(focusedView?.id ?? scope.defaultPoolGroupId ?? ""); setOwnership({}); setExternalResults([]); setMessage(""); setExternalStatus("idle"); return () => requestRef.current?.abort(); }, [choiceItem?.id, scope.defaultPoolGroupId, focusedView?.id]);
+  useEffect(() => { if (poolFilter && !scope.groups?.some(group => group.id === poolFilter)
+    && !(focusedView?.id === poolFilter && (focusedView.status === "loading" || (focusedView.status === "ready" && focusedView.sections.length)))) {
+      setPoolFilter(scope.defaultPoolGroupId ?? ""); setOwnership({});
+    } }, [scope.groups, scope.defaultPoolGroupId, poolFilter, focusedView?.id, focusedView?.status, focusedView?.sections.length]);
   const submitSearch = (event: FormEvent) => {
     event.preventDefault(); const normalized = query.trim(); if (normalized.length < 2) { setMessage("Enter at least two characters."); return; }
     const controller = new AbortController(); requestRef.current = controller; setMessage(""); setExternalStatus("loading");
@@ -178,8 +197,13 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
     {scope.limitation && <p className={appUi.candidateAccessWarning}>{scope.limitation}</p>}
     {scope.union && scope.kind === "FORMAL" && <>
       {(scope.groups?.length ?? 0) > 0 && <div className={appUi.eligiblePoolFilter}><label htmlFor="eligible-pool-filter">Eligible pool</label><select id="eligible-pool-filter" value={poolFilter} onChange={event => { setPoolFilter(event.target.value); setOwnership({}); }}>
+        {focusedView && (focusedView.status === "loading" || focusedView.sections.length > 0) && <option value={focusedView.id}>{focusedView.label}</option>}
         <option value="">All eligible pools</option>{scope.groups?.map(group => <option value={group.id} key={group.id}>{group.title}</option>)}
       </select></div>}
+      {focusActive && <p className="mx-6 text-sm text-slate-600">Formal specialisation subjects eligible for this slot, grouped by requirement. Credit is allocated to the slot's existing pool.</p>}
+      {focusActive && focusedView?.notice && <p className="mx-6 text-sm text-amber-900">{focusedView.notice}</p>}
+      {focusedView?.status === "error" && <AsyncState kind="error" label="Couldn't verify all focused subjects. Existing eligible pools remain available." onRetry={focusedView.retry} />}
+      {focusActive && focusedView?.status === "loading" && <AsyncState kind="loading" label="Checking specialisation subjects against this slot" />}
       {visibleSources.length > 0 && <ul className="mx-6 mb-0 mt-3 pl-4 text-sm" aria-label="Eligible candidate sources">{visibleSources.map(source => <li key={source.id}>{source.title}: {source.candidateCount.toLocaleString()} subjects</li>)}</ul>}
       <form className={appUi.subjectSearch} onSubmit={event => { event.preventDefault(); setCandidateQuery(query.trim()); }}>
         <label htmlFor="eligible-subject-query">Search eligible subjects by code or name</label>
@@ -203,7 +227,7 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
             </> };
           }} />
       </section>)}</div>
-      {visiblePools.length === 0 && (!showSourceStatus || (candidates.status !== "loading" && candidates.status !== "error")) && <AsyncState kind="empty" label="No eligible subjects match this search." />}
+      {visiblePools.length === 0 && !(focusActive && focusedView?.status === "loading") && (!showSourceStatus || (candidates.status !== "loading" && candidates.status !== "error")) && <AsyncState kind="empty" label="No eligible subjects match this search." />}
       {showSourceStatus && candidates.pageError && <p role="alert">{candidates.pageError}</p>}
       <div className="flex flex-wrap gap-2 px-6 pb-4">{Object.values(candidates.pages).filter(page => visibleSources.some(source => source.id === page.candidateSource.id)).map(page => page.pagination.page < page.pagination.totalPages && <button type="button" className={appUi.secondaryButton} disabled={page.loadingMore}
         key={page.candidateSource.id} onClick={() => candidates.loadMore(page.candidateSource.id)}>Load more from {page.candidateSource.title} ({page.pagination.page} of {page.pagination.totalPages})</button>)}</div>

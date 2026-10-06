@@ -119,6 +119,23 @@ test("nested Engineering Core and Free Elective candidate metadata survive the c
     [["Engineering undergraduate units", 271], ["Table S units", 1472]]);
 });
 
+test("Dalyell Table D candidate metadata survives the conditional compatibility hierarchy", () => {
+  const dalyell = group("dalyell", "Requirement 12", "ALL", null);
+  dalyell.description = "for students enrolled in the Dalyell Stream, 12 credit points from Table D";
+  dalyell.candidateSources = [{
+    id: "table-d", sourceKey: "degree:dalyell:table-d", type: "TABLE_SUBJECT_POOL",
+    title: "Table D Dalyell units", authoritative: true, tableName: "Table D", candidateCount: 17,
+  }];
+
+  const mapped = mapUsydEngineeringStructure(detail([dalyell]))!;
+  const conditional = usydEngineeringConditionalDisplayGroups(mapped);
+
+  assert.equal(conditional.length, 1);
+  assert.equal(conditional[0]?.requiredCreditPoints, 12);
+  assert.deepEqual(conditional[0]?.candidateSources.map((source) => [source.tableName, source.candidateCount]),
+    [["Table D", 17]]);
+});
+
 test("broad structural descriptions do not create synthetic Dalyell conditions", () => {
   const contaminated = summary("repaired-foundation", "the complete rule including for students enrolled in the Dalyell Stream", 18, "CONDITIONAL");
   const mapped = mapUsydEngineeringStructure({

@@ -8,6 +8,7 @@ import { AsyncState } from "./AsyncState";
 import { useComponentDetail } from "../hooks/useComponentDetail";
 import { componentCreditLabel, componentDetailView } from "../domain/componentDetailState";
 import { requirementItemCreditPoints, requirementLogicLabel } from "../domain/requirementPresentation";
+import { RequirementCandidateSubjectBrowser } from "./degree-structure/RequirementCandidateSubjectBrowser";
 
 const formatType = (type: string) => type.toLowerCase().replaceAll("_", " ");
 const readableGroupTitle = (title: string | null) => {
@@ -199,8 +200,26 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
   const selectedChoice = componentChoices.find((item) => item.component?.code === selectedCode)
     ?? soleComponentChoice;
   const selectedExternalChoice = choiceSelection?.choices.find((choice) => choice.value === choiceSelection.selectedValue);
+  const candidateTableNames = [...new Set(group.candidateSources.flatMap((source) => source.tableName ? [source.tableName] : []))];
+  const candidateTableName = candidateTableNames.length === 1 ? candidateTableNames[0] : null;
+  const candidateLabel = candidateTableName ?? "eligible";
+  const isDalyellCandidate = group.candidateSources.some((source) =>
+    source.tableName === "Table D" || /dalyell/i.test(source.title));
+  const candidateBrowser = group.candidateSources.length > 0 && !supplementalContent
+    ? <RequirementCandidateSubjectBrowser candidateSources={group.candidateSources} onOpenSubject={onOpenSubject}
+      heading={candidateTableName ? `Eligible ${candidateTableName} units` : "Eligible subjects"}
+      description={obligation === "CONDITIONAL" && isDalyellCandidate
+        ? "Dalyell students only. These subjects satisfy this conditional requirement when it applies to you."
+        : "These subjects are eligible for this requirement according to the official candidate sources."}
+      sourcesLabel={`${candidateLabel} eligibility sources`}
+      searchLabel={`Search ${candidateLabel} subjects by code or name`}
+      searchPlaceholder={candidateTableName ? `Search ${candidateTableName} subjects...` : "Search eligible subjects..."}
+      searchButtonLabel={`Search ${candidateLabel} subjects`}
+      loadingLabel={`Loading ${candidateLabel} subjects`}
+      errorLabel={`We couldn't load ${candidateLabel} subjects.`} />
+    : null;
   const hasContent = group.items.length > 0 || group.children.length > 0 || Boolean(group.description)
-    || Boolean(choiceSelection) || Boolean(supplementalContent);
+    || group.candidateSources.length > 0 || Boolean(choiceSelection) || Boolean(supplementalContent);
   const context = { universityCode, handbookYear, selections, onSelectComponent, onOpenSubject };
   useEffect(() => {
     const componentCode = soleComponentChoice?.component?.code;
@@ -248,6 +267,7 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
     {isOpen && hasContent && <div className={appUi.requirementGroupContent} id={contentId}>
       {group.description && <details className={appUi.officialRequirement}><summary>Official requirement</summary><p className={appUi.groupDescription}>{readableText(group.description)}</p></details>}
       {supplementalContent}
+      {candidateBrowser}
       {renderedSelection ? <RequirementChoiceList {...renderedSelection} />
         : group.items.length > 0 && <div className={appUi.requirementItems}>{group.items.map((item) => <RequirementRow item={item} onOpenSubject={onOpenSubject} key={item.id} />)}</div>}
       {isComponentChoiceGroup && selectedChoice?.component && <SelectedComponentRequirements componentId={selectedChoice.component.id} context={context} />}

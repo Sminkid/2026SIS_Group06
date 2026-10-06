@@ -13,6 +13,7 @@ interface Args {
   selectedComponents: ComponentSelections;
   universityCode: string;
   handbookYear: number;
+  adaptAccess?: (access: SubjectAccessConditions) => SubjectAccessConditions;
 }
 
 /** Loads access rules once per subject set, then reevaluates them when schedule placement changes. */
@@ -23,6 +24,7 @@ export const usePlannerValidation = ({
   selectedComponents,
   universityCode,
   handbookYear,
+  adaptAccess,
 }: Args) => {
   const subjectCodes = useMemo(() => {
     if (!planner) return [];
@@ -73,6 +75,9 @@ export const usePlannerValidation = ({
     return () => controller.abort();
   }, [handbookYear, hasPlanner, subjectCodeKey, universityCode]);
 
+  const normalizedAccess = useMemo(() => adaptAccess
+    ? Object.fromEntries(Object.entries(accessConditions).map(([code, access]) => [code, adaptAccess(access)])) : accessConditions,
+  [accessConditions, adaptAccess]);
   const validation = useMemo(() => {
     if (!planner || status !== "ready") return null;
     return validatePlanner({
@@ -80,9 +85,9 @@ export const usePlannerValidation = ({
       requirements,
       selectedComponents,
       planner,
-      accessConditions,
+      accessConditions: normalizedAccess,
     });
-  }, [accessConditions, degreeCreditPoints, planner, requirements, selectedComponents, status]);
+  }, [normalizedAccess, degreeCreditPoints, planner, requirements, selectedComponents, status]);
 
-  return { validation, status, accessConditions };
+  return { validation, status, accessConditions: normalizedAccess };
 };

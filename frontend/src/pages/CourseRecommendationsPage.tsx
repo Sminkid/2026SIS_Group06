@@ -4,6 +4,7 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { useCourseRecommendations } from "../hooks/useCourseRecommendations";
 import { AsyncState } from "../components/AsyncState";
 import type { QuizResult } from "../domain/quizRecommendation";
+import { majorSuggestionsFor } from "../domain/quizResult";
 import { filterCourses, type CourseRecommendation } from "../domain/courseAggregation";
 
 interface Props {
@@ -11,9 +12,10 @@ interface Props {
   onSelectCourse: (course: CourseRecommendation) => void;
   onHome: () => void;
   onBackToQuizResult: () => void;
+  onPersonalise: () => void;
 }
 
-export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBackToQuizResult }: Props) => {
+export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBackToQuizResult, onPersonalise }: Props) => {
   const { courses, otherCourses, status } = useCourseRecommendations(result);
   const [query, setQuery] = useState("");
   const shownRecommended = useMemo(() => filterCourses(courses, query), [courses, query]);
@@ -39,6 +41,18 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
       <section className={appUi.pageIntroCompact} aria-labelledby="courses-heading">
         <p className={appUi.eyebrow}>Choose a course</p>
         <h1>Courses</h1>
+        {result.stage === "initial" && (
+          <div className={appUi.quizRecommendationCard}>
+            <p className={appUi.eyebrow}>Based on your general answers</p>
+            <p>
+              Want these recommendations to be more personalised? Answer some more specific questions to refine
+              your matches and see the best-fit major or stream for each course.
+            </p>
+            <button className={appUi.primaryButton} type="button" onClick={onPersonalise}>
+              Personalise further
+            </button>
+          </div>
+        )}
         <section className={appUi.degreeTools}>
           <h2 id="courses-heading">Recommended courses</h2>
           <label className={appUi.searchField}><span className={appUi.srOnly}>Search degrees by code or name</span><span aria-hidden="true">⌕</span>

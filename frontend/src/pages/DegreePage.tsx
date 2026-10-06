@@ -10,6 +10,7 @@ import { useSelectedComponentDetails } from "../hooks/useSelectedComponentDetail
 import { readableText } from "../domain/readableText";
 import { DegreeStructureRenderer } from "../components/degree-structure/DegreeStructureRenderer";
 import { StudyPlanRenderer } from "../components/study-plan/StudyPlanRenderer";
+import { rankingPosition } from "../domain/rankingLabel";
 
 interface Props { university: University; degree: DegreeSummary; onBack: () => void; onHome: () => void; }
 const componentIndex = (groups: RequirementGroup[]) => {
@@ -86,6 +87,15 @@ export const DegreePage = ({ university, degree, onBack, onHome }: Props) => {
           <span><strong>{detail.degree.handbookYear}</strong> handbook</span>
           <span><strong>{detail.degree.university.code}</strong> {detail.degree.university.name}</span>
         </div>
+        {detail.degree.rankings.length > 0 && (
+          <ul className={appUi.rankingList} aria-label="Rankings">
+            {detail.degree.rankings.map((ranking) => (
+              <li className={appUi.rankingChip} key={`${ranking.source}-${ranking.category}-${ranking.year}`}>
+                <strong>{ranking.source}</strong> {rankingPosition(ranking)} · {ranking.category} ({ranking.year})
+              </li>
+            ))}
+          </ul>
+        )}
         {detail.degree.description && !hasSemanticOverview && <p className={appUi.degreeDescription}>{readableText(detail.degree.description)}</p>}
       </header>
       <DegreeStructureRenderer detail={detail} universityCode={university.code} handbookYear={degree.handbookYear}

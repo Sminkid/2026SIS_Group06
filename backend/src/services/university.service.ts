@@ -10,8 +10,22 @@ import type {
 } from "../types/university.js";
 import { ApiError } from "../utils/api-error.js";
 
-export const getUniversities = (): Promise<UniversitySummary[]> =>
-  findUniversities();
+export const getUniversities = async (): Promise<UniversitySummary[]> => {
+  const universities = await findUniversities();
+
+  return universities.map((university) => ({
+    id: university.id,
+    code: university.code,
+    name: university.name,
+    rankings: university.UniversityRanking.map((ranking) => ({
+      source: ranking.source,
+      category: ranking.category,
+      year: ranking.year,
+      rank: ranking.rank,
+      rankBand: ranking.rankBand,
+    })),
+  }));
+};
 
 const handbookNotFound = (universityCode: string, year?: number): ApiError =>
   new ApiError(

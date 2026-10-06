@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchUniversities } from "../api/universities";
 import { AsyncState } from "../components/AsyncState";
 import type { University } from "../types/handbook";
+import { latestRanking, rankingPosition } from "../domain/rankingLabel";
 
 interface HomePageProps { onSelectUniversity: (university: University) => void; }
 
@@ -41,13 +42,21 @@ export const HomePage = ({ onSelectUniversity }: HomePageProps) => {
         {status === "ready" && universities.length === 0 && <AsyncState kind="empty" label="No universities are available yet." />}
         {status === "ready" && universities.length > 0 && (
           <div className={appUi.universityGrid}>
-            {universities.map((university) => (
-              <button className={appUi.universityCard} key={university.id} type="button" onClick={() => onSelectUniversity(university)}>
-                <span className={appUi.universityCardCode}>{university.code}</span>
-                <span className={appUi.universityCardName}>{university.name}</span>
-                <span className={appUi.cardAction} aria-hidden="true">Explore degrees →</span>
-              </button>
-            ))}
+            {universities.map((university) => {
+              const currentRanking = latestRanking(university.rankings);
+              return (
+                <button className={appUi.universityCard} key={university.id} type="button" onClick={() => onSelectUniversity(university)}>
+                  <span className={appUi.universityCardCode}>{university.code}</span>
+                  <span className={appUi.universityCardName}>{university.name}</span>
+                  {currentRanking && (
+                    <span className={appUi.universityCardRanking}>
+                      <strong>{currentRanking.source} {rankingPosition(currentRanking)}</strong> {currentRanking.category} ({currentRanking.year})
+                    </span>
+                  )}
+                  <span className={appUi.cardAction} aria-hidden="true">Explore degrees →</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </section>

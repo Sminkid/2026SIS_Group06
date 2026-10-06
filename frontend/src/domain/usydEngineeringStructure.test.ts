@@ -24,7 +24,8 @@ const completionSummary: StudentRequirementSummary[] = [
 
 const detail = (requirements: RequirementGroup[] = []): DegreeDetailResponse => ({
   degree: { id: "degree", code: "BHENGINE-04", name: "Bachelor of Engineering Honours", creditPoints: 192,
-    handbookYear: 2026, university: { id: "usyd", code: "USYD", name: "The University of Sydney" }, description: null },
+    handbookYear: 2026, university: { id: "usyd", code: "USYD", name: "The University of Sydney" }, description: null,
+    rankings: [] },
   requirements,
   completionSummary,
 });

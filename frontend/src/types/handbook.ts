@@ -1,4 +1,5 @@
-export interface University { id: string; code: string; name: string; }
+export interface RankingSummary { source: string; category: string; year: number; rank: number; rankBand: string | null; }
+export interface University { id: string; code: string; name: string; rankings: RankingSummary[]; }
 export interface HandbookSummary { id: string; universityCode: string; year: number; sourceUrl: string | null; }
 export interface DegreeSummary { id: string; code: string; name: string; creditPoints: number | null; handbookYear: number; }
 export type RequirementLogic = "ALL" | "ANY" | "ONE_OF" | "UNKNOWN";
@@ -64,8 +65,9 @@ export interface DegreeDetailResponse {
     name: string;
     creditPoints: number | null;
     handbookYear: number;
-    university: University;
+    university: { id: string; code: string; name: string };
     description: string | null;
+    rankings: RankingSummary[];
   };
   requirements: RequirementGroup[];
   completionSummary: StudentRequirementSummary[];
@@ -107,7 +109,7 @@ export interface ComponentDetailResponse {
     creditPoints: number | null;
     sourceUrl: string | null;
     handbookYear: number;
-    university: University;
+    university: { id: string; code: string; name: string };
   };
   requirements: RequirementGroup[];
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { StudyPlan } from "../types/handbook";
 import type { SubjectSearchResult } from "../types/subject";
+import { proposeMove } from "../domain/plannerMove";
 import {
   plannerItems,
   proposeSwap,
@@ -703,6 +704,7 @@ export const usePlannerState = (
     | undefined,
   context: PlannerContext,
   canRebase = true,
+  allowUnscheduledEdits = false,
 ) => {
   const storageKey = useMemo(
     () =>
@@ -975,163 +977,31 @@ export const usePlannerState = (
   };
 
   const selectSubject = (
-    plannerItemId: string,
-    subject: SubjectSearchResult,
-    formalComponentCode?: string,
-    formalRequirementGroupId?: string,
-    formalComponentId?: string,
-    allocatedGroupLabel?: string,
+    plannerItemId: string, subject: SubjectSearchResult, formalComponentCode?: string,
+    formalRequirementGroupId?: string, formalComponentId?: string, allocatedGroupLabel?: string, replaceOwnership = false,
   ) => {
-    setStored((current) => {
-      if (
-        current.storageKey !==
-          storageKey ||
-        !current.planner
-      ) {
-        return current;
-      }
-
-      const items =
-        current.planner.years
-          .flatMap((year) =>
-            year.periods.flatMap(
-              (period) =>
-                period.items,
-            ),
-          )
-          .concat(
-            current.planner
-              .unassignedItems,
-          );
-
-      const target =
-        items.find(
-          (item) =>
-            item.plannerItemId ===
-            plannerItemId,
-        );
-
-      if (
-        !target?.choiceOrigin ||
-        target.choiceOrigin
-          .componentRequirementKind ===
-          "FIXED" ||
-        items.some(
-          (item) =>
-            item.plannerItemId !==
-              plannerItemId &&
-            item.subject?.code ===
-              subject.code,
-        ) ||
-        subject.creditPoints ===
-          null ||
-        subject.creditPoints <= 0 ||
-        subject.creditPoints >
-          (
-            target.choiceOrigin
-              .maximumCreditPoints ??
-            target.choiceOrigin
-              .creditPoints ??
-            Infinity
-          )
-      ) {
-        return current;
-      }
-
-      return {
-        storageKey,
-
-        planner: {
-          ...current.planner,
-
-          updatedAt:
-            new Date().toISOString(),
-
-          years:
-            current.planner.years.map(
-              (year) => ({
-                ...year,
-
-                periods:
-                  year.periods.map(
-                    (period) => ({
-                      ...period,
-
-                      items:
-                        period.items.map(
-                          (item) => {
-                            if (
-                              item.plannerItemId !==
-                                plannerItemId ||
-                              !item.choiceOrigin
-                            ) {
-                              return item;
-                            }
-
-                            return {
-                              ...item,
-
-                              choiceOrigin: {
-                                ...item.choiceOrigin,
-
-                                formalComponentCode:
-                                  formalComponentCode ??
-                                  item
-                                    .choiceOrigin
-                                    .formalComponentCode,
-
-                                formalComponentId:
-                                  formalComponentId ??
-                                  item
-                                    .choiceOrigin
-                                    .formalComponentId,
-
-                                formalRequirementGroupId:
-                                  formalRequirementGroupId ??
-                                  item
-                                    .choiceOrigin
-                                    .formalRequirementGroupId,
-
-                                allocatedGroupLabel,
-                              },
-
-                              itemType:
-                                "SUBJECT",
-
-                              subject: {
-                                officialSubjectId:
-                                  subject.id,
-
-                                code:
-                                  subject.code,
-
-                                name:
-                                  subject.name,
-
-                                creditPoints:
-                                  subject.creditPoints,
-                              },
-
-                              rawCode:
-                                subject.code,
-
-                              title:
-                                subject.name,
-
-                              creditPoints:
-                                subject.creditPoints ??
-                                item
-                                  .choiceOrigin
-                                  .creditPoints,
-                            };
-                          },
-                        ),
-                    }),
-                  ),
-              }),
-            ),
+    setStored(current => {
+      if (current.storageKey !== storageKey || !current.planner) return current;
+      const items = [...plannerItems(current.planner), ...current.planner.unassignedItems];
+      const target = items.find(item => item.plannerItemId === plannerItemId);
+      if (!target?.choiceOrigin || target.choiceOrigin.componentRequirementKind === "FIXED"
+        || items.some(item => item.plannerItemId !== plannerItemId && item.subject?.code === subject.code)
+        || subject.creditPoints === null || subject.creditPoints <= 0
+        || subject.creditPoints > (target.choiceOrigin.maximumCreditPoints ?? target.choiceOrigin.creditPoints ?? Infinity)) return current;
+      const fill = (item: typeof target) => item.plannerItemId !== plannerItemId ? item : {
+        ...item, itemType: "SUBJECT" as const,
+        choiceOrigin: { ...item.choiceOrigin!,
+          formalComponentCode: replaceOwnership ? formalComponentCode : formalComponentCode ?? item.choiceOrigin?.formalComponentCode,
+          formalComponentId: replaceOwnership ? formalComponentId : formalComponentId ?? item.choiceOrigin?.formalComponentId,
+          formalRequirementGroupId: replaceOwnership ? formalRequirementGroupId : formalRequirementGroupId ?? item.choiceOrigin?.formalRequirementGroupId, allocatedGroupLabel,
         },
+        subject: { officialSubjectId: subject.id, code: subject.code, name: subject.name, creditPoints: subject.creditPoints },
+        rawCode: subject.code, title: subject.name, creditPoints: subject.creditPoints,
       };
+      return { storageKey, planner: { ...current.planner, updatedAt: new Date().toISOString(),
+        years: current.planner.years.map(year => ({ ...year, periods: year.periods.map(period => ({ ...period, items: period.items.map(fill) })) })),
+        unassignedItems: allowUnscheduledEdits ? current.planner.unassignedItems.map(fill) : current.planner.unassignedItems,
+      } };
     });
   };
 
@@ -1140,6 +1010,8 @@ export const usePlannerState = (
     targetPeriodId:
       | string
       | null,
+    facts?: SwapFacts,
+    canMove?: (item: PlannerState["unassignedItems"][number]) => boolean,
   ) => {
     setStored((current) => {
       if (
@@ -1148,6 +1020,11 @@ export const usePlannerState = (
         !current.planner
       ) {
         return current;
+      }
+
+      if (facts) {
+        const proposal = proposeMove(current.planner, plannerItemId, targetPeriodId, facts, canMove);
+        return proposal.errors.length ? current : { storageKey, planner: { ...proposal.plan, updatedAt: new Date().toISOString() } };
       }
 
       let movingItem =
@@ -1262,90 +1139,25 @@ export const usePlannerState = (
     });
   };
 
-  const restoreChoiceSlot = (
-    plannerItemId: string,
-  ) => {
-    setStored((current) => {
-      if (
-        current.storageKey !==
-          storageKey ||
-        !current.planner
-      ) {
-        return current;
-      }
-
-      return {
-        ...current,
-
-        planner: {
-          ...current.planner,
-
-          updatedAt:
-            new Date().toISOString(),
-
-          years:
-            current.planner.years.map(
-              (year) => ({
-                ...year,
-
-                periods:
-                  year.periods.map(
-                    (period) => ({
-                      ...period,
-
-                      items:
-                        period.items.map(
-                          (item) => {
-                            if (
-                              item.plannerItemId !==
-                                plannerItemId ||
-                              !item.choiceOrigin
-                            ) {
-                              return item;
-                            }
-
-                            const origin =
-                              item.choiceOrigin;
-
-                            return {
-                              ...item,
-
-                              itemType:
-                                "CHOICE" as const,
-
-                              subject:
-                                null,
-
-                              rawCode:
-                                origin.rawCode,
-
-                              title:
-                                origin.title,
-
-                              creditPoints:
-                                origin.creditPoints,
-
-                              choiceOrigin: {
-                                ...origin,
-
-                                allocatedGroupLabel:
-                                  undefined,
-
-                                formalRequirementGroupId:
-                                  origin.componentRequirementKind ===
-                                  "COMPONENT"
-                                    ? undefined
-                                    : origin.formalRequirementGroupId,
-                              },
-                            };
-                          },
-                        ),
-                    }),
-                  ),
-              }),
-            ),
-        },
+  const restoreChoiceSlot = (plannerItemId: string) => {
+    setStored(current => {
+      if (current.storageKey !== storageKey || !current.planner) return current;
+      const restore = (item: PlannerState["unassignedItems"][number]) => {
+        if (item.plannerItemId !== plannerItemId || !item.choiceOrigin) return item;
+        const origin = item.choiceOrigin;
+        return { ...item, itemType: "CHOICE" as const, subject: null, rawCode: origin.rawCode,
+          title: origin.title, creditPoints: origin.creditPoints,
+          choiceOrigin: { ...origin, allocatedGroupLabel: undefined,
+            formalRequirementGroupId: origin.componentRequirementKind === "COMPONENT" ? undefined : origin.formalRequirementGroupId },
+        };
       };
+      const held = allowUnscheduledEdits ? current.planner.unassignedItems.find(item => item.plannerItemId === plannerItemId && item.choiceOrigin) : undefined;
+      return { ...current, planner: { ...current.planner, updatedAt: new Date().toISOString(),
+        years: current.planner.years.map(year => ({ ...year, periods: year.periods.map(period => ({ ...period,
+          items: [...period.items.map(restore), ...(held && period.officialPeriodId === held.originalPeriodId ? [restore(held)] : [])],
+        })) })),
+        unassignedItems: current.planner.unassignedItems.filter(item => !held || item.plannerItemId !== plannerItemId),
+      } };
     });
   };
 
@@ -1353,6 +1165,7 @@ export const usePlannerState = (
     sourceId: string,
     targetId: string,
     facts: SwapFacts,
+    canSwap?: (item: PlannerState["unassignedItems"][number]) => boolean,
   ) => {
     setStored((current) => {
       if (
@@ -1363,6 +1176,7 @@ export const usePlannerState = (
         return current;
       }
 
+      if (canSwap && plannerItems(current.planner).some(item => [sourceId, targetId].includes(item.plannerItemId) && !canSwap(item))) return current;
       const proposal =
         proposeSwap(
           current.planner,
@@ -1388,6 +1202,7 @@ export const usePlannerState = (
 
   const clearPeriod = (
     plannerPeriodId: string,
+    allowedItemIds?: string[],
   ) => {
     setStored((current) => {
       if (
@@ -1418,9 +1233,7 @@ export const usePlannerState = (
 
                   movedItems.push(
                     ...period.items.filter(
-                      (item) =>
-                        item.subject !==
-                        null,
+                      (item) => item.subject !== null && (!allowedItemIds || allowedItemIds.includes(item.plannerItemId)),
                     ),
                   );
 
@@ -1429,9 +1242,7 @@ export const usePlannerState = (
 
                     items:
                       period.items.filter(
-                        (item) =>
-                          item.subject ===
-                          null,
+                      (item) => item.subject === null || Boolean(allowedItemIds && !allowedItemIds.includes(item.plannerItemId)),
                       ),
                   };
                 },

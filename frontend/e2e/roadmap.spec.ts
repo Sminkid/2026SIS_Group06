@@ -11,6 +11,43 @@ const fixture = JSON.parse(readFileSync(new URL("../src/domain/fixtures/handbook
 const usydEngineering = JSON.parse(readFileSync(new URL("./fixtures/usyd-engineering-2026.json", import.meta.url), "utf8")) as {
   detail: DegreeDetailResponse; plans: StudyPlan[];
 };
+const usydStreamDetail = (id: string, code: string, name: string,
+  specialisations: Array<{ id: string; code: string; name: string }>): ComponentDetailResponse => ({
+  component: { id, code, name, type: "STREAM", originalType: "STREAM", creditPoints: 120, sourceUrl: null,
+    handbookYear: 2026, university: { id: "usyd", code: "USYD", name: "The University of Sydney" } },
+  requirements: [{ id: `${id}:core`, title: "Core", description: null, logic: "ALL",
+    requiredCreditPoints: 6, maximumCreditPoints: null, sortOrder: 0, candidateSources: [], children: [], pathways: [],
+    items: [{ id: `${id}:core:subject`, itemType: "SUBJECT",
+      subject: { id: `${id}:subject`, code: id === "software-stream" ? "INFO1110" : "CIVL1900",
+        name: id === "software-stream" ? "Introduction to Programming" : "Introduction to Civil Engineering", creditPoints: 6 },
+      component: null, rawCode: null, rawName: null, creditPoints: 6, sortOrder: 0 }] },
+  { id: `${id}:specialisations`, title: `${name} Specialisations`, description: null,
+    logic: "ONE_OF", requiredCreditPoints: null, maximumCreditPoints: null, sortOrder: 0,
+    candidateSources: [], children: [], pathways: [], items: specialisations.map((item, index) => ({
+      id: `${item.id}:item`, itemType: "COMPONENT", subject: null,
+      component: { ...item, displayCode: null, type: "SPECIALISATION", creditPoints: 24,
+        creditPointsAvailability: "EXPLICIT_COMPONENT" },
+      rawCode: item.code, rawName: item.name, creditPoints: 24, sortOrder: index,
+    })) }],
+});
+const usydStreamDetails = [
+  usydStreamDetail("software-stream", "USYD:ENGINEERING:STREAM:SOFTWARE-ENGINEERING", "Software Engineering", [
+    { id: "computer-specialisation", code: "USYD:ENGINEERING:SPECIALISATION:COMPUTER", name: "Computer" },
+    { id: "data-science-specialisation", code: "USYD:ENGINEERING:SPECIALISATION:ENGINEERING-DATA-SCIENCE", name: "Engineering Data Science" },
+  ]),
+  usydStreamDetail("civil-stream", "USYD:ENGINEERING:STREAM:CIVIL-ENGINEERING", "Civil Engineering", [
+    { id: "structures-specialisation", code: "USYD:ENGINEERING:SPECIALISATION:STRUCTURES", name: "Structures" },
+    { id: "water-specialisation", code: "USYD:ENGINEERING:SPECIALISATION:WATER-ENGINEERING", name: "Water Engineering" },
+  ]),
+];
+const usydSpecialisationDetails: ComponentDetailResponse[] = [
+  { component: { id: "computer-specialisation", code: "USYD:ENGINEERING:SPECIALISATION:COMPUTER", name: "Computer",
+    type: "SPECIALISATION", originalType: "SPECIALISATION", creditPoints: 24, sourceUrl: null, handbookYear: 2026,
+    university: { id: "usyd", code: "USYD", name: "The University of Sydney" } }, requirements: [] },
+  { component: { id: "structures-specialisation", code: "USYD:ENGINEERING:SPECIALISATION:STRUCTURES", name: "Structures",
+    type: "SPECIALISATION", originalType: "SPECIALISATION", creditPoints: 24, sourceUrl: null, handbookYear: 2026,
+    university: { id: "usyd", code: "USYD", name: "The University of Sydney" } }, requirements: [] },
+];
 const failures = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
   const errors: string[] = [];
@@ -27,7 +64,9 @@ test.beforeEach(async ({ page }) => {
     else if (/\/universities\/.*\/degrees$/.test(path)) body = path.includes("USYD") ? [fixture.usyd.degree, usydEngineering.detail.degree] : [fixture.engineering.degree, fixture.accounting.degree];
     else if (path.includes("/study-plans")) body = path.includes("C09066") ? fixture.engineeringPlans : path.includes("C10235") ? fixture.accountingPlans : path.includes("BHENGINE-04") ? usydEngineering.plans : [];
     else if (path.includes("/degrees/")) body = path.includes("C09066") ? fixture.engineering : path.includes("C10235") ? fixture.accounting : path.includes("BHENGINE-04") ? usydEngineering.detail : fixture.usyd;
-    else if (path.includes("/components/")) body = [...Object.values(fixture.details), fixture.usydComponent].find((detail) => [detail.component.code, detail.component.id].includes(decodeURIComponent(path.split("/").at(-1)!))) ?? { error: "Component not captured" };
+    else if (path.includes("/components/")) body = [...Object.values(fixture.details), fixture.usydComponent,
+      ...usydStreamDetails, ...usydSpecialisationDetails]
+      .find((detail) => [detail.component.code, detail.component.id].includes(decodeURIComponent(path.split("/").at(-1)!))) ?? { error: "Component not captured" };
     else if (path === "/api/subjects/ELEC4714/access-conditions") {
       const expression = "ELEC4710 or ELEC4711 or ELEC4712 or ELEC4713 or ENGG4000";
       const names: Record<string, string> = { ELEC4710: "Engineering Thesis A", ELEC4711: "Engineering Thesis B",
@@ -157,7 +196,31 @@ test("UTS Course Structure still selects a major and renders its nested subject 
   await expect(majorsSection.getByRole("button", { name: /View 41082 Introduction to Data Engineering/i })).toBeVisible();
 });
 
-test("USYD Engineering keeps Course Structure separate from the CUSP study plan", async ({ page }) => {
+test("USYD Study Plan can be explored independently without mutating Course Structure", async ({ page }) => {
+  await openDegree(page, "BHENGINE-04", "USYD");
+  const previewStream = page.getByRole("combobox", { name: "Engineering Stream" });
+  const previewSpecialisation = page.getByRole("combobox", { name: "Study plan focus" });
+  const previewCommencement = page.getByRole("combobox", { name: "Commencement" });
+  const previewVariant = page.getByRole("combobox", { name: "Study plan variant" });
+
+  await expect(previewStream).toHaveValue("");
+  await previewStream.selectOption("Civil Engineering");
+  await expect(previewSpecialisation).toHaveValue("BASE");
+  await expect(previewSpecialisation.locator("option")).toHaveText(["Select a study plan focus", "Base roadmap", "Structures · 24 CP", "Water Engineering · 24 CP"]);
+  await expect(previewCommencement).toHaveValue("STANDARD");
+  await previewSpecialisation.selectOption({ label: "Structures · 24 CP" });
+  await expect(previewVariant).toHaveValue("civil-structures");
+  await expect(page.locator(".plan-intro h3")).toHaveText(/Stream Specialisation in Structures/);
+
+  const streamButton = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i });
+  const streamSection = streamButton.locator("..");
+  await expect(streamSection.getByRole("radio", { name: /Civil Engineering/ })).not.toBeChecked();
+  await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
+  await expect(previewStream).toHaveValue("Civil Engineering");
+  await expect(previewSpecialisation).toHaveValue(/STRUCTURES/);
+});
+
+test("USYD Engineering suggests canonical Course Structure choices in the independent CUSP preview", async ({ page }) => {
   await openDegree(page, "BHENGINE-04", "USYD");
   const coreSection = page.getByRole("button", { name: /Engineering Core.*48 credit points.*ALL/i });
   const streamButton = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i });
@@ -215,38 +278,54 @@ test("USYD Engineering keeps Course Structure separate from the CUSP study plan"
   await expect(subjectDialog).toContainText("No description is available in this handbook.");
   await subjectDialog.getByRole("button", { name: "Close subject details" }).click();
 
-  await streamButton.click();
   const streamSection = streamButton.locator("..");
+  await expect(streamButton).toHaveAttribute("aria-expanded", "true");
   await expect(streamSection.getByRole("searchbox", { name: "Filter choices" })).toBeVisible();
   await expect(streamSection.getByRole("radio")).toHaveCount(2);
   await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
   await expect(streamSection.getByText("Selected stream", { exact: true })).toBeVisible();
   await expect(streamSection.getByRole("heading", { name: "Software Engineering", exact: true })).toBeVisible();
-  await expect(streamSection).toContainText("120 CP stream requirement");
+  await expect(streamSection).toContainText("120 CP");
   await expect(streamSection).not.toContainText("StudyPlan.pathway");
   await expect(streamSection).not.toContainText("DegreeComponent");
   await expect(streamSection).not.toContainText("current API");
   await expect(streamSection).not.toContainText("CUSP base-plan structure");
   await expect(streamSection).not.toContainText("View the official source");
   await expect(streamSection.getByRole("button", { name: /Year 1/i })).toHaveCount(0);
-  await expect(streamSection.getByRole("button", { name: /View INFO1110/i })).toHaveCount(0);
   await electivesButton.click();
   const electivesSection = electivesButton.locator("..");
   await electivesSection.getByText("Official requirement", { exact: true }).click();
   await expect(electivesSection).toContainText("a maximum of 24 credit points from Table S");
   await expect(electivesSection).not.toContainText("eligible-subject list");
-  await expect(page.locator(".plan-year")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Customize plan", exact: true })).toHaveCount(0);
-  await page.getByRole("combobox", { name: "Engineering stream" }).selectOption("Software Engineering");
-  await page.getByRole("combobox", { name: "Commencement" }).selectOption("STANDARD");
-  await page.getByRole("combobox", { name: "Official plan variant" }).selectOption("software-base");
+  await expect(page.locator(".plan-year")).toHaveCount(4);
+  await expect(page.getByRole("button", { name: "Customize Plan", exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Engineering Stream" })).toHaveValue("Software Engineering");
+  await expect(page.getByText("Suggested from Course Structure")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("BASE");
+  await expect(page.getByRole("combobox", { name: "Commencement" })).toHaveValue("STANDARD");
+  await expect(page.getByRole("combobox", { name: "Study plan variant" })).toHaveValue("software-base");
   await expect(page.locator(".plan-year")).toHaveCount(4);
   await expect(page.locator(".plan-year").first()).toContainText("Year 1");
   await expect(page.locator(".plan-period").first()).toContainText("Semester 1");
   await expect(page.locator(".plan-item").filter({ hasText: "INFO1110" })).toBeVisible();
   await expect(page.locator(".plan-item--choice")).toContainText("Software Stream 1000/2000 Level Electives");
-  await expect(page.locator(".plan-item--choice")).toContainText("Eligible subject options are not yet mapped");
+  await expect(page.locator(".plan-item--choice")).toContainText("Customize to choose from eligible subjects");
   await expect(page.getByText("Year 0", { exact: true })).toHaveCount(0);
+
+  await streamSection.getByRole("button", { name: /Software Engineering Specialisations.*Choose one/i }).click();
+  await streamSection.getByRole("radio", { name: /Computer/ }).check();
+  await expect(page.locator(".plan-intro h3")).toHaveText(/Stream Specialisation in Computer Engineering/);
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("COMPONENT:USYD:ENGINEERING:SPECIALISATION:COMPUTER");
+
+  await streamSection.getByRole("radio", { name: /Civil Engineering/ }).check();
+  await expect(page.locator(".plan-intro h3")).toHaveText("Civil Engineering");
+  await expect(page.getByRole("combobox", { name: "Commencement" })).toHaveValue("STANDARD");
+  await expect(page.getByRole("combobox", { name: "Engineering Stream" })).toHaveValue("Civil Engineering");
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("BASE");
+  await streamSection.getByRole("button", { name: /Civil Engineering Specialisations.*Choose one/i }).click();
+  await streamSection.getByRole("radio", { name: /Structures/ }).check();
+  await expect(page.locator(".plan-intro h3")).toHaveText(/Stream Specialisation in Structures/);
+  await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("COMPONENT:USYD:ENGINEERING:SPECIALISATION:STRUCTURES");
 });
 
 test("Narrow layout and compact empty dialog retain a visible close control", async ({ page }) => {

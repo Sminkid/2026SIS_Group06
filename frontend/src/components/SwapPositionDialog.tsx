@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { plannerItems, proposeSwap, type SwapFacts } from "../domain/plannerSwap";
 import { getValidSwapTargets, type SwapTargetSession } from "../domain/swapTargets";
 import { useSwapFacts } from "../hooks/useSwapFacts";
-import type { PlannerState } from "../types/planner";
+import type { PlannerItem, PlannerState } from "../types/planner";
+import type { SubjectAccessConditions } from "../types/subject";
 import { plannerUi as ui } from "./planner/ui";
 
 /** Renders compact selectable rows grouped by nonempty schedule sessions. */
@@ -27,15 +28,19 @@ function SwapTargetList({ sessions, selectedId, onSelect }: { sessions: SwapTarg
  * Only valid user-controlled targets are shown; confirmation still validates
  * the latest stored plan through the existing mutation.
  */
-export const SwapPositionDialog = ({ planner, sourceId, universityCode, handbookYear, onClose, onConfirm }: {
+export const SwapPositionDialog = ({ planner, sourceId, universityCode, handbookYear, onClose, onConfirm, adaptAccess, canSwap }: {
   planner: PlannerState; sourceId: string; universityCode: string; handbookYear: number;
   onClose: () => void; onConfirm: (source: string, target: string, facts: SwapFacts) => void;
+  adaptAccess?: (access: SubjectAccessConditions) => SubjectAccessConditions;
+  canSwap?: (item: PlannerItem) => boolean;
 }) => {
   const ref = useRef<HTMLDialogElement>(null);
   const returnFocus = useRef(document.activeElement as HTMLElement | null);
   const [targetId, setTargetId] = useState("");
-  const { facts, loading } = useSwapFacts(planner, universityCode, handbookYear);
-  const sessions = useMemo(() => loading ? [] : getValidSwapTargets(planner, sourceId, facts), [planner, sourceId, facts, loading]);
+  const { facts, loading } = useSwapFacts(planner, universityCode, handbookYear, adaptAccess);
+  const sessions = useMemo(() => loading ? [] : getValidSwapTargets(planner, sourceId, facts)
+    .map(session => ({ ...session, targets: session.targets.filter(target => !canSwap || canSwap(target.item)) })).filter(session => session.targets.length),
+  [planner, sourceId, facts, loading, canSwap]);
   const source = plannerItems(planner).find(item => item.plannerItemId === sourceId);
   const sourcePeriod = planner.years.flatMap(year => year.periods.map(period => ({ ...period, label: `${year.name} ${period.name}` }))).find(period => period.items.some(item => item.plannerItemId === sourceId));
   const target = sessions.flatMap(session => session.targets).find(({ item }) => item.plannerItemId === targetId);

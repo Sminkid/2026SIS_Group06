@@ -4,11 +4,12 @@ import { mapUsydEngineeringStructure, usydEngineeringConditionalDisplayGroups,
   usydEngineeringDisplayGroups, usydEngineeringStreamChoices } from "../../../domain/usydEngineeringStructure";
 import type { StudyPlan } from "../../../types/handbook";
 import { AsyncState } from "../../AsyncState";
-import { RequirementAccordion, SelectedRequirementStructure,
+import { SelectedRequirementStructure,
   type RequirementChoiceSelection } from "../../RequirementAccordion";
 import { appUi } from "../../ui";
 import type { DegreeStructureProps } from "../types";
 import { UsydFreeElectivePicker } from "./UsydFreeElectivePicker";
+import { UsydEngineeringRequirement } from "./UsydEngineeringRequirement";
 
 export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear, selections, selectionNotice,
   onSelectComponent, onOpenSubject }: DegreeStructureProps) => {
@@ -76,7 +77,7 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
     <div className={appUi.requirementsList}>{groups.map((group) => {
       const stream = group.title === "Engineering Stream";
       const freeElectives = group.title === "Open Electives" && group.candidateSources.length > 0;
-      return <RequirementAccordion group={group} key={group.id}
+      return <UsydEngineeringRequirement group={group} key={group.id}
         universityCode={universityCode} handbookYear={handbookYear} selections={selections}
         onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject}
         showChoiceSearch={stream}
@@ -87,7 +88,8 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
     })}</div>
     {conditionalGroups.length > 0 && <section aria-labelledby="usyd-conditional-heading">
       <h3 id="usyd-conditional-heading">Conditional</h3>
-      <div className={appUi.requirementsList}>{conditionalGroups.map((group) => <RequirementAccordion group={group} key={group.id}
+      <p className={appUi.sectionNote}>These requirements apply only when their stated enrolment condition is met.</p>
+      <div className={appUi.requirementsList}>{conditionalGroups.map((group) => <UsydEngineeringRequirement group={group} key={group.id}
         universityCode={universityCode} handbookYear={handbookYear} selections={selections}
         onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject} obligation="CONDITIONAL" />)}</div>
     </section>}

@@ -12,6 +12,8 @@ interface Props {
   onChoose: (item: StudyPlanItem) => void;
   onOpenSubject: (code: string, issues: ValidationResult[]) => void;
   onRestoreChoice: (id: string) => void; onSwap?: (id: string) => void;
+  onMove?: (id: string) => void;
+  showReadOnlyDetails?: boolean;
 }
 
 /** Renders a bounded summary; full enrolment explanations live in subject details. */
@@ -27,7 +29,7 @@ function PrerequisiteSummary({ state }: { state: PrerequisiteDisplayState }) {
  * by fixed, empty and selected states; only compact actions and status change.
  */
 export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, readOnlyChoiceNote,
-  onChoose, onOpenSubject, onRestoreChoice, onSwap }: Props) {
+  onChoose, onOpenSubject, onRestoreChoice, onSwap, onMove, showReadOnlyDetails }: Props) {
   const placement = /\b(internship|placement|practicum|professional experience)\b/i.test(`${item.title} ${item.choiceOrigin?.title ?? ""}`);
   const fixedCore = item.choiceOrigin?.componentRequirementKind === "FIXED";
   const filled = Boolean(item.choiceOrigin && item.subject && !fixedCore);
@@ -55,9 +57,11 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, r
       : item.choiceOrigin?.componentRequirementKind === "COMPONENT" ? "Choose a required Core or eligible Option" : "Choose an eligible subject"}</p>}
     {prerequisite && <PrerequisiteSummary state={prerequisite} />}
     {secondaryIssue && <p className="m-0 text-xs text-amber-900">Plan requirement needs review</p>}
+    {!editable && showReadOnlyDetails && item.subject && <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>}
     {editable && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
       {interactive && <button className={ui.action} type="button" onClick={() => onChoose(item)}>{filled ? "Change" : "Choose"}</button>}
       {filled && !placement && onSwap && <button className={ui.action} type="button" aria-label="Swap position" onClick={() => onSwap(item.id)}>Swap</button>}
+      {item.subject && onMove && <button className={ui.action} type="button" aria-label="Move subject" onClick={() => onMove(item.id)}>Move</button>}
       {filled && !placement && <button className={cn(ui.action, "text-red-800")} type="button" aria-label="Remove subject & restore choice" onClick={() => onRestoreChoice(item.id)}>Remove</button>}
       {item.subject && <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>}
     </div>}

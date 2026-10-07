@@ -5,7 +5,7 @@ import { useCourseRecommendations } from "../hooks/useCourseRecommendations";
 import { AsyncState } from "../components/AsyncState";
 import type { QuizResult } from "../domain/quizRecommendation";
 import { majorSuggestionsFor } from "../domain/quizResult";
-import { filterCourses, type CourseRecommendation } from "../domain/courseAggregation";
+import { filterCourses, universityCount, type CourseRecommendation } from "../domain/courseAggregation";
 
 interface Props {
   result: QuizResult | null;
@@ -24,16 +24,19 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
   const shownOthers = useMemo(() => filterCourses(otherCourses, query), [otherCourses, query]);
   const hasQuery = query.trim() !== "";
  
-  const renderCard = (course: CourseRecommendation) => (
-    <div className={appUi.degreeCard} key={course.courseName}>
-      <h3>{course.courseName}</h3>
-      <div className={appUi.degreeRowArrow}>
-        <button className={appUi.textButton} type="button" onClick={() => onSelectCourse(course)}>
-          {course.offerings.length} {course.offerings.length === 1 ? "university offers" : "universities offer"} this →
-        </button>
+  const renderCard = (course: CourseRecommendation) => {
+    const count = universityCount(course);
+    return (
+      <div className={appUi.degreeCard} key={course.courseKey}>
+        <h3>{course.courseName}</h3>
+        <div className={appUi.degreeRowArrow}>
+          <button className={appUi.textButton} type="button" onClick={() => onSelectCourse(course)}>
+            {count} {count === 1 ? "university offers" : "universities offer"} this →
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <main className={appUi.page} id="main-content">

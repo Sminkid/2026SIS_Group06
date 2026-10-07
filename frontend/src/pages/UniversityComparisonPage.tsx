@@ -11,7 +11,8 @@ import {
 import { latestRanking, rankingPosition } from "../domain/rankingLabel";
 import { trapDialogFocus } from "../components/ui/dialog";
 import { lockPageScroll } from "../components/ui/pageScroll";
-import type { CourseRecommendation } from "../domain/courseAggregation";
+import { primaryOfferings, type CourseRecommendation } from "../domain/courseAggregation";
+import { classifyDegree } from "../domain/degreeClassification";
 import type { University, DegreeSummary } from "../types/handbook";
 import type { CourseFee } from "../types/fee";
 
@@ -43,9 +44,12 @@ const comparisonTag = (value: number | null, lowest: number | null): ReactNode =
     : <span className={appUi.feeTagMore}>+{formatAud(comparison.difference)}</span>;
 };
 
-/** Lets the user pick any university + degree not already in the comparison and add it as a column. */
-function AddUniversityDialog({ excludedCodes, onClose, onAdd }: {
-  excludedCodes: string[]; onClose: () => void; onAdd: (offering: Offering) => void;
+/**
+ * Lets the user pick any university + degree not already in the comparison and add it as a column,
+ * preselecting that university's equivalent of the course being compared when it has one.
+ */
+function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
+  courseKey: string; excludedCodes: string[]; onClose: () => void; onAdd: (offering: Offering) => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const returnFocus = useRef(document.activeElement as HTMLElement | null);
@@ -84,12 +88,16 @@ function AddUniversityDialog({ excludedCodes, onClose, onAdd }: {
     setDegrees(null);
     fetchLatestHandbook(selectedUniversityCode, controller.signal)
       .then((handbook) => fetchDegrees(selectedUniversityCode, handbook.year, controller.signal))
-      .then((result) => { setDegrees(result); setStatus("idle"); })
+      .then((result) => {
+        setDegrees(result);
+        setSelectedDegreeId(result.find((degree) => classifyDegree(degree.name).key === courseKey)?.id ?? "");
+        setStatus("idle");
+      })
       .catch((error) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
       });
     return () => controller.abort();
-  }, [selectedUniversityCode]);
+  }, [selectedUniversityCode, courseKey]);
 
   const confirmAdd = () => {
     const university = availableUniversities.find((item) => item.code === selectedUniversityCode);
@@ -120,6 +128,24 @@ function AddUniversityDialog({ excludedCodes, onClose, onAdd }: {
           </select>
         </label>
 
+        {selectedUniversityCode && (
+          <label className="flex flex-col gap-1 text-sm font-semibold">
+            Degree
+            <select
+              className="rounded border border-solid border-[color:var(--line)] p-2 text-sm"
+              value={selectedDegreeId}
+              disabled={degrees === null}
+              onChange={(event) => setSelectedDegreeId(event.target.value)}
+            >
+              <option value="">{status === "loading" ? "Loading degrees…" : "Select a degree…"}</option>
+              {(degrees ?? []).map((degree) => (
+                <option key={degree.id} value={degree.id}>{degree.name}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {status === "error" && <p role="alert" className="m-0 text-sm">We couldn't load this university's degrees.</p>}
+
         <div className="flex flex-row justify-between">
           <button
             type="button"
@@ -143,7 +169,15 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
   const [extraOfferings, setExtraOfferings] = useState<Offering[]>([]);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [basis, setBasis] = useState<FeeBasis>("domestic");
-  const offerings = [...course.offerings, ...extraOfferings];
+  // Chosen delivery variant per university, e.g. Co-op instead of the standard degree; defaults to the standard one.
+  const [variantChoice, setVariantChoice] = useState<Record<string, string>>({});
+  const variantsFor = (university: University) =>
+    course.offerings.filter((offering) => offering.university.id === university.id);
+  const courseOfferings = primaryOfferings(course).map((primary): Offering => {
+    const chosen = variantsFor(primary.university).find((offering) => offering.degree.id === variantChoice[primary.university.id]);
+    return { university: primary.university, degree: (chosen ?? primary).degree };
+  });
+  const offerings = [...courseOfferings, ...extraOfferings];
   const canAdd = offerings.length < MAX_COMPARED_COURSES;
 
   useEffect(() => {
@@ -176,6 +210,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
 
   const rows: Array<{ id: string; label: ReactNode; render: (offering: Offering, index: number) => ReactNode }> = [
     { id: "course-code", label: "Course code", render: ({ degree }) => degree.code },
+    { id: "course-name", label: "Course name", render: ({ degree }) => degree.name },
     {
       id: "credit-points",
       label: "Credit points",
@@ -239,8 +274,9 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
               <thead>
                 <tr>
                   <th></th>
-                  {offerings.map(({ university }) => {
+                  {offerings.map(({ university, degree }) => {
                     const isExtra = extraOfferings.some((offering) => offering.university.id === university.id);
+                    const variants = isExtra ? [] : variantsFor(university);
                     return (
                       <th key={university.id}>
                         <div className={cn(appUi.universityCard, "relative")}>
@@ -252,6 +288,15 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
                             </button>
                           )}
                           {university.name}
+                          {variants.length > 1 && (
+                            <select className="mt-2 block w-full rounded border border-solid border-[color:var(--line)] p-1 text-xs font-normal"
+                              aria-label={`${university.name} degree option`} value={degree.id}
+                              onChange={(event) => setVariantChoice((prev) => ({ ...prev, [university.id]: event.target.value }))}>
+                              {variants.map((offering) => (
+                                <option key={offering.degree.id} value={offering.degree.id}>{offering.degree.name}</option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                       </th>
                     );
@@ -307,6 +352,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
 
       {isAddOpen && (
         <AddUniversityDialog
+          courseKey={course.courseKey}
           excludedCodes={offerings.map(({ university }) => university.code)}
           onClose={() => setIsAddOpen(false)}
           onAdd={(offering) => { setExtraOfferings((prev) => [...prev, offering]); setIsAddOpen(false); }}

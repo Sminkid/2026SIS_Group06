@@ -15,8 +15,8 @@ export const GenericDegreeStructure = ({ detail, universityCode, handbookYear, s
     selections={selections} onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject}
   />;
 
-  return <section className={appUi.requirementsSection} aria-labelledby="requirements-heading">
-    <div className={appUi.sectionHeading}><div><p className={appUi.stepLabel}>Step 3 of 3</p><h2 id="requirements-heading">Course structure</h2></div>
+  return <section className={appUi.contentSection} aria-labelledby="requirements-heading">
+    <div className={appUi.sectionHeading}><div><h2 id="requirements-heading">Course structure</h2></div>
       <span className={appUi.resultCount}>{detail.requirements.length} sections</span></div>
     <p className={appUi.sectionNote}>{hasSemanticOverview
       ? "Start with what is required, then decide whether optional or conditional rules apply to you."

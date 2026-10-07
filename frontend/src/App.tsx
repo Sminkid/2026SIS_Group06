@@ -19,10 +19,12 @@ type Screen =
     { name: "quiz" } |
     { name: "quizResult"; result: QuizResult } |
     { name: "courseRecommendation"; result: QuizResult } |
-    { name: "universityComparison"; result: QuizResult; course: CourseRecommendation } |
+    { name: "allCourses" } |
+    // `result` is null when the course was reached by browsing all courses, without the quiz.
+    { name: "universityComparison"; result: QuizResult | null; course: CourseRecommendation } |
     { 
       name: "degree"; 
-      result: QuizResult;
+      result: QuizResult | null;
       course: CourseRecommendation;
       university: University; 
       degree: DegreeSummary; 
@@ -55,6 +57,12 @@ export const App = () => {
 
   const goHome = () => setScreen({ name: "getStarted" });
 
+  /** Back to wherever the course list was opened from: the recommendations, or the full list. */
+  const backToCourses = (result: QuizResult | null): Screen =>
+    result ? { name: "courseRecommendation", result } : { name: "allCourses" };
+  const backToQuizResult = (result: QuizResult | null) =>
+    result ? () => setScreen({ name: "quizResult", result }) : undefined;
+
   const startNewQuiz = (target?: QuizLaunchTarget) => {
     setQuizTarget(target);
     quiz.restart();
@@ -82,19 +90,22 @@ export const App = () => {
           <img src={logo} className={appUi.brandMark}/>
         </button>
 
-          <span className={appUi.siteHeaderNote}>
-            University handbook explorer
-          </span>
-
-          <nav className={appUi.siteHeaderNav} aria-label="Primary">
-            <button
-              className={appUi.textButton}
-              type="button"
-              onClick={() => startNewQuiz()}
-            >
-              Interest quiz
-            </button>
-          </nav>
+        <nav className={appUi.siteHeaderNav} aria-label="Primary">
+          <button
+            className={appUi.textButton}
+            type="button"
+            onClick={() => startNewQuiz()}
+          >
+            Interest Quiz
+          </button>
+          <button
+            className={appUi.textButton}
+            type="button"
+            onClick={() => setScreen({ name: "allCourses" })}
+          >
+            View All Courses
+          </button>
+        </nav>
       </header>
 
       <main className={appUi.appMain}>
@@ -132,6 +143,15 @@ export const App = () => {
             />
         )}
 
+        {screen.name === "allCourses" && (
+          <CourseRecommendationsPage
+            result={null}
+            onSelectCourse={(course) => setScreen({ name: "universityComparison", result: null, course })}
+            onHome={goHome}
+            onStartQuiz={() => startNewQuiz()}
+          />
+        )}
+
         {screen.name === "universityComparison" && (
           <UniversityComparisonPage 
             course={screen.course} 
@@ -139,8 +159,9 @@ export const App = () => {
               setScreen({ name: "degree", result: screen.result, course: screen.course, university, degree })
             }
             onHome={goHome}
-            onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result })}
-            onBackToRecommendations={() => setScreen({ name: "courseRecommendation", result: screen.result })}
+            onBackToQuizResult={backToQuizResult(screen.result)}
+            onBackToRecommendations={() => setScreen(backToCourses(screen.result))}
+            recommendationsLabel={screen.result ? undefined : "All Courses"}
           />
         )}
 
@@ -148,9 +169,13 @@ export const App = () => {
           <DegreePage 
             university={screen.university} degree={screen.degree}
             onHome={goHome}
-            onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result })}
-            onBackToRecommendations={() => setScreen({ name: "courseRecommendation", result: screen.result })}
+            onBackToQuizResult={backToQuizResult(screen.result)}
+            onBackToRecommendations={() => setScreen(backToCourses(screen.result))}
+            recommendationsLabel={screen.result ? undefined : "All Courses"}
             onBackToComparison={() => setScreen({ name: "universityComparison", result: screen.result, course: screen.course })}
+            onStartQuiz={() =>
+              startNewQuiz({ university: screen.university, degree: screen.degree, returnTo: screen })
+            }
           />
         )}
       </main>

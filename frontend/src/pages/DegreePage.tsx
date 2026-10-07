@@ -16,8 +16,10 @@ interface Props {
   university: University; 
   degree: DegreeSummary;
   onHome: () => void;
-  onBackToQuizResult: () => void;
-  onBackToRecommendations: () => void; 
+  /** Omitted when the degree was reached by browsing rather than through the quiz. */
+  onBackToQuizResult?: () => void;
+  onBackToRecommendations: () => void; onStartQuiz: () => void;
+  recommendationsLabel?: string;
   onBackToComparison: () => void;
 }
 const componentIndex = (groups: RequirementGroup[]) => {
@@ -31,7 +33,7 @@ const componentIndex = (groups: RequirementGroup[]) => {
 };
 
 /** Combines the degree overview, formal requirements and separately allocated roadmap. */
-export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onBackToRecommendations, onBackToComparison }: Props) => {
+export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onBackToRecommendations, onBackToComparison, onStartQuiz, recommendationsLabel = "Recommendations" }: Props) => {
   const [detail, setDetail] = useState<DegreeDetailResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
@@ -84,8 +86,8 @@ export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onB
 
   return <main className={appUi.page} id="main-content">
     <Breadcrumbs items={[{ label: "Get Started", onClick: onHome }, 
-                         { label: "Quiz Result", onClick: onBackToQuizResult }, 
-                         { label: "Recommendations", onClick: onBackToRecommendations }, 
+                         ...(onBackToQuizResult ? [{ label: "Quiz Result", onClick: onBackToQuizResult }] : []), 
+                         { label: recommendationsLabel, onClick: onBackToRecommendations }, 
                          { label: "Comparison", onClick: onBackToComparison }, 
                          { label: "Study Plan"}]} />
     {status === "loading" && <AsyncState kind="loading" label="Loading degree requirements" />}
@@ -108,6 +110,9 @@ export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onB
           </ul>
         )}
         {detail.degree.description && !hasSemanticOverview && <p className={appUi.degreeDescription}>{readableText(detail.degree.description)}</p>}
+        <button className={appUi.primaryButton} type="button" onClick={onStartQuiz}>
+          Not sure this is right for you? Take the interest quiz
+        </button>
       </header>
       <DegreeStructureRenderer detail={detail} universityCode={university.code} handbookYear={degree.handbookYear}
         selections={selections} selectionNotice={selectionNotice} onSelectComponent={selectComponent} onOpenSubject={setSubjectCode} />

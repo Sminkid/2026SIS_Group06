@@ -18,7 +18,7 @@
         "id": "cmszsfunu0643kwtznfitntel",
         "title": "Program choice",
         "description": "Select 144 credit points from the following programs:",
-        "logic": "ANY",
+        "logic": "ANY", "candidateSources": [],
         "requiredCreditPoints": 144,
         "maximumCreditPoints": null,
         "sortOrder": 0,

@@ -58,6 +58,24 @@ export const subjectChoiceUi = {
     "text-[length:.78rem] [line-height:1.5]",
   ),
   subjectResultsGrouped: "min-h-0 flex-1 overflow-y-auto [padding:1rem_1.5rem_1.5rem] [&_[role]]:mt-4 grid gap-4",
+  eligiblePoolFilter: cn(
+    "mx-6 mt-5 grid min-w-0 gap-2 text-[var(--navy)] text-sm font-bold",
+    "[&_select]:min-h-12 [&_select]:min-w-0 [&_select]:w-full [&_select]:[padding:.8rem_2rem_.8rem_.85rem]",
+    "[&_select]:border-[1px] [&_select]:border-solid [&_select]:border-[color:#9aabc3] [&_select]:bg-[var(--soft)]",
+    "[&_select]:text-base [&_select]:font-semibold",
+  ),
+  eligiblePoolGroup: cn(
+    "min-w-0 [&_>_header]:flex [&_>_header]:flex-wrap [&_>_header]:items-baseline [&_>_header]:justify-between [&_>_header]:gap-2",
+    "[&_>_header]:pb-3 [&_>_header]:[border-bottom:1px_solid_var(--line)]",
+    "[&_>_header_h3]:m-0 [&_>_header_h3]:text-base [&_>_header_h3]:[overflow-wrap:anywhere] [&_>_header_h3]:font-bold",
+    "[&_>_header_span]:text-xs [&_>_header_span]:text-[var(--muted)]",
+  ),
+  candidateOwnership: cn(
+    "mt-3 grid min-w-0 gap-1 text-xs text-[var(--muted)]",
+    "[&_select]:min-w-0 [&_select]:w-full [&_select]:min-h-10 [&_select]:p-2 [&_select]:text-[var(--navy)]",
+    "[&_select]:border-[1px] [&_select]:border-solid [&_select]:border-[color:var(--line)] [&_select]:bg-[var(--surface)]",
+  ),
+  candidateSourceBadges: "mt-2 flex flex-wrap gap-1 text-xs text-[var(--muted)] [&_span]:bg-[var(--soft)] [&_span]:px-2 [&_span]:py-1 [&_span]:[overflow-wrap:anywhere]",
   subjectPoolSelectable: cn(subjectPoolSelectableBase, "subject-pool--selectable [border-color:#9aabc3]"),
   subjectPoolContext: cn(subjectPoolSelectableBase, "[border-left:3px_solid_#8094b3]"),
   externalSubjectSearch: cn(

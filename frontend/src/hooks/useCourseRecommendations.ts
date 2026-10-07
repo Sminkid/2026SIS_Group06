@@ -3,7 +3,8 @@ import { fetchUniversities, fetchLatestHandbook, fetchDegrees } from "../api/uni
 import { matchCourses, otherCourses as buildOtherCourses, type CourseRecommendation } from "../domain/courseAggregation";
 import type { QuizResult } from "../domain/quizRecommendation";
 
-export const useCourseRecommendations = (result: QuizResult) => {
+/** With no quiz result every course is returned under `otherCourses`, i.e. the full browsable list. */
+export const useCourseRecommendations = (result: QuizResult | null) => {
   const [courses, setCourses] = useState<CourseRecommendation[]>([]);
   const [otherCourses, setOtherCourses] = useState<CourseRecommendation[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -18,7 +19,7 @@ export const useCourseRecommendations = (result: QuizResult) => {
         const handbook = await fetchLatestHandbook(university.code, controller.signal);
         degreesByUniversity[university.code] = await fetchDegrees(university.code, handbook.year, controller.signal);
       }
-      const recommended = matchCourses(result.recommendedCourseKeywords, universities, degreesByUniversity);
+      const recommended = matchCourses(result?.recommendedCourseKeywords ?? [], universities, degreesByUniversity);
       setCourses(recommended);
       setOtherCourses(buildOtherCourses(recommended, universities, degreesByUniversity));
       setStatus("ready");

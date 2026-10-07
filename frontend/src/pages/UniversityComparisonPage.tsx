@@ -19,8 +19,10 @@ interface Props {
   course: CourseRecommendation;
   onSelectUniversity: (university: University, degree: DegreeSummary) => void;
   onHome: () => void;
-  onBackToQuizResult: () => void;
+  /** Omitted when the course was reached by browsing rather than through the quiz. */
+  onBackToQuizResult?: () => void;
   onBackToRecommendations: () => void;
+  recommendationsLabel?: string;
 }
 
 type Offering = { university: University; degree: DegreeSummary };
@@ -118,7 +120,7 @@ function AddUniversityDialog({ excludedCodes, onClose, onAdd }: {
           </select>
         </label>
 
-        <div className={appUi.buttonContainer}>
+        <div className="flex flex-row justify-between">
           <button
             type="button"
             className={appUi.primaryButton}
@@ -134,7 +136,7 @@ function AddUniversityDialog({ excludedCodes, onClose, onAdd }: {
   );
 }
 
-export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, onBackToQuizResult, onBackToRecommendations }: Props) => {
+export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, onBackToQuizResult, onBackToRecommendations, recommendationsLabel = "Recommendations" }: Props) => {
   const [fees, setFees] = useState<CourseFee[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
@@ -200,8 +202,8 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
   return (
     <main className={appUi.page} id="main-content">
       <Breadcrumbs items={[{ label: "Get Started", onClick: onHome },
-                           { label: "Quiz Result", onClick: onBackToQuizResult },
-                           { label: "Recommendations", onClick: onBackToRecommendations },
+                           ...(onBackToQuizResult ? [{ label: "Quiz Result", onClick: onBackToQuizResult }] : []),
+                           { label: recommendationsLabel, onClick: onBackToRecommendations },
                            { label: "Comparison" }]} />
       <section className={appUi.pageIntroCompact} aria-labelledby="compare-heading">
         <p className={appUi.eyebrow}>Explore universities</p>

@@ -21,6 +21,7 @@ interface Props {
   onClose: () => void;
   planIssues?: ValidationResult[];
   hasPlan?: boolean;
+  adaptAccess?: (access: SubjectAccessConditions) => SubjectAccessConditions;
 }
 
 /** Resolves a readable label without exposing storage identifiers. */
@@ -114,13 +115,14 @@ export const SubjectDetailsDialog = ({
   onClose,
   planIssues = [],
   hasPlan = false,
+  adaptAccess,
 }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const [detail, setDetail] = useState<SubjectDetail | null>(null);
   const [conditions, setConditions] = useState<SubjectAccessConditions | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const prerequisite = getPrerequisiteDisplayState(conditions, planIssues, { loading: status === "loading", hasPlan });
+  const prerequisite = getPrerequisiteDisplayState(conditions && adaptAccess ? adaptAccess(conditions) : conditions, planIssues, { loading: status === "loading", hasPlan });
   const readableOfferings = offeringViews(detail?.offerings);
 
   useEffect(() => {

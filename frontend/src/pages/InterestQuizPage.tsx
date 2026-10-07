@@ -2,11 +2,18 @@ import { useState } from "react";
 import { appUi } from "../components/ui";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { useQuizSession } from "../hooks/useQuizSession";
 import type { QuizResult } from "../domain/quizRecommendation";
+import type { QuizSession } from "../hooks/useQuizSession";
 import type { QuestionRef, QuestionResponse } from "../types/quiz";
 
-interface Props { onComplete: (result: QuizResult) => void; onBack: () => void; }
+interface Props {
+  session: QuizSession;
+  onHome: () => void;
+  /** Set when the quiz was launched from a degree page, so the student can step back to it. */
+  onBackToDegree?: () => void;
+  /** Called with the initial results (after the 20 screening questions) or the personalised result. */
+  onComplete: (result: QuizResult) => void;
+}
 
 const LIKERT_VALUES = [1, 2, 3, 4, 5] as const;
 
@@ -46,7 +53,7 @@ interface QuestionStepProps {
   status: "idle" | "submitting" | "error";
   continueLabel: string;
   onAnswer: (questionId: string, value: number) => void;
-  onContinue: (responses: QuestionResponse[]) => void;
+  onContinue: (responses: QuestionResponse[]) => Promise<boolean>;
 }
 
 /** Shows exactly one question at a time, tracking position locally so it resets per step. */
@@ -64,29 +71,19 @@ const QuestionStep = ({
   const isLast = index === questions.length - 1;
   const hasAnswer = question ? answers[question.id] !== undefined : false;
 
-  const goNext = () => {
-    if (isLast) onContinue(questions.map((q) => ({ questionId: q.id, value: answers[q.id]! })));
-    // Always advance, even on the last question: if this step's question list is about to
-    // grow (e.g. screening's 2 bonus questions arriving after the initial 18), the index
-    // needs to already be pointing past the old last item so the new one renders next. If
-    // the step is instead about to transition away entirely, this is a harmless no-op.
-    setIndex((current) => current + 1);
+  const goNext = async () => {
+    if (!isLast) {
+      setIndex((current) => current + 1);
+      return;
+    }
+    const accepted = await onContinue(questions.map((q) => ({ questionId: q.id, value: answers[q.id]! })));
+    if (accepted) setIndex((current) => current + 1);
   };
 
   if (!question) {
-    // Between finishing the last currently-known question and the next batch (or the result)
-    // arriving. If that request failed, offer a way back to the last question to resubmit.
     return (
       <section className={appUi.contentSection}>
-        {status === "error" ? (
-          <AsyncState
-            kind="error"
-            label="We couldn't submit your answers."
-            onRetry={() => setIndex(Math.max(0, questions.length - 1))}
-          />
-        ) : (
-          <AsyncState kind="loading" label="Saving your answers" />
-        )}
+        <AsyncState kind="loading" label="Loading next question" />
       </section>
     );
   }
@@ -99,7 +96,6 @@ const QuestionStep = ({
         </p>
         <LikertQuestion question={question} value={answers[question.id]} onChange={(value) => onAnswer(question.id, value)} />
         {status === "error" && <AsyncState kind="error" label="We couldn't submit your answers. Please try again." />}
-        
         <div className={appUi.buttonContainer}>
           <button
             className={appUi.backButton}
@@ -113,7 +109,7 @@ const QuestionStep = ({
             className={appUi.primaryButton}
             type="button"
             disabled={status === "submitting" || !hasAnswer}
-            onClick={goNext}
+            onClick={() => void goNext()}
           >
             {isLast ? continueLabel : "Next"}
           </button>
@@ -123,19 +119,37 @@ const QuestionStep = ({
   );
 };
 
-/** Walks a student through the RIASEC interest quiz, then hands the matched result to the app flow. */
-export const InterestQuizPage = ({ onComplete, onBack }: Props) => {
-  const { step, status, start, submitScreening, submitDrillDown } = useQuizSession(onComplete);
-  // Question ids are unique across steps, so answers are kept (not cleared) when a submit
-  // fails and the student needs to resend them.
+/**
+ * Walks a student through the RIASEC interest quiz. The 18 general questions and 2 closing
+ * questions produce their initial results; the optional fine-tuning questions then produce a
+ * personalised one. Results are handed to the app, which shows them on the Quiz Result page.
+ */
+export const QuizPage = ({ session, onHome, onBackToDegree, onComplete }: Props) => {
+  const { step, status, start, submitScreening, submitDrillDown } = session;
+  // Question ids are unique across stages, so answers are kept for the page's lifetime and
+  // never need clearing between the screening and drill-down steps.
   const [answers, setAnswers] = useState<Record<string, number>>({});
 
   const setAnswer = (questionId: string, value: number) =>
     setAnswers((current) => ({ ...current, [questionId]: value }));
 
+  const continueWith =
+    (submit: (responses: QuestionResponse[]) => Promise<{ ok: boolean; result?: QuizResult }>) =>
+    async (responses: QuestionResponse[]): Promise<boolean> => {
+      const outcome = await submit(responses);
+      if (outcome.result) onComplete(outcome.result);
+      return outcome.ok;
+    };
+
+  const breadcrumbItems = [
+    { label: "Get Started", onClick: onHome },
+    ...(onBackToDegree ? [{ label: "Study Plan", onClick: onBackToDegree }] : []),
+    { label: "Quiz" },
+  ];
+
   return (
     <main className={appUi.page} id="main-content">
-      <Breadcrumbs items={[{ label: "Get Started", onClick: onBack }, { label: "Quiz" }]} />
+      <Breadcrumbs items={breadcrumbItems} />
 
       {step.name === "intro" && (
         <section className={appUi.pageIntroCompact}>
@@ -143,14 +157,15 @@ export const InterestQuizPage = ({ onComplete, onBack }: Props) => {
           <h1>Find degrees that match your interests</h1>
           <div className={appUi.quizIntro}>
             <p className={appUi.lead}>
-              Answer a short set of questions about what you enjoy, and we&apos;ll match your interest profile
-              against real majors and streams.
+              Answer 20 short questions about what you enjoy and we&apos;ll show your initial results and the
+              courses that might suit you. After that, you can choose whether to answer some more specific
+              questions for a more personalised recommendation.
             </p>
-            {status === "error" && <AsyncState kind="error" label="We couldn't start the quiz." onRetry={start} />}
+            {status === "error" && <AsyncState kind="error" label="We couldn't start the quiz." onRetry={() => void start()} />}
             <button
               className={appUi.primaryButton}
               type="button"
-              onClick={start}
+              onClick={() => void start()}
               disabled={status === "submitting"}
             >
               Start quiz
@@ -165,9 +180,9 @@ export const InterestQuizPage = ({ onComplete, onBack }: Props) => {
           questions={step.questions}
           answers={answers}
           status={status}
-          continueLabel="Continue"
+          continueLabel="See my initial results"
           onAnswer={setAnswer}
-          onContinue={submitScreening}
+          onContinue={continueWith(submitScreening)}
         />
       )}
 
@@ -177,10 +192,16 @@ export const InterestQuizPage = ({ onComplete, onBack }: Props) => {
           questions={step.questions}
           answers={answers}
           status={status}
-          continueLabel="See my result"
+          continueLabel="See my personalised result"
           onAnswer={setAnswer}
-          onContinue={submitDrillDown}
+          onContinue={continueWith(submitDrillDown)}
         />
+      )}
+
+      {(step.name === "screeningResult" || step.name === "result") && (
+        <section className={appUi.contentSection}>
+          <AsyncState kind="loading" label="Loading your results" />
+        </section>
       )}
     </main>
   );

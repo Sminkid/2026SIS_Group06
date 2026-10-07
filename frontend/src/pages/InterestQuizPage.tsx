@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { appUi } from "../components/ui";
+import { appUi, cn } from "../components/ui";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { LoadingDialog } from "../components/LoadingDialog";
@@ -74,6 +74,8 @@ const QuestionStep = ({
   const question = questions[index];
   const isLast = index === questions.length - 1;
   const hasAnswer = question ? answers[question.id] !== undefined : false;
+  const unanswered = questions.findIndex((item) => answers[item.id] === undefined);
+  const firstUnanswered = unanswered === -1 ? questions.length : unanswered;
 
   const goNext = async () => {
     if (!isLast) {
@@ -93,7 +95,7 @@ const QuestionStep = ({
   }
 
   return (
-    <section className={appUi.contentSection}>
+    <section className={cn(appUi.contentSection, appUi.quizLayout)}>
       <div className={appUi.quizQuestionWrapper}>
         <p className={appUi.quizProgress}>
           {progressLabel} · Question {index + 1} of {questions.length}
@@ -120,6 +122,36 @@ const QuestionStep = ({
           </button>
         </div>
       </div>
+      <ol className={appUi.quizStepList} aria-label="Quiz progress">
+        {questions.map((item, itemIndex) => {
+          const answered = answers[item.id] !== undefined;
+          const current = itemIndex === index;
+          // Answered questions and the next one to answer can be revisited; later ones can't be skipped to.
+          const reachable = !current && itemIndex <= firstUnanswered;
+          const content = (
+            <>
+              <span className={appUi.quizStepMarker} aria-hidden="true">
+                {answered && !current ? <span className={appUi.quizStepTick}>✓</span> : <span className={appUi.quizStepDot} />}
+              </span>
+              <span className={appUi.quizStepLabel}>Question {itemIndex + 1}</span>
+              {answered && <span className={appUi.srOnly}> (answered)</span>}
+            </>
+          );
+          return (
+            <li key={item.id} aria-current={current ? "step" : undefined}
+              className={current ? appUi.quizStepCurrent : answered ? appUi.quizStepAnswered : appUi.quizStepPending}>
+              {reachable ? (
+                <button type="button" className={appUi.quizStepButton} disabled={status === "submitting"}
+                  onClick={() => setIndex(itemIndex)}>
+                  {content}
+                </button>
+              ) : (
+                <span className={appUi.quizStepContent}>{content}</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 };

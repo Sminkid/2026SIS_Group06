@@ -2,6 +2,7 @@ import { useState } from "react";
 import { appUi } from "../components/ui";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import { LoadingDialog } from "../components/LoadingDialog";
 import type { QuizResult } from "../domain/quizRecommendation";
 import type { QuizSession } from "../hooks/useQuizSession";
 import type { QuestionRef, QuestionResponse } from "../types/quiz";
@@ -52,6 +53,8 @@ interface QuestionStepProps {
   answers: Record<string, number>;
   status: "idle" | "submitting" | "error";
   continueLabel: string;
+  /** Shown in a pop-up while this step's answers are being submitted. */
+  loadingLabel: string;
   onAnswer: (questionId: string, value: number) => void;
   onContinue: (responses: QuestionResponse[]) => Promise<boolean>;
 }
@@ -63,6 +66,7 @@ const QuestionStep = ({
   answers,
   status,
   continueLabel,
+  loadingLabel,
   onAnswer,
   onContinue,
 }: QuestionStepProps) => {
@@ -96,6 +100,7 @@ const QuestionStep = ({
         </p>
         <LikertQuestion question={question} value={answers[question.id]} onChange={(value) => onAnswer(question.id, value)} />
         {status === "error" && <AsyncState kind="error" label="We couldn't submit your answers. Please try again." />}
+        {status === "submitting" && <LoadingDialog label={loadingLabel} />}
         <div className={appUi.buttonContainer}>
           <button
             className={appUi.backButton}
@@ -162,11 +167,13 @@ export const QuizPage = ({ session, onHome, onBackToDegree, onComplete }: Props)
               questions for a more personalised recommendation.
             </p>
             {status === "error" && <AsyncState kind="error" label="We couldn't start the quiz." onRetry={() => void start()} />}
+            {status === "submitting" && <LoadingDialog label="Preparing your quiz questions…" />}
             <button
               className={appUi.primaryButton}
               type="button"
               onClick={() => void start()}
               disabled={status === "submitting"}
+              aria-busy={status === "submitting"}
             >
               Start quiz
             </button>
@@ -180,7 +187,10 @@ export const QuizPage = ({ session, onHome, onBackToDegree, onComplete }: Props)
           questions={step.questions}
           answers={answers}
           status={status}
-          continueLabel="See my initial results"
+          continueLabel={step.phase === "generic" ? "Continue to a closer look" : "See my initial results"}
+          loadingLabel={step.phase === "generic"
+            ? "Saving your answers and preparing a few more questions…"
+            : "Working out your initial results. This may take a moment…"}
           onAnswer={setAnswer}
           onContinue={continueWith(submitScreening)}
         />
@@ -193,6 +203,7 @@ export const QuizPage = ({ session, onHome, onBackToDegree, onComplete }: Props)
           answers={answers}
           status={status}
           continueLabel="See my personalised result"
+          loadingLabel="Personalising your recommendations. This may take a moment…"
           onAnswer={setAnswer}
           onContinue={continueWith(submitDrillDown)}
         />

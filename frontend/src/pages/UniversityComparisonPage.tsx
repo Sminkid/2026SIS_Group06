@@ -279,7 +279,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
                     const variants = isExtra ? [] : variantsFor(university);
                     return (
                       <th key={university.id}>
-                        <div className={cn(appUi.universityCard, "relative")}>
+                        <div className={cn(appUi.universityCard, "relative h-full")}>
                           {isExtra && (
                             <button type="button" className={appUi.closeButton}
                               aria-label={`Remove ${university.name}`}

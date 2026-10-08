@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaPg } from "@prisma/adapter-pg";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
@@ -18,6 +18,10 @@ import { PrismaClient } from "../../generated/prisma/client.js";
 // By default, degrees/components that already have a RiasecSubcategoryScore are
 // skipped, so re-running this only scores what's still missing. Pass --rescore
 // to score everything matching the other filters regardless of existing scores.
+//
+// If --university is given and that university code isn't in the database yet (e.g. it
+// hasn't been ingested), this prints a clear message and exits instead of silently scoring
+// nothing - so this is the one command a teammate needs to run for a newly-added university.
 
 const args = process.argv.slice(2);
 const universityFilter = args.find((a) => a.startsWith("--university="))?.split("=")[1];
@@ -135,6 +139,14 @@ function buildSystemPrompt(categories: { code: string; description: string | nul
 }
 
 async function main() {
+  if (universityFilter) {
+    const university = await prisma.university.findUnique({ where: { code: universityFilter } });
+    if (!university) {
+      console.log(`"${universityFilter}" was not found in the database - add its handbook data first.`);
+      return;
+    }
+  }
+
   const categories = await prisma.riasecCategory.findMany({ orderBy: { code: "asc" } });
   const subcategories = await fetchSubcategories();
   const systemPrompt = buildSystemPrompt(categories, subcategories);
@@ -331,8 +343,11 @@ async function main() {
     byUniversity.set(entry.university, list);
   }
 
+  const draftsDir = new URL("./drafts/", import.meta.url);
+  await mkdir(draftsDir, { recursive: true });
+
   for (const [university, entries] of byUniversity) {
-    const outPath = new URL(`./riasec-scores.${university.toLowerCase()}.draft.json`, import.meta.url);
+    const outPath = new URL(`riasec-scores.${university.toLowerCase()}.draft.json`, draftsDir);
     await writeFile(outPath, JSON.stringify(entries, null, 2));
     console.log(`Wrote ${entries.length} scored records for ${university} to ${outPath.pathname}`);
   }

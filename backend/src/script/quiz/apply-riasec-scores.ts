@@ -10,13 +10,14 @@ import { PrismaClient } from "../../generated/prisma/client.js";
 //   tsx prisma/apply-riasec-scores.ts [--file=riasec-scores.usyd.draft.json]
 //
 // Reads one or more human-reviewed riasec-scores.<university>.draft.json files
-// (produced by generate-riasec-scores.ts) and upserts the scores into RiasecScore.
-// With --file, applies just that file. With no argument, applies every
-// riasec-scores.*.draft.json file found next to this script.
+// (produced by generate-riasec-scores.ts, written into the gitignored drafts/ folder next to
+// this script) and upserts the scores into RiasecScore. With --file, applies just that file
+// (a bare filename, resolved inside drafts/). With no argument, applies every
+// riasec-scores.*.draft.json file found in drafts/.
 
 const args = process.argv.slice(2);
 const fileArg = args.find((a) => a.startsWith("--file="))?.split("=")[1];
-const scriptDir = dirname(fileURLToPath(import.meta.url));
+const draftsDir = join(dirname(fileURLToPath(import.meta.url)), "drafts");
 
 interface DraftEntry {
   targetType: "degree" | "component";
@@ -44,17 +45,17 @@ function rowKey(degreeId: string | null, componentId: string | null, categoryId:
 }
 
 async function resolveDraftFiles(): Promise<string[]> {
-  if (fileArg) return [join(scriptDir, fileArg)];
-  const entries = await readdir(scriptDir);
+  if (fileArg) return [join(draftsDir, fileArg)];
+  const entries = await readdir(draftsDir).catch(() => []);
   return entries
     .filter((name) => /^riasec-scores\..+\.draft\.json$/.test(name))
-    .map((name) => join(scriptDir, name));
+    .map((name) => join(draftsDir, name));
 }
 
 async function main() {
   const draftFiles = await resolveDraftFiles();
   if (draftFiles.length === 0) {
-    console.log("No riasec-scores.*.draft.json files found - nothing to apply.");
+    console.log("No riasec-scores.*.draft.json files found in drafts/ - nothing to apply.");
     return;
   }
   console.log(`Applying ${draftFiles.length} draft file(s): ${draftFiles.map((f) => f.split("/").pop()).join(", ")}`);

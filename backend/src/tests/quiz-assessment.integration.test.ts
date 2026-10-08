@@ -194,4 +194,103 @@ describe("database-backed Quiz Assessment API", { skip: !process.env.DATABASE_UR
     );
     assert.ok(result.recommendation!.matchScore > 0.5, `expected a confident match, got ${result.recommendation!.matchScore}`);
   });
+
+  test("music-leaning persona: full flow targeted at a real Music degree recommends the Music stream", async () => {
+    const MUSIC_SUBCATEGORY = "riasec-artistic-music";
+
+    const session = await post<StartSessionResponse>("/api/assessment/sessions", {}, 201);
+    const screeningResponses = session.questions.map((q) => ({
+      questionId: q.id,
+      value: q.categoryId === "riasec-artistic" ? 5 : 1,
+    }));
+    const screening = await post<ScreeningResponse>(
+      `/api/assessment/sessions/${session.sessionId}/screening-responses`,
+      { responses: screeningResponses },
+    );
+
+    const closingResponses = screening.closingQuestions.map((q) => ({
+      questionId: q.id,
+      value: q.subcategoryId === MUSIC_SUBCATEGORY ? 5 : 4,
+    }));
+    await post(`/api/assessment/sessions/${session.sessionId}/closing-responses`, { responses: closingResponses });
+
+    const drillDown = await post<{ questions: QuestionRef[] }>(
+      `/api/assessment/sessions/${session.sessionId}/drill-down`,
+      {},
+    );
+    const drillDownResponses = drillDown.questions.map((q) => {
+      if (q.subcategoryId === MUSIC_SUBCATEGORY) return { questionId: q.id, value: 5 };
+      if (q.categoryId === "riasec-artistic") return { questionId: q.id, value: 4 };
+      return { questionId: q.id, value: 1 };
+    });
+
+    // C10276 (UTS, Bachelor of Creative Production in Music and Sound Design) - its
+    // "Music and Sound Design Stream" literally names the field, same as the Engineering case.
+    const result = await post<AssessmentResult>(
+      `/api/assessment/sessions/${session.sessionId}/drill-down-responses?degreeCode=C10276&university=UTS&year=2026`,
+      { responses: drillDownResponses },
+    );
+
+    assert.equal(result.rankedCategoryIds[0], "riasec-artistic", `expected Artistic to rank first, got ${result.rankedCategoryIds[0]}`);
+    assert.ok(result.recommendation, "expected a recommendation for a real Music degree target");
+    assert.match(result.recommendation!.name, /music/i);
+    assert.equal(
+      result.recommendation!.usedSubcategoryData,
+      true,
+      "expected subcategory-level matching, not the coarse category-only fallback",
+    );
+    assert.ok(result.recommendation!.matchScore > 0.5, `expected a confident match, got ${result.recommendation!.matchScore}`);
+  });
+
+  test("nursing-leaning persona: full flow targeted at a real Nursing degree recommends one of its streams", async () => {
+    const HEALTH_CARE_SUBCATEGORY = "riasec-social-health-care";
+
+    const session = await post<StartSessionResponse>("/api/assessment/sessions", {}, 201);
+    const screeningResponses = session.questions.map((q) => ({
+      questionId: q.id,
+      value: q.categoryId === "riasec-social" ? 5 : 1,
+    }));
+    const screening = await post<ScreeningResponse>(
+      `/api/assessment/sessions/${session.sessionId}/screening-responses`,
+      { responses: screeningResponses },
+    );
+
+    const closingResponses = screening.closingQuestions.map((q) => ({
+      questionId: q.id,
+      value: q.subcategoryId === HEALTH_CARE_SUBCATEGORY ? 5 : 4,
+    }));
+    await post(`/api/assessment/sessions/${session.sessionId}/closing-responses`, { responses: closingResponses });
+
+    const drillDown = await post<{ questions: QuestionRef[] }>(
+      `/api/assessment/sessions/${session.sessionId}/drill-down`,
+      {},
+    );
+    const drillDownResponses = drillDown.questions.map((q) => {
+      if (q.subcategoryId === HEALTH_CARE_SUBCATEGORY) return { questionId: q.id, value: 5 };
+      if (q.categoryId === "riasec-social") return { questionId: q.id, value: 4 };
+      return { questionId: q.id, value: 1 };
+    });
+
+    // C10122 (UTS, Bachelor of Nursing) - unlike Engineering/Music, neither of this degree's
+    // two streams ("Standard Program", "Enrolled Nurse") literally says "Nursing" in its name,
+    // so this asserts structurally (which specific stream, confident subcategory-informed
+    // match) rather than on a name regex.
+    const result = await post<AssessmentResult>(
+      `/api/assessment/sessions/${session.sessionId}/drill-down-responses?degreeCode=C10122&university=UTS&year=2026`,
+      { responses: drillDownResponses },
+    );
+
+    assert.equal(result.rankedCategoryIds[0], "riasec-social", `expected Social to rank first, got ${result.rankedCategoryIds[0]}`);
+    assert.ok(result.recommendation, "expected a recommendation for a real Nursing degree target");
+    assert.ok(
+      ["STM91997", "STM91472"].includes(result.recommendation!.code),
+      `expected one of Bachelor of Nursing's two streams, got ${result.recommendation!.code}`,
+    );
+    assert.equal(
+      result.recommendation!.usedSubcategoryData,
+      true,
+      "expected subcategory-level matching, not the coarse category-only fallback",
+    );
+    assert.ok(result.recommendation!.matchScore > 0.5, `expected a confident match, got ${result.recommendation!.matchScore}`);
+  });
 });

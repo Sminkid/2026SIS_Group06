@@ -35,11 +35,6 @@ export const navigationUi = {
     "[@media(max-width:720px)]:[&_span:first-child]:border-0",
   ),
   degreeDescription: "max-w-216 mt-8 text-[#4d596d] [line-height:1.75]",
-  rankingList: "flex flex-wrap gap-2 mt-4 p-0 m-0 list-none",
-  rankingChip: cn(
-    "[padding:.35rem_.7rem] border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
-    "text-[length:.82rem] text-[var(--muted)] [&_strong]:text-[var(--navy)] [&_strong]:font-extrabold",
-  ),
   resultCount: "text-[var(--muted)] text-[length:.88rem] whitespace-nowrap",
   pageIntroCompact: "max-w-216 [margin:2.5rem_0_3.5rem]",
   searchField: cn(
@@ -74,6 +69,5 @@ export const navigationUi = {
   ),
   universityCardCode: "mb-10 text-[var(--blue)] text-[length:.8rem] font-extrabold [letter-spacing:.12em]",
   universityCardName: "max-w-72 text-[length:1.25rem] font-bold [line-height:1.35]",
-  universityCardRanking: "mt-2 text-[var(--muted)] text-[length:.82rem] [&_strong]:text-[var(--navy)] [&_strong]:font-extrabold",
   cardAction: "mt-auto pt-6 text-[var(--muted)] text-[length:.88rem] [font-weight:650]",
 } as const;

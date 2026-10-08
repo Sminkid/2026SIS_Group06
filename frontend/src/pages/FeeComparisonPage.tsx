@@ -1,14 +1,15 @@
 import { appUi } from "../components/ui";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { fetchCourseFees } from "../api/fees";
-import { fetchUniversities } from "../api/universities";
+import { fetchEmploymentBenchmark, fetchUniversities } from "../api/universities";
+import { employmentFor, formatPercent, formatRank, subjectRankingLine, worldRanking } from "../domain/universityOutcomes";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import {
   annualFee, applyQuery, closestCourse, compareToLowest, courseOptions, estimatedTotal, formatAud, formatDuration,
   initialColumns, leastUsedUniversity, lowestOf, MAX_COMPARED_COURSES, type ComparisonColumn, type FeeBasis,
 } from "../domain/feeComparison";
-import type { DegreeSummary, University } from "../types/handbook";
+import type { DegreeSummary, EmploymentBenchmark, University } from "../types/handbook";
 import type { CourseFee } from "../types/fee";
 
 interface Props { onHome: () => void; onViewDegree: (university: University, degree: DegreeSummary) => void; }
@@ -25,6 +26,7 @@ const comparisonTag = (value: number | null, lowest: number | null): ReactNode =
 export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
   const [fees, setFees] = useState<CourseFee[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
+  const [benchmark, setBenchmark] = useState<EmploymentBenchmark | null>(null);
   const [columns, setColumns] = useState<ComparisonColumn[]>([]);
   const [basis, setBasis] = useState<FeeBasis>("domestic");
   const [addUniversityCode, setAddUniversityCode] = useState("");
@@ -35,10 +37,10 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
   useEffect(() => {
     const controller = new AbortController();
     setStatus("loading");
-    void Promise.all([fetchCourseFees(controller.signal), fetchUniversities(controller.signal)])
-      .then(([feeData, universityData]) => {
+    void Promise.all([fetchCourseFees(controller.signal), fetchUniversities(controller.signal), fetchEmploymentBenchmark(controller.signal).catch(() => null),])
+      .then(([feeData, universityData, benchmarkData]) => {
         const withFees = universityData.filter((university) => feeData.some((fee) => fee.universityCode === university.code));
-        setFees(feeData); setUniversities(withFees); setColumns(initialColumns(feeData, withFees.map((university) => university.code))); setStatus("ready");
+        setFees(feeData); setUniversities(withFees); setBenchmark(benchmarkData); setColumns(initialColumns(feeData, withFees.map((university) => university.code))); setStatus("ready");
       })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
@@ -73,6 +75,8 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
   const lowestTotal = lowestOf(totals);
   const feeYear = fees[0]?.feeYear.replace("-", "–");
   const missing = <span className={appUi.feeMissing}>Not offered</span>;
+  const notAvailable = <span className={appUi.feeMissing}>Not available</span>;
+  const universityByCode = new Map(universities.map((university) => [university.code, university]));
 
   const rows: Array<{ label: string; render: (course: CourseFee, index: number) => ReactNode }> = [
     { label: "Course code", render: (course) => <span className={appUi.feeValue}>{course.degreeCode}</span> },
@@ -97,6 +101,34 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
             id: course.degreeId, code: course.degreeCode, name: course.degreeName,
             creditPoints: course.creditPoints, handbookYear: course.handbookYear,
           })}>View degree →</button>
+        );
+      },
+    },
+    {
+      label: "Ranking",
+      render: (course) => {
+        const university = universityByCode.get(course.universityCode);
+        const world = university ? worldRanking(university) : null;
+        if (!university || !world) return notAvailable;
+        const subjectLine = subjectRankingLine(university, course.degreeName);
+        return (
+          <>
+            <span className={appUi.feeMoney}>{formatRank(world)}</span>
+            <span className={appUi.feeSubline}>QS world ranking</span>
+            {subjectLine && <span className={appUi.feeSubline}>{subjectLine}</span>}
+          </>
+        );
+      },
+    },
+    {
+      label: "Employment rate",
+      render: (course) => {
+        const employment = employmentFor(universityByCode.get(course.universityCode), basis);
+        return employment === null ? notAvailable : (
+          <>
+            <span className={appUi.feeMoney}>{formatPercent(employment.fullTimeRate)}</span>
+            <span className={appUi.feeSubline}>Full-time, {basis} graduates, {employment.period}</span>
+          </>
         );
       },
     },
@@ -211,6 +243,12 @@ export const FeeComparisonPage = ({ onHome, onViewDegree }: Props) => {
           <p>Annual fee is each university's guide price for 48 credit points, which is one year of full-time study.</p>
           <p>Estimated total multiplies the annual fee by the course length at current rates, so real totals will be higher as fees rise each year. Honours entries of 48 CP cover the honours year only.</p>
           <p>Domestic figures are Commonwealth supported student contributions and vary with the units you take.</p>
+          <p>Ranking is the university's position in the QS World University Rankings 2027. The second line is the QS subject ranking for the subject area closest to the course; double degrees show the overall ranking only.</p>
+          <p>
+            Employment rate is the share of the university's undergraduates in full-time work about 4–6 months after finishing (QILT Graduate Outcomes Survey 2025). It covers the whole university, not the individual course.
+            {benchmark?.domestic && benchmark.international
+              && ` The average across all Australian universities is ${formatPercent(benchmark.domestic.fullTimeRate)} for domestic and ${formatPercent(benchmark.international.fullTimeRate)} for international graduates.`}
+          </p>
         </div>
       </section>
     </main>

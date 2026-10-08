@@ -103,7 +103,7 @@ const QuestionStep = ({
         <LikertQuestion question={question} value={answers[question.id]} onChange={(value) => onAnswer(question.id, value)} />
         {status === "error" && <AsyncState kind="error" label="We couldn't submit your answers. Please try again." />}
         {status === "submitting" && <LoadingDialog label={loadingLabel} />}
-        <div className={appUi.buttonContainer}>
+        <div className={appUi.quizQuestionNav}>
           <button
             className={appUi.backButton}
             type="button"

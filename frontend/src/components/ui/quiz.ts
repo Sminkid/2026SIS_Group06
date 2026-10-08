@@ -55,4 +55,7 @@ export const quizUi = {
     "[border-radius:var(--radius)] bg-[var(--surface)] grid gap-2",
   ),
   quizCourseList: "grid [grid-template-columns:repeat(auto-fit,_minmax(16rem,_1fr))] gap-4",
+  // Back/Next sit adjacent (not spread to opposite ends like appUi.buttonContainer) so the
+  // cursor doesn't have to travel across the row between them.
+  quizQuestionNav: "flex flex-row gap-3",
 } as const;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchUniversities, fetchLatestHandbook, fetchDegrees } from "../api/universities";
-import { matchCourses, otherCourses as buildOtherCourses, type CourseRecommendation } from "../domain/courseAggregation";
+import { groupCourses, matchCourses, otherCourses as buildOtherCourses, type CourseRecommendation } from "../domain/courseAggregation";
 import type { QuizResult } from "../domain/quizRecommendation";
 
 /** With no quiz result every course is returned under `otherCourses`, i.e. the full browsable list. */
@@ -19,9 +19,10 @@ export const useCourseRecommendations = (result: QuizResult | null) => {
         const handbook = await fetchLatestHandbook(university.code, controller.signal);
         degreesByUniversity[university.code] = await fetchDegrees(university.code, handbook.year, controller.signal);
       }
-      const recommended = matchCourses(result?.recommendedCourseKeywords ?? [], universities, degreesByUniversity);
+      const grouped = groupCourses(universities, degreesByUniversity);
+      const recommended = matchCourses(result?.recommendedCourseKeywords ?? [], grouped);
       setCourses(recommended);
-      setOtherCourses(buildOtherCourses(recommended, universities, degreesByUniversity));
+      setOtherCourses(buildOtherCourses(recommended, grouped));
       setStatus("ready");
     })().catch((error: unknown) => {
       if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");

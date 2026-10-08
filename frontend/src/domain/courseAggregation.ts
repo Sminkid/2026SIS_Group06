@@ -1,42 +1,61 @@
 import type { DegreeSummary, University } from "../types/handbook";
+import { classifyDegree } from "./degreeClassification";
+
+export interface CourseOffering { university: University; degree: DegreeSummary; variant: string | null; }
 
 export interface CourseRecommendation {
-  courseName: string; // the matched keyword, used as the "course" identity
-  offerings: Array<{ university: University; degree: DegreeSummary }>;
+  courseKey: string; // canonical identity shared by equivalent degrees, see classifyDegree
+  courseName: string;
+  /** Every matching degree, standard offerings before delivery variants such as "Offshore". */
+  offerings: CourseOffering[];
 }
 
-export const matchCourses = (
-  keywords: string[],
-  universities: University[],
-  degreesByUniversity: Record<string, DegreeSummary[]>,
-): CourseRecommendation[] =>
-  keywords.map((keyword) => {
-    const normalized = keyword.toLowerCase();
-    const offerings = universities.flatMap((university) => {
-      const match = (degreesByUniversity[university.code] ?? []).find((degree) =>
-        degree.name.toLowerCase().includes(normalized));
-      return match ? [{ university, degree: match }] : [];
-    });
-    return { courseName: keyword, offerings };
-  }).filter((course) => course.offerings.length > 0);
+/** Counts universities, not degrees, so a university's offshore or co-op variants don't inflate the number. */
+export const universityCount = (course: CourseRecommendation): number =>
+  new Set(course.offerings.map((offering) => offering.university.id)).size;
 
-  export const otherCourses = (
-  recommended: CourseRecommendation[],
+/** The offering shown for each university: its standard degree where it has one. */
+export const primaryOfferings = (course: CourseRecommendation): CourseOffering[] => {
+  const byUniversity = new Map<string, CourseOffering>();
+  for (const offering of course.offerings) {
+    if (!byUniversity.has(offering.university.id)) byUniversity.set(offering.university.id, offering);
+  }
+  return [...byUniversity.values()];
+};
+
+export const groupCourses = (
   universities: University[],
   degreesByUniversity: Record<string, DegreeSummary[]>,
-): CourseRecommendation[] => {
-  const used = new Set(recommended.flatMap((course) => course.offerings.map((offering) => offering.degree.id)));
+): Map<string, CourseRecommendation> => {
   const groups = new Map<string, CourseRecommendation>();
   for (const university of universities) {
     for (const degree of degreesByUniversity[university.code] ?? []) {
-      if (used.has(degree.id)) continue;
-      const key = degree.name.trim().toLowerCase();
-      const group = groups.get(key) ?? { courseName: degree.name.trim(), offerings: [] };
-      group.offerings.push({ university, degree });
+      const { key, displayName, variant } = classifyDegree(degree.name);
+      const group = groups.get(key) ?? { courseKey: key, courseName: displayName, offerings: [] };
+      group.offerings.push({ university, degree, variant });
       groups.set(key, group);
     }
   }
-  return [...groups.values()].sort((a, b) => a.courseName.localeCompare(b.courseName));
+  for (const group of groups.values()) {
+    group.offerings.sort((a, b) => Number(a.variant !== null) - Number(b.variant !== null));
+  }
+  return groups;
+};
+
+/** Recommended degree names, each resolved to its cross-university course in recommendation order. */
+export const matchCourses = (keywords: string[], courses: Map<string, CourseRecommendation>): CourseRecommendation[] => {
+  const keys = [...new Set(keywords.map((keyword) => classifyDegree(keyword).key))];
+  return keys.flatMap((key) => courses.get(key) ?? []);
+};
+
+export const otherCourses = (
+  recommended: CourseRecommendation[],
+  courses: Map<string, CourseRecommendation>,
+): CourseRecommendation[] => {
+  const used = new Set(recommended.map((course) => course.courseKey));
+  return [...courses.values()]
+    .filter((course) => !used.has(course.courseKey))
+    .sort((a, b) => a.courseName.localeCompare(b.courseName));
 };
 
 export const filterCourses = (courses: CourseRecommendation[], query: string): CourseRecommendation[] => {

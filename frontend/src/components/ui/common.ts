@@ -74,16 +74,18 @@ export const commonUi = {
     "w-full min-w-[700px] table-fixed text-center",
     "border-separate border-spacing-x-2 border-spacing-y-4",
     "[&_th]:p-0 [&_td]:p-0",
+    // A 1px cell height lets each cell's content box use h-full and stretch to the row's tallest cell.
+    "[&_th]:h-px [&_td]:h-px",
   ),
   uniInfo: cn(
     "flex flex-row justify-center items-center gap-2",
-    "min-w-[200px] p-3 text-base align-middle",
+    "h-full min-w-[200px] p-3 text-base align-middle",
     "bg-[var(--surface)] shadow-sm",
   ),
 
   uniInfoAlt: cn(
     "flex flex-row justify-center items-center gap-2",
-    "min-w-[200px] p-3 text-base align-middle",
+    "h-full min-w-[200px] p-3 text-base align-middle",
     "bg-[var(--amber)] shadow-sm",
   ),
   buttonContainer: "flex flex-row justify-between",

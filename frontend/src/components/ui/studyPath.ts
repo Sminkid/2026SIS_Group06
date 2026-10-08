@@ -4,10 +4,10 @@ import { cn } from "./cn";
 export const studyPathUi = {
   studyPathField: cn(
     "grid [grid-template-columns:minmax(10rem,_.45fr)_minmax(14rem,_1fr)] gap-4 items-center",
-    "[&_>_span]:text-[var(--navy)] [&_>_span]:text-[length:.85rem] [&_>_span]:[font-weight:750]",
+    "[&_>_span]:text-[var(--blue)] [&_>_span]:text-[length:.85rem] [&_>_span]:[font-weight:750]",
     "[&_>_span]:capitalize [&_select]:min-w-0 [&_select]:w-full [&_select]:[padding:.75rem_2rem_.75rem_.8rem]",
     "[&_select]:border-[1px] [&_select]:border-solid [&_select]:border-[color:#bfc6d1]",
-    "[&_select]:text-[var(--navy)] [&_select]:bg-[var(--surface)]",
+    "[&_select]:bg-[var(--surface)]",
     "[@media(max-width:720px)]:[grid-template-columns:1fr] [@media(max-width:720px)]:[gap:.4rem]",
   ),
   pathPreview: cn(
@@ -52,7 +52,7 @@ export const studyPathUi = {
   pathwaySelection: "pathway-selection min-w-0",
   studyPathPlanner: cn(
     "study-path [margin:0_0_2rem] p-6 border-[1px] border-solid border-[color:#b9c5d7]",
-    "[border-top:3px_solid_var(--navy)] bg-[var(--surface)] [&_h2]:text-[length:1.5rem]",
+    "[border-top:3px_solid_var(--navy)] bg-[var(--surface)] [&_h2]:text-[length:1.5rem] [&_h2]:text-[color:inherit]",
     "[@media(max-width:720px)]:[margin-top:-1rem] [@media(max-width:720px)]:[padding:1.1rem]",
   ),
   studyPathContext: "[margin:.5rem_0_1.5rem] text-[var(--muted)] text-[length:.82rem]",

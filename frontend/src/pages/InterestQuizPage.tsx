@@ -44,6 +44,7 @@ const LikertQuestion = ({ question, value, onChange }: LikertQuestionProps) => (
     </div>
     <p className={appUi.description}>There are no right or wrong answers — answer honestly based on what you naturally enjoy to get the most
 accurate academic and career recommendations.</p>
+    <p className={appUi.description}>Skipping a question may make your recommendations less accurate on every results page.</p>
   </div>
 );
 
@@ -77,13 +78,27 @@ const QuestionStep = ({
   const unanswered = questions.findIndex((item) => answers[item.id] === undefined);
   const firstUnanswered = unanswered === -1 ? questions.length : unanswered;
 
-  const goNext = async () => {
+  // Takes the answers to submit explicitly rather than reading the `answers` prop directly,
+  // since a just-set value (e.g. from skipQuestion below) hasn't flowed back through a
+  // re-render yet when this runs - reading the prop here would submit a stale/missing value
+  // for the question that was just answered.
+  const advance = async (effectiveAnswers: Record<string, number>) => {
     if (!isLast) {
       setIndex((current) => current + 1);
       return;
     }
-    const accepted = await onContinue(questions.map((q) => ({ questionId: q.id, value: answers[q.id]! })));
+    const accepted = await onContinue(questions.map((q) => ({ questionId: q.id, value: effectiveAnswers[q.id]! })));
     if (accepted) setIndex((current) => current + 1);
+  };
+
+  const goNext = () => advance(answers);
+
+  // Records the lowest valid Likert value (1) rather than leaving the question truly
+  // unanswered - not encouraged, so this is deliberately easy to miss (see quizSkipButton).
+  const skipQuestion = () => {
+    if (!question) return;
+    onAnswer(question.id, 1);
+    void advance({ ...answers, [question.id]: 1 });
   };
 
   if (!question) {
@@ -121,6 +136,14 @@ const QuestionStep = ({
             {isLast ? continueLabel : "Next"}
           </button>
         </div>
+        <button
+          className={appUi.quizSkipButton}
+          type="button"
+          disabled={status === "submitting"}
+          onClick={skipQuestion}
+        >
+          Skip this question
+        </button>
       </div>
       <ol className={appUi.quizStepList} aria-label="Quiz progress">
         {questions.map((item, itemIndex) => {

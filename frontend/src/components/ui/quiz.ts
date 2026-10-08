@@ -58,4 +58,10 @@ export const quizUi = {
   // Back/Next sit adjacent (not spread to opposite ends like appUi.buttonContainer) so the
   // cursor doesn't have to travel across the row between them.
   quizQuestionNav: "flex flex-row gap-3",
+  // Deliberately plain/quiet - a text link, not a real button, so it doesn't compete with
+  // Back/Next for attention. Skipping isn't something we want to encourage.
+  quizSkipButton: cn(
+    "block self-start mt-2 p-0 border-none bg-transparent cursor-pointer text-left",
+    "text-[length:.8rem] text-[var(--muted)] underline [&:hover]:text-[var(--navy)]",
+  ),
 } as const;

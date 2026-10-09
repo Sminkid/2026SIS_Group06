@@ -3,17 +3,17 @@ import { appUi, cn } from "../components/ui";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { fetchCourseFees } from "../api/fees";
-import { fetchUniversities, fetchLatestHandbook, fetchDegrees } from "../api/universities";
+import { fetchUniversities, fetchLatestHandbook, fetchDegrees, fetchEmploymentBenchmark } from "../api/universities";
 import {
   annualFee, compareToLowest, estimatedTotal, formatAud, formatDuration, lowestOf,
   MAX_COMPARED_COURSES, type FeeBasis,
 } from "../domain/feeComparison";
-import { latestRanking, rankingPosition } from "../domain/rankingLabel";
+import { employmentFor, formatPercent, formatRank, subjectRankingLine, worldRanking } from "../domain/universityOutcomes";
 import { trapDialogFocus } from "../components/ui/dialog";
 import { lockPageScroll } from "../components/ui/pageScroll";
 import { primaryOfferings, type CourseRecommendation } from "../domain/courseAggregation";
 import { classifyDegree } from "../domain/degreeClassification";
-import type { University, DegreeSummary } from "../types/handbook";
+import type { University, DegreeSummary, EmploymentBenchmark } from "../types/handbook";
 import type { CourseFee } from "../types/fee";
 
 interface Props {
@@ -164,6 +164,7 @@ function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
 
 export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, onBackToQuizResult, onBackToRecommendations, recommendationsLabel = "Recommendations" }: Props) => {
   const [fees, setFees] = useState<CourseFee[]>([]);
+  const [benchmark, setBenchmark] = useState<EmploymentBenchmark | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
   const [extraOfferings, setExtraOfferings] = useState<Offering[]>([]);
@@ -183,8 +184,8 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
   useEffect(() => {
     const controller = new AbortController();
     setStatus("loading");
-    fetchCourseFees(controller.signal)
-      .then((data) => { setFees(data); setStatus("ready"); })
+    void Promise.all([fetchCourseFees(controller.signal), fetchEmploymentBenchmark(controller.signal).catch(() => null)])
+      .then(([feeData, benchmarkData]) => { setFees(feeData); setBenchmark(benchmarkData); setStatus("ready"); })
       .catch((error) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
       });
@@ -198,40 +199,63 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
     (annuals[index] === null ? null : estimatedTotal(annuals[index], offering.degree.creditPoints)));
   const lowestAnnual = lowestOf(annuals);
   const lowestTotal = lowestOf(totals);
-  const feeYear = feeRecords.find((fee) => fee !== null)?.feeYear;
-
-  const rankingFor = (university: University): string => {
-    const ranking = latestRanking(university.rankings);
-    return ranking ? rankingPosition(ranking) : "Not available";
-  };
+  const feeYear = feeRecords.find((fee) => fee !== null)?.feeYear.replace("-", "–");
+  const notAvailable = <span className={appUi.feeMissing}>Not available</span>;
 
   const removeExtraOffering = (universityId: string) =>
     setExtraOfferings((prev) => prev.filter((offering) => offering.university.id !== universityId));
 
   const rows: Array<{ id: string; label: ReactNode; render: (offering: Offering, index: number) => ReactNode }> = [
-    { id: "course-code", label: "Course code", render: ({ degree }) => degree.code },
-    { id: "course-name", label: "Course name", render: ({ degree }) => degree.name },
+    { id: "course-code", label: "Course Code", render: ({ degree }) => degree.code },
+    { id: "course-name", label: "Course Name", render: ({ degree }) => degree.name },
     {
       id: "credit-points",
-      label: "Credit points",
+      label: "Credit Points",
       render: ({ degree }) => (degree.creditPoints === null ? "Not listed" : `${degree.creditPoints} CP`),
     },
-    { id: "duration", label: "Duration (full-time)", render: ({ degree }) => formatDuration(degree.creditPoints) },
+    { id: "duration", label: "Duration (Full-Time)", render: ({ degree }) => formatDuration(degree.creditPoints) },
     {
       id: "annual-fee",
-      label: `Annual fee (${basis})`,
+      label: `Annual Fee (${basis})`,
       render: (_offering, index) => (annuals[index] === null
         ? <span className={appUi.feeMissing}>Not offered</span>
         : <>{formatAud(annuals[index])}{comparisonTag(annuals[index], lowestAnnual)}</>),
     },
     {
       id: "estimated-total",
-      label: "Estimated total",
+      label: "Estimated Total",
       render: (_offering, index) => (totals[index] === null
         ? <span className={appUi.feeMissing}>Not offered</span>
         : <>{formatAud(totals[index])}{comparisonTag(totals[index], lowestTotal)}</>),
     },
-    { id: "ranking", label: "Ranking", render: ({ university }) => rankingFor(university) },
+    {
+      id: "ranking",
+      label: "QS World Ranking",
+      render: ({ university, degree }) => {
+        const world = worldRanking(university);
+        if (!world) return notAvailable;
+        const subjectLine = subjectRankingLine(university, degree.name);
+        return (
+          <div className="text-center">
+            {formatRank(world)}
+            {subjectLine && <span className={appUi.feeSubline}>{subjectLine}</span>}
+          </div>
+        );
+      },
+    },
+    {
+      id: "employment-rate",
+      label: "Employment Rate",
+      render: ({ university }) => {
+        const employment = employmentFor(university, basis);
+        return employment === null ? notAvailable : (
+          <div className="text-center">
+            {formatPercent(employment.fullTimeRate)}
+            <span className={appUi.feeSubline}>Full-time, {basis} graduates, {employment.period}</span>
+          </div>
+        );
+      },
+    },
   ];
 
   return (
@@ -345,8 +369,14 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
 
         <div className={appUi.feeNotes}>
           <p>Annual fee is each university's guide price for 48 credit points, which is one year of full-time study.</p>
-          <p>Estimated total multiplies the annual fee by the course length at current rates, so real totals will be higher as fees rise each year.</p>
+          <p>Estimated total multiplies the annual fee by the course length at current rates, so real totals will be higher as fees rise each year. Honours entries of 48 CP cover the honours year only.</p>
           <p>Domestic figures are Commonwealth supported student contributions and vary with the units you take.</p>
+          <p>Ranking is the university's position in the QS World University Rankings 2027. The second line is the QS subject ranking for the subject area closest to the course; double degrees show the overall ranking only.</p>
+          <p>
+            Employment rate is the share of the university's undergraduates in full-time work about 4–6 months after finishing (QILT Graduate Outcomes Survey 2025). It covers the whole university, not the individual course.
+            {benchmark?.domestic && benchmark.international
+              && ` The average across all Australian universities is ${formatPercent(benchmark.domestic.fullTimeRate)} for domestic and ${formatPercent(benchmark.international.fullTimeRate)} for international graduates.`}
+          </p>
         </div>
       </section>
 

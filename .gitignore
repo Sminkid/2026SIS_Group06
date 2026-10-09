@@ -30,3 +30,8 @@ docs
 /.vscode/settings.json
 docs/
 backend/scripts/
+
+CLAUDE.md
+
+# RIASEC scoring draft files - regenerable via generate-riasec-scores.ts, not source of truth
+backend/src/script/quiz/drafts/

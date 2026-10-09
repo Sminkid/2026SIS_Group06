@@ -2,14 +2,14 @@ import { cn } from "./cn";
 
 /** Static Tailwind recipes preserve the handbook's navigation appearance and responsive states. */
 export const navigationUi = {
-  appShell: "flex [min-height:100vh]",
-  appMain: "flex flex-col flex-1 min-w-0",
+  appShell: "flex flex-col [min-height:100vh]",
+  appMain: "flex flex-1 min-w-0",
   siteHeader: cn(
-    "site-header sticky [z-index:20] top-0 h-18 flex items-center justify-between",
-    "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] [border-bottom:1px_solid_var(--line)] bg-[var(--surface)]",
+    "site-header sticky [z-index:20] top-0 h-20 flex items-center justify-between",
+    "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] bg-[linear-gradient(180deg,var(--header-gradient-start)_0%,var(--header-gradient-end)_100%)]",
   ),
-  brand: "inline-flex items-center gap-3 p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
-  brandMark: "grid w-9 h-9 place-items-center text-[white] bg-[var(--navy)] text-[length:.72rem] [letter-spacing:.08em]",
+  brand: "inline-flex items-center p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
+  brandMark: "w-30 h-10 object-contain",
   siteHeaderNote: "text-[var(--muted)] text-[length:.85rem] [@media(max-width:720px)]:hidden",
   siteHeaderNav: "flex items-center gap-6",
   siteHeaderLink: cn(
@@ -23,7 +23,7 @@ export const navigationUi = {
     "[&_li:not(:last-child)::after]:text-[#a3aab7] [&_button]:p-0 [&_button]:border-0",
     "[&_button]:text-[var(--blue)] [&_button]:bg-transparent [&_button]:cursor-pointer [&_button:hover]:underline",
   ),
-  page: "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
+  page: "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_0] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
   degreeHero: "degree-hero [margin:3rem_0_clamp(4rem,_8vw,_7rem)] [&_h1]:[max-width:18ch]",
   degreeHeroCode: "[margin-bottom:.8rem] text-[var(--blue)] text-[length:.9rem] [font-weight:850] [letter-spacing:.1em]",
   degreeFacts: cn(
@@ -36,15 +36,22 @@ export const navigationUi = {
   ),
   degreeDescription: "max-w-216 mt-8 text-[#4d596d] [line-height:1.75]",
   resultCount: "text-[var(--muted)] text-[length:.88rem] whitespace-nowrap",
-  pageIntroCompact: "max-w-216 [margin:2.5rem_0_3.5rem]",
+  pageIntroCompact: " [margin:2.5rem_0_3.5rem]",
   searchField: cn(
     "[width:min(100%,_25rem)] flex items-center [gap:.65rem] [padding:0_1rem] border-[1px] border-solid",
-    "border-[color:#bfc6d1] bg-[var(--surface)] [&_input]:w-full [&_input]:[padding:.85rem_0] [&_input]:border-0",
+    "border-[color:#bfc6d1] [border-radius:var(--radius)] bg-[var(--surface)] [&_input]:w-full [&_input]:[padding:.85rem_0] [&_input]:border-0",
     "[&_input]:outline-none [&:focus-within]:outline-[3px] [&:focus-within]:outline-[#78a4e5]",
     "[&:focus-within]:outline-offset-2 [&_input]:bg-transparent [@media(max-width:720px)]:w-full",
   ),
-  degreeList: "[border-top:1px_solid_var(--line)]",
+  degreeList: "[border-top:1px_solid_var(--line)] mt-5",
   resultSummary: "mb-3 text-[var(--muted)] text-[length:.82rem]",
+  degreeGrid: cn(
+    "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(400px,1fr))]",
+  ),
+  degreeCard: cn(
+    "flex flex-col gap-2 [padding:1.2rem] [border-radius:var(--radius)] border-[1px] border-solid border-[color:var(--line)]",
+    "bg-[var(--surface)] text-left transition-shadow",
+  ),
   degreeRow: cn(
     "degree-row w-full grid [grid-template-columns:6rem_minmax(0,1fr)_7rem_1rem] gap-5 items-center",
     "[padding:1.25rem_.75rem] border-0 [border-bottom:1px_solid_var(--line)] text-left bg-transparent",
@@ -52,20 +59,18 @@ export const navigationUi = {
     "[@media(max-width:720px)]:[grid-template-columns:5.25rem_minmax(0,1fr)_auto] [@media(max-width:720px)]:gap-3",
   ),
   degreeRowCode: "text-[var(--blue)] text-[length:.88rem] font-extrabold",
-  degreeRowName: "[font-weight:650]",
+  degreeRowName: "[font-weight:500]",
   degreeRowCp: "text-[var(--muted)] text-[length:.85rem] text-right [@media(max-width:720px)]:[grid-column:2] [@media(max-width:720px)]:text-left",
-  degreeRowArrow: "text-[var(--blue)] [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
+  degreeRowArrow: "text-[var(--blue)] mt-auto [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
   pageLanding: cn(
     "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem]",
     "[padding-top:clamp(3.5rem,_8vw,_7rem)] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
   ),
-  pageIntro: "max-w-216 [margin-bottom:clamp(3rem,_7vw,_5.5rem)]",
-  universityGrid: "grid [grid-template-columns:repeat(auto-fit,_minmax(17rem,_1fr))] gap-4",
+  pageIntro: "mb-15",
+  universityGrid: "grid [grid-template-columns:repeat(auto-fit,_minmax(17rem,_1fr))] gap-4 mt-5",
   universityCard: cn(
-    "university-card min-h-56 flex flex-col items-start p-7 text-left border-[1px] border-solid",
-    "border-[color:var(--line)] bg-[var(--surface)] cursor-pointer",
-    "[transition:border-color_160ms,_transform_160ms] motion-reduce:transition-none motion-reduce:transform-none",
-    "[&:hover]:[border-color:var(--navy)] [&:hover]:[transform:translateY(-2px)]",
+    "flex university-card min-h-30 text-center justify-center items-center border-[1px] border-solid",
+    "border-[color:var(--line)] [border-radius:var(--radius)] bg-[var(--surface)]",
   ),
   universityCardCode: "mb-10 text-[var(--blue)] text-[length:.8rem] font-extrabold [letter-spacing:.12em]",
   universityCardName: "max-w-72 text-[length:1.25rem] font-bold [line-height:1.35]",

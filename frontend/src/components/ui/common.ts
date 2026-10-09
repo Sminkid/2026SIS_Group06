@@ -18,27 +18,76 @@ export const commonUi = {
     "w-7 h-7 border-[2px] border-solid border-[color:var(--line)] [border-top-color:var(--blue)] rounded-full",
     "animate-spin [animation-duration:750ms] motion-reduce:animate-none",
   ),
-  secondaryButton: "[padding:.65rem_1rem] border-[1px] border-solid border-[color:currentColor] bg-transparent cursor-pointer",
+  secondaryButton: cn(
+    "w-full h-full min-h-30 p-7 cursor-pointer",
+    "border-[1px] [border-radius:var(--radius)] border-solid [border-color:var(--line)] bg-[var(--surface)]",
+    "[transition:border-color_160ms,_transform_160ms] motion-reduce:transition-none motion-reduce:transform-none",
+    "[&:hover]:[border-color:var(--navy)] [&:hover]:[transform:translateY(-2px)]",
+  ),
   stepLabel: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   sectionHeading: cn(
     "flex items-end justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
     "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",
   ),
+  subheading: cn(
+    "w-fit flex flex-col mt-15 gap-5 bg-[var(--surface)] shadow-md [padding:2rem] rounded-2xl",
+    "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",
+  ),
+  sectionRow: "flex flex-row gap-2 items-center [&_p]:m-0",
+  checkMark: "w-5 h-5",
   sectionNote: "[margin:-.75rem_0_2rem] text-[var(--muted)]",
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
   primaryButton: cn(
-    "[padding:.7rem_1rem] border-[1px] border-solid border-[color:var(--navy)] text-[white] bg-[var(--navy)]",
-    "font-bold cursor-pointer [&:hover]:bg-[#23365f]",
+    "min-w-30 [padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
+    "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
+  ),
+  viewPlanButton: cn(
+    "w-full [padding:.7rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
+    "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
+  ),
+  cancelButton: cn(
+    "[padding:.7rem_1rem] [border-radius:var(--radius)] border border-[color:var(--line)] bg-[var(--line)]",
+    "font-bold cursor-pointer [&:hover]:bg-white",
+  ),
+  closeButton: cn(
+    "bg-transparent border-none cursor-pointer",
+    "absolute right-2 top-2 text-[color:var(--muted)]",
   ),
   textButton: cn(textButtonBase, "text-[var(--blue)]"),
+  backButton: cn(
+    "min-w-30 [padding:.7rem_1rem]",
+    "border-[1px] [border-radius:var(--radius)] border-solid [border-color:var(--line)] bg-[var(--surface)]",
+    "font-bold cursor-pointer [&:hover]:bg-[var(--line)]",
+  ),
   eyebrow: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
-  lead: "max-w-168 text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
-  contentSection: "pt-8 [border-top:2px_solid_var(--navy)]",
+  lead: "text-[var(--muted)] text-[length:clamp(1rem,_2vw,_1.2rem)] [line-height:1.7]",
+  contentSection: "mt-8 p-4 [border-top:2px_solid_var(--line)]",
   degreeTools: cn(
     "flex items-center justify-between gap-8 mb-8 [&_p]:[margin-bottom:.45rem]",
     "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-5",
   ),
   muted: "text-[var(--muted)] font-medium",
   srOnly: "sr-only",
+  tableWrapper: "w-full overflow-x-auto overscroll-x-contain",
+  comparisonTable: cn(
+    "w-full min-w-[700px] table-fixed text-center",
+    "border-separate border-spacing-x-2 border-spacing-y-4",
+    "[&_th]:p-0 [&_td]:p-0",
+    // A 1px cell height lets each cell's content box use h-full and stretch to the row's tallest cell.
+    "[&_th]:h-px [&_td]:h-px",
+  ),
+  uniInfo: cn(
+    "flex flex-row justify-center items-center gap-2",
+    "h-full min-w-[200px] p-3 text-base align-middle",
+    "bg-[var(--surface)] shadow-sm",
+  ),
+
+  uniInfoAlt: cn(
+    "flex flex-row justify-center items-center gap-2",
+    "h-full min-w-[200px] p-3 text-base align-middle",
+    "bg-[var(--amber)] shadow-sm",
+  ),
+  buttonContainer: "flex flex-row justify-between",
+  description: "m-0 text-xs text-[var(--muted)]",
 } as const;

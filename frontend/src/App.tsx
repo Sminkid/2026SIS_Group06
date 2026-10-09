@@ -1,23 +1,78 @@
 import { appUi } from "./components/ui";
-import { useState } from "react";
-import type { DegreeSummary, University } from "./types/handbook";
-import { DegreePage } from "./pages/DegreePage";
-import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
-import { HomePage } from "./pages/HomePage";
-import { FeeComparisonPage } from "./pages/FeeComparisonPage";
+import { useMemo, useState } from "react";
+import { QuizPage } from "./pages/InterestQuizPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
+import { GetStartedPage } from "./pages/GetStartedPage";
+import { QuizResultPage } from "./pages/QuizResultPage";
+import { CourseRecommendationsPage } from "./pages/CourseRecommendationsPage";
+import { UniversityComparisonPage } from "./pages/UniversityComparisonPage";
+import { DegreePage } from "./pages/DegreePage";
+import { useQuizSession } from "./hooks/useQuizSession";
+import type { DegreeMatchTarget } from "./api/quiz";
+import type { QuizResult } from "./domain/quizRecommendation";
+import type { CourseRecommendation } from "./domain/courseAggregation";
+import type { University, DegreeSummary } from "./types/handbook";
+import logo from "./components/ui/icons/Logo.png";
 
 type Screen =
-  | { name: "universities" }
-  | { name: "degrees"; university: University }
-  | { name: "degree"; university: University; degree: DegreeSummary }
-  | { name: "fees" };
+    { name: "getStarted" } |
+    { name: "quiz" } |
+    { name: "quizResult"; result: QuizResult } |
+    { name: "courseRecommendation"; result: QuizResult } |
+    { name: "allCourses" } |
+    // `result` is null when the course was reached by browsing all courses, without the quiz.
+    { name: "universityComparison"; result: QuizResult | null; course: CourseRecommendation } |
+    { 
+      name: "degree"; 
+      result: QuizResult | null;
+      course: CourseRecommendation;
+      university: University; 
+      degree: DegreeSummary; 
+    }
 
-/** Coordinates the university, degree and handbook screens within the shared navigation shell. */
+/** A degree the quiz was launched from, so its result is matched to that degree and can return to it. */
+interface QuizLaunchTarget {
+  university: University;
+  degree: DegreeSummary;
+  returnTo: Screen;
+}
+
+/** Coordinates the quiz, course recommendation, comparison and degree screens within the shared navigation shell. */
 export const App = () => {
   const [screen, setScreen] = useState<Screen>({
-    name: "universities",
+    name: "getStarted",
   });
+  const [quizTarget, setQuizTarget] = useState<QuizLaunchTarget | undefined>();
+  const matchTarget = useMemo<DegreeMatchTarget | undefined>(
+    () =>
+      quizTarget
+        ? { degreeCode: quizTarget.degree.code, university: quizTarget.university.code, year: quizTarget.degree.handbookYear }
+        : undefined,
+    [quizTarget],
+  );
+  // The quiz session lives here rather than in QuizPage so a student can look at their initial
+  // results and course recommendations, then come back and continue the same session to
+  // personalise further without having to start over.
+  const quiz = useQuizSession(matchTarget);
+
+  const goHome = () => setScreen({ name: "getStarted" });
+
+  /** Back to wherever the course list was opened from: the recommendations, or the full list. */
+  const backToCourses = (result: QuizResult | null): Screen =>
+    result ? { name: "courseRecommendation", result } : { name: "allCourses" };
+  const backToQuizResult = (result: QuizResult | null) =>
+    result ? () => setScreen({ name: "quizResult", result }) : undefined;
+
+  const startNewQuiz = (target?: QuizLaunchTarget) => {
+    setQuizTarget(target);
+    quiz.restart();
+    setScreen({ name: "quiz" });
+  };
+
+  const continuePersonalising = () => {
+    quiz.continueToDrillDown();
+    setScreen({ name: "quiz" });
+  };
 
   return (
     <div className={appUi.appShell}>
@@ -25,83 +80,106 @@ export const App = () => {
         Skip to main content
       </a>
 
-      <div className={appUi.appMain}>
-        <header className={appUi.siteHeader}>
+      <header className={appUi.siteHeader}>
+        <button
+          className={appUi.brand}
+          type="button"
+          onClick={goHome}
+          aria-label="Degree planner home"
+        >
+          <img src={logo} className={appUi.brandMark}/>
+        </button>
+
+        <nav className={appUi.siteHeaderNav} aria-label="Primary">
           <button
-            className={appUi.brand}
+            className={appUi.textButton}
             type="button"
-            onClick={() => setScreen({ name: "universities" })}
-            aria-label="Degree planner home"
+            onClick={() => startNewQuiz()}
           >
-            <span className={appUi.brandMark} aria-hidden="true">
-              DP
-            </span>
-            <span>Degree planner</span>
+            Interest Quiz
           </button>
+          <button
+            className={appUi.textButton}
+            type="button"
+            onClick={() => setScreen({ name: "allCourses" })}
+          >
+            View All Courses
+          </button>
+        </nav>
+      </header>
 
-          <nav className={appUi.siteHeaderNav} aria-label="Main">
-            <button
-              className={appUi.siteHeaderLink}
-              type="button"
-              onClick={() => setScreen({ name: "fees" })}
-              aria-current={screen.name === "fees" ? "page" : undefined}
-            >
-              Compare fees
-            </button>
-            <span className={appUi.siteHeaderNote}>
-              University handbook explorer
-            </span>
-          </nav>
-        </header>
+      <main className={appUi.appMain}>
+        {screen.name === "getStarted" && (
+          <GetStartedPage onStart={() => startNewQuiz()} />
+        )}
 
-        <main id="main-content" className="min-w-0">
-          {screen.name === "universities" && (
-            <HomePage
-              onSelectUniversity={(university) =>
-                setScreen({ name: "degrees", university })
-              }
+        {screen.name === "quiz" && (
+          <QuizPage
+            session={quiz}
+            onHome={goHome}
+            onBackToDegree={quizTarget ? () => setScreen(quizTarget.returnTo) : undefined}
+            onComplete={(result) => setScreen({ name: "quizResult", result })}
+          />
+        )}
+
+        {screen.name === "quizResult" && (
+          <QuizResultPage 
+            result={screen.result}
+            onViewCourses={() => setScreen({ name: "courseRecommendation", result: screen.result })}
+            onPersonalise={continuePersonalising}
+            onRetake={() => startNewQuiz(quizTarget)}
+            onHome={goHome}
+            onBackToDegree={quizTarget ? () => setScreen(quizTarget.returnTo) : undefined}
+          />
+        )}
+
+        {screen.name === "courseRecommendation" && (
+          <CourseRecommendationsPage 
+            result={screen.result}
+            onSelectCourse={(course) => setScreen({ name: "universityComparison", result: screen.result, course })}
+            onHome={goHome}
+            onBackToQuizResult={() => setScreen({ name: "quizResult", result: screen.result})}
+            onPersonalise={continuePersonalising}
             />
-          )}
+        )}
 
-          {screen.name === "degrees" && (
-            <DegreeSelectionPage
-              university={screen.university}
-              onBack={() => setScreen({ name: "universities" })}
-              onSelectDegree={(degree) =>
-                setScreen({
-                  name: "degree",
-                  university: screen.university,
-                  degree,
-                })
-              }
-            />
-          )}
+        {screen.name === "allCourses" && (
+          <CourseRecommendationsPage
+            result={null}
+            onSelectCourse={(course) => setScreen({ name: "universityComparison", result: null, course })}
+            onHome={goHome}
+            onStartQuiz={() => startNewQuiz()}
+          />
+        )}
 
-          {screen.name === "degree" && (
-            <DegreePage
-              university={screen.university}
-              degree={screen.degree}
-              onBack={() =>
-                setScreen({
-                  name: "degrees",
-                  university: screen.university,
-                })
-              }
-              onHome={() => setScreen({ name: "universities" })}
-            />
-          )}
+        {screen.name === "universityComparison" && (
+          <UniversityComparisonPage 
+            course={screen.course} 
+            onSelectUniversity={(university, degree) =>
+              setScreen({ name: "degree", result: screen.result, course: screen.course, university, degree })
+            }
+            onHome={goHome}
+            onBackToQuizResult={backToQuizResult(screen.result)}
+            onBackToRecommendations={() => setScreen(backToCourses(screen.result))}
+            recommendationsLabel={screen.result ? undefined : "All Courses"}
+          />
+        )}
 
-          {screen.name === "fees" && (
-            <FeeComparisonPage
-              onHome={() => setScreen({ name: "universities" })}
-              onViewDegree={(university, degree) =>
-                setScreen({ name: "degree", university, degree })
-              }
-            />
-          )}
-        </main>
-      </div>
-
+        {screen.name === "degree" && (
+          <DegreePage 
+            university={screen.university} degree={screen.degree}
+            onHome={goHome}
+            onBackToQuizResult={backToQuizResult(screen.result)}
+            onBackToRecommendations={() => setScreen(backToCourses(screen.result))}
+            recommendationsLabel={screen.result ? undefined : "All Courses"}
+            onBackToComparison={() => setScreen({ name: "universityComparison", result: screen.result, course: screen.course })}
+            onStartQuiz={() =>
+              startNewQuiz({ university: screen.university, degree: screen.degree, returnTo: screen })
+            }
+          />
+        )}
+      </main>
+      
       <GlossaryChatWidget />
     </div>
   );

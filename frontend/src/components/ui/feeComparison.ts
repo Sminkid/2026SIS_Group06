@@ -29,6 +29,7 @@ export const feeComparisonUi = {
   feeValue: "block font-medium",
   feeMoney: "block text-[length:1.1rem] font-bold",
   feeMissing: "text-[var(--muted)] italic",
+  feeSubline: "block mt-1 text-[var(--muted)] text-[length:.75rem]",
   feeTagLowest: cn(feeTagBase, "bg-[var(--darkgreen)] [border-radius:var(--radius)] text-[white] uppercase [letter-spacing:.08em]"),
   feeTagMore: cn(feeTagBase, "border-[1px] [border-radius:var(--radius)] border-solid border-[color:var(--navy)] text-[var(--navy)]"),
   feeNotes: "grid gap-2 mt-6 max-w-168 text-[var(--muted)] text-[length:.85rem] [&_p]:m-0",

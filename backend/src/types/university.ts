@@ -27,3 +27,13 @@ export interface DegreeSummary {
   creditPoints: number | null;
   handbookYear: number;
 }
+
+export interface EmploymentRate {
+  fullTimeRate: number;
+  period: string;
+}
+
+export interface EmploymentBenchmark {
+  domestic: EmploymentRate | null;
+  international: EmploymentRate | null;
+}

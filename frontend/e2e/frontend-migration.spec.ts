@@ -154,3 +154,23 @@ test("Mobile glossary supports pending, error, retry, reduced motion and keyboar
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "Open assistant" })).toBeFocused();
 });
+
+test("Glossary assistant gives at most 5 responses per session, including across reloads", async ({ page }) => {
+  let calls = 0;
+  await page.route("**/api/chat/glossary", route => { calls += 1; return route.fulfill({ json: { answer: `Answer ${calls}` } }); });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Open assistant" }).click();
+  const input = page.getByRole("textbox", { name: "Ask a terminology question" });
+  for (let i = 1; i <= 5; i += 1) {
+    await input.fill(`Question ${i}`);
+    await page.keyboard.press("Enter");
+    await expect(page.getByText(`Answer ${i}`, { exact: true })).toBeVisible();
+  }
+  await expect(page.getByText("reached the limit of 5 assistant responses")).toBeVisible();
+  await expect(input).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Send question" })).toBeDisabled();
+  await page.reload();
+  await page.getByRole("button", { name: "Open assistant" }).click();
+  await expect(input).toBeDisabled();
+  expect(calls).toBe(5);
+});

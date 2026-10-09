@@ -375,13 +375,6 @@ export const mapDegreeDetail = (
         name: university.name,
       },
       description: degree.description,
-      rankings: degree.DegreeRanking.map((ranking) => ({
-        source: ranking.source,
-        category: ranking.category,
-        year: ranking.year,
-        rank: ranking.rank,
-        rankBand: ranking.rankBand,
-      })),
     },
     requirements,
     completionSummary: mapCompletionSummary(displayGroups),

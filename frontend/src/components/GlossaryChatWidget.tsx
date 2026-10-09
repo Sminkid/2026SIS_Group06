@@ -11,12 +11,34 @@ interface ChatMessage {
   content: string;
 }
 
+/** Caps assistant replies per browser session (sessionStorage survives reloads, not new tabs). */
+export const MAX_RESPONSES_PER_SESSION = 5;
+const RESPONSE_COUNT_KEY = "glossaryChat.responseCount";
+
+const readResponseCount = (): number => {
+  try {
+    return Number(sessionStorage.getItem(RESPONSE_COUNT_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+};
+
+const writeResponseCount = (count: number) => {
+  try {
+    sessionStorage.setItem(RESPONSE_COUNT_KEY, String(count));
+  } catch {
+    // Storage unavailable (e.g. private mode); the in-memory count still applies.
+  }
+};
+
 /** Provides terminology help with explicit user, assistant, pending and error styles. */
 export const GlossaryChatWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [responseCount, setResponseCount] = useState(readResponseCount);
+  const limitReached = responseCount >= MAX_RESPONSES_PER_SESSION;
   const controllerRef = useRef<AbortController | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -57,6 +79,11 @@ export const GlossaryChatWidget = () => {
     askGlossaryQuestion(trimmed, controller.signal)
       .then((result) => {
         setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: result.answer }]);
+        setResponseCount((current) => {
+          const next = current + 1;
+          writeResponseCount(next);
+          return next;
+        });
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -69,7 +96,7 @@ export const GlossaryChatWidget = () => {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = question.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed || isLoading || limitReached) return;
     submitQuestion(trimmed);
   };
 
@@ -77,7 +104,7 @@ export const GlossaryChatWidget = () => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       const trimmed = question.trim();
-      if (!trimmed || isLoading) return;
+      if (!trimmed || isLoading || limitReached) return;
       submitQuestion(trimmed);
     }
   };
@@ -125,6 +152,11 @@ export const GlossaryChatWidget = () => {
                 <p aria-live="polite">Thinking…</p>
               </div>
             )}
+            {limitReached && !isLoading && (
+              <p className={appUi.glossaryChatEmpty} role="status">
+                You&apos;ve reached the limit of {MAX_RESPONSES_PER_SESSION} assistant responses for this session.
+              </p>
+            )}
             <div ref={bottomRef} />
           </div>
 
@@ -134,14 +166,15 @@ export const GlossaryChatWidget = () => {
               value={question}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask a terminology question…"
+              placeholder={limitReached ? "Response limit reached" : "Ask a terminology question…"}
               aria-label="Ask a terminology question"
+              disabled={limitReached}
               rows={2}
             />
             <button
               type="submit"
               className={appUi.glossaryChatSend}
-              disabled={isLoading || !question.trim()}
+              disabled={isLoading || limitReached || !question.trim()}
               aria-label={isLoading ? "Sending question" : "Send question"}
             >
               {isLoading ? (

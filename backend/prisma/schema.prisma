@@ -45,7 +45,6 @@ model Degree {
   CourseFee              CourseFee[]
   HandbookVersion        HandbookVersion          @relation(fields: [handbookVersionId], references: [id], onDelete: Cascade)
   DegreeComponent        DegreeComponent[]
-  DegreeRanking          DegreeRanking[]
   RequirementGroup       RequirementGroup[]
   RiasecScore            RiasecScore[]
   RiasecSubcategoryScore RiasecSubcategoryScore[]
@@ -54,22 +53,6 @@ model Degree {
 
   @@unique([handbookVersionId, code])
   @@index([code])
-}
-
-model DegreeRanking {
-  id        String   @id
-  degreeId  String
-  source    String
-  category  String
-  year      Int
-  rank      Int
-  rankBand  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  Degree    Degree   @relation(fields: [degreeId], references: [id], onDelete: Cascade)
-
-  @@unique([degreeId, source, category, year])
-  @@index([degreeId])
 }
 
 model DegreeComponent {
@@ -557,6 +540,13 @@ model CourseFee {
 
   @@unique([degreeId, feeYear])
   @@index([degreeId])
+}
+
+model EmploymentBenchmark {
+  population   String @id
+  period       String
+  fullTimeRate Float
+  source       String
 }
 
 enum ComponentType {

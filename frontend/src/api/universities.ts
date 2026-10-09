@@ -1,4 +1,4 @@
-import type { DegreeSummary, HandbookSummary, University } from "../types/handbook";
+import type { DegreeSummary, EmploymentBenchmark, HandbookSummary, University } from "../types/handbook";
 import { apiGet } from "./client";
 
 export const fetchUniversities = (signal?: AbortSignal): Promise<University[]> => apiGet("/api/universities", signal);
@@ -8,3 +8,5 @@ export const fetchDegrees = (universityCode: string, year: number, signal?: Abor
   const params = new URLSearchParams({ year: String(year) });
   return apiGet(`/api/universities/${encodeURIComponent(universityCode)}/degrees?${params}`, signal);
 };
+export const fetchEmploymentBenchmark = (signal?: AbortSignal): Promise<EmploymentBenchmark> =>
+  apiGet("/api/universities/employment-benchmark", signal);

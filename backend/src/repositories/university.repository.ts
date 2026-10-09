@@ -73,3 +73,8 @@ export const findUniversityHandbookWithDegrees = async (
       },
     },
   });
+
+export const findEmploymentBenchmarks = async () =>
+  getPrisma().employmentBenchmark.findMany({
+    select: { population: true, period: true, fullTimeRate: true },
+  });

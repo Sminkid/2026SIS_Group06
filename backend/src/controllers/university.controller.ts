@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 import {
+  getEmploymentBenchmark,
   getLatestHandbook,
   getUniversities,
   getUniversityDegrees,
@@ -33,4 +34,11 @@ export const listUniversityDegreesController: RequestHandler = async (
   response
     .status(200)
     .json(await getUniversityDegrees(universityCode, year));
+};
+
+export const employmentBenchmarkController: RequestHandler = async (
+  _request,
+  response,
+) => {
+  response.status(200).json(await getEmploymentBenchmark());
 };

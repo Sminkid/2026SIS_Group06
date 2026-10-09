@@ -2,11 +2,14 @@ import {
   findUniversities,
   findUniversityHandbook,
   findUniversityHandbookWithDegrees,
+  findEmploymentBenchmarks,
 } from "../repositories/university.repository.js";
 import type {
   DegreeSummary,
   HandbookSummary,
   UniversitySummary,
+  EmploymentBenchmark,
+  EmploymentRate,
 } from "../types/university.js";
 import { ApiError } from "../utils/api-error.js";
 
@@ -83,3 +86,13 @@ export const getUniversityDegrees = async (
     handbookYear: handbook.year,
   }));
 };
+
+export const getEmploymentBenchmark = async (): Promise<EmploymentBenchmark> => {
+  const rows = await findEmploymentBenchmarks();
+  const rate = (population: string): EmploymentRate | null => {
+    const row = rows.find((item) => item.population === population);
+    return row ? { fullTimeRate: row.fullTimeRate, period: row.period } : null;
+  };
+  return { domestic: rate("domestic"), international: rate("international") };
+};
+

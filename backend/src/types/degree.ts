@@ -5,14 +5,6 @@ import type {
   RequirementLogic,
 } from "../generated/prisma/enums.js";
 
-export interface DegreeRankingSummary {
-  source: string;
-  category: string;
-  year: number;
-  rank: number;
-  rankBand: string | null;
-}
-
 export interface DegreeDetail {
   id: string;
   code: string;
@@ -25,7 +17,6 @@ export interface DegreeDetail {
     name: string;
   };
   description: string | null;
-  rankings: DegreeRankingSummary[];
 }
 
 export interface RequirementSubjectSummary {

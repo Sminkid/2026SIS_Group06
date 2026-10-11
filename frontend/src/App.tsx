@@ -6,8 +6,10 @@ import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
 import { HomePage } from "./pages/HomePage";
 import { FeeComparisonPage } from "./pages/FeeComparisonPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
+import { LandingPage } from "./pages/LandingPage";
 
 type Screen =
+  | { name: "landing" }
   | { name: "universities" }
   | { name: "degrees"; university: University }
   | { name: "degree"; university: University; degree: DegreeSummary }
@@ -16,7 +18,7 @@ type Screen =
 /** Coordinates the university, degree and handbook screens within the shared navigation shell. */
 export const App = () => {
   const [screen, setScreen] = useState<Screen>({
-    name: "universities",
+    name: "landing",
   });
 
   return (
@@ -30,14 +32,15 @@ export const App = () => {
           <button
             className={appUi.brand}
             type="button"
-            onClick={() => setScreen({ name: "universities" })}
-            aria-label="Degree planner home"
+            onClick={() => setScreen({ name: "landing" })}
+            aria-label="UniXPrep home"
           >
             <span className={appUi.brandMark} aria-hidden="true">
-              DP
+              UX
             </span>
-            <span>Degree planner</span>
+            <span>UniXPrep</span>
           </button>
+
 
           <nav className={appUi.siteHeaderNav} aria-label="Main">
             <button
@@ -55,6 +58,15 @@ export const App = () => {
         </header>
 
         <main id="main-content" className="min-w-0">
+          {screen.name === "landing" && (
+            <LandingPage
+              // TODO: open the quiz screen here once the quiz branch is merged.
+              onStartQuiz={() => setScreen({ name: "universities" })}
+              onPlan={() => setScreen({ name: "universities" })}
+              onCompare={() => setScreen({ name: "fees" })}
+            />
+          )}
+          
           {screen.name === "universities" && (
             <HomePage
               onSelectUniversity={(university) =>

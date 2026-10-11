@@ -22,7 +22,7 @@ export const QuizResultPage = ({ result, onViewCourses, onPersonalise, onRetake,
 
   return (
     <main className={appUi.page} id="main-content">
-      <Breadcrumbs items={[{ label: "Get Started", onClick: onHome }, { label: "Quiz Result" }]} />
+      <Breadcrumbs items={[{ label: "Home", onClick: onHome }, { label: "Quiz Result" }]} />
       <section className={appUi.pageIntroCompact}>
         <p className={appUi.eyebrow}>{personalised ? "Your personalised result" : "Your initial result"}</p>
         <h1>{result.primaryInterest}</h1>

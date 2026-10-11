@@ -202,7 +202,7 @@ export const QuizPage = ({ session, onHome, onBackToDegree, onComplete }: Props)
     };
 
   const breadcrumbItems = [
-    { label: "Get Started", onClick: onHome },
+    { label: "Home", onClick: onHome },
     ...(onBackToDegree ? [{ label: "Study Plan", onClick: onBackToDegree }] : []),
     { label: "Quiz" },
   ];

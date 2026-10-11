@@ -260,7 +260,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
 
   return (
     <main className={appUi.page} id="main-content">
-      <Breadcrumbs items={[{ label: "Get Started", onClick: onHome },
+      <Breadcrumbs items={[{ label: "Home", onClick: onHome },
                            ...(onBackToQuizResult ? [{ label: "Quiz Result", onClick: onBackToQuizResult }] : []),
                            { label: recommendationsLabel, onClick: onBackToRecommendations },
                            { label: "Comparison" }]} />

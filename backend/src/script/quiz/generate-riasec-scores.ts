@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { PrismaPg } from "@prisma/adapter-pg";
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
@@ -7,11 +7,21 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { PrismaClient } from "../../generated/prisma/client.js";
 
 // Usage:
-//   tsx prisma/generate-riasec-scores.ts [--university=USYD] [--limit=N] [--degrees-only] [--components-only]
+//   tsx prisma/generate-riasec-scores.ts [--university=USYD] [--limit=N] [--degrees-only] [--components-only] [--rescore]
 //
-// Scores existing Degree/Component rows against the 6 RIASEC categories using
-// Claude Haiku 4.5 via the Batch API, and writes a draft file for human review.
-// Does NOT write to the database - see apply-riasec-scores.ts for that step.
+// Scores existing Degree/Component rows against the 6 RIASEC categories and the
+// 32 RIASEC subcategories using Claude Haiku 4.5 via the Batch API, and writes
+// one draft file per university for human review
+// (riasec-scores.<university-code>.draft.json). Does NOT write to the database -
+// see apply-riasec-scores.ts for that step.
+//
+// By default, degrees/components that already have a RiasecSubcategoryScore are
+// skipped, so re-running this only scores what's still missing. Pass --rescore
+// to score everything matching the other filters regardless of existing scores.
+//
+// If --university is given and that university code isn't in the database yet (e.g. it
+// hasn't been ingested), this prints a clear message and exits instead of silently scoring
+// nothing - so this is the one command a teammate needs to run for a newly-added university.
 
 const args = process.argv.slice(2);
 const universityFilter = args.find((a) => a.startsWith("--university="))?.split("=")[1];
@@ -19,6 +29,7 @@ const limitArg = args.find((a) => a.startsWith("--limit="))?.split("=")[1];
 const limit = limitArg ? Number(limitArg) : undefined;
 const degreesOnly = args.includes("--degrees-only");
 const componentsOnly = args.includes("--components-only");
+const rescore = args.includes("--rescore");
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -42,7 +53,7 @@ const CATEGORY_CODES = [
   "CONVENTIONAL",
 ] as const;
 
-const RiasecScoreSchema = z.object({
+const CategoryScoreSchema = z.object({
   REALISTIC: z.number().min(0).max(1),
   INVESTIGATIVE: z.number().min(0).max(1),
   ARTISTIC: z.number().min(0).max(1),
@@ -59,23 +70,53 @@ const RiasecScoreSchema = z.object({
   }),
 });
 
+interface SubcategoryMeta {
+  id: string;
+  code: string;
+  name: string;
+  categoryCode: string;
+}
+
+interface TopSubcategoryRationale {
+  subcategoryId: string;
+  rationale: string;
+}
+
 interface DraftEntry {
   targetType: "degree" | "component";
   targetId: string;
+  university: string;
   code: string;
   name: string;
   scores: Record<(typeof CATEGORY_CODES)[number], number>;
   rationale: Record<(typeof CATEGORY_CODES)[number], string>;
+  subcategoryScores: Record<string, number>;
+  topSubcategoryRationale: TopSubcategoryRationale[];
 }
 
-async function buildSystemPrompt(): Promise<string> {
-  const categories = await prisma.riasecCategory.findMany({
+async function fetchSubcategories(): Promise<SubcategoryMeta[]> {
+  const subcategories = await prisma.riasecSubcategory.findMany({
     orderBy: { code: "asc" },
+    select: { id: true, code: true, name: true, RiasecCategory: { select: { code: true } } },
   });
+  return subcategories.map((sc) => ({
+    id: sc.id,
+    code: sc.code,
+    name: sc.name,
+    categoryCode: sc.RiasecCategory.code,
+  }));
+}
 
+function buildSystemPrompt(categories: { code: string; description: string | null; name: string }[], subcategories: SubcategoryMeta[]): string {
   const categoryLines = categories
     .map((c) => `- ${c.code}: ${c.description ?? c.name}`)
     .join("\n");
+
+  const subcategoryLines = CATEGORY_CODES.map((code) => {
+    const items = subcategories.filter((sc) => sc.categoryCode === code);
+    const list = items.map((sc) => `  - ${sc.id}: ${sc.name}`).join("\n");
+    return `${code}:\n${list}`;
+  }).join("\n");
 
   return [
     "You are scoring a university degree or major against the RIASEC vocational interest model.",
@@ -86,25 +127,65 @@ async function buildSystemPrompt(): Promise<string> {
     "independently, on a 0.0-1.0 scale. Categories are not mutually exclusive and scores do",
     "not need to sum to 1 - a record can score high on multiple categories at once.",
     "Base your rating only on the record's actual content (name, code, description).",
+    "",
+    "Each category also has these subcategories (referenced by their id):",
+    subcategoryLines,
+    "",
+    "Rate EVERY subcategory independently on a 0.0-1.0 scale, the same way as categories.",
+    "Then identify exactly the 3 highest-scoring subcategories and give a one-sentence",
+    "rationale for each of those 3 only - not for the rest.",
     "Respond using the required JSON schema only, with a one-sentence rationale per category.",
   ].join("\n");
 }
 
 async function main() {
-  const systemPrompt = await buildSystemPrompt();
+  if (universityFilter) {
+    const university = await prisma.university.findUnique({ where: { code: universityFilter } });
+    if (!university) {
+      console.log(`"${universityFilter}" was not found in the database - add its handbook data first.`);
+      return;
+    }
+  }
 
-  const degreeWhere = universityFilter
-    ? { HandbookVersion: { University: { code: universityFilter } } }
-    : {};
-  const componentWhere = universityFilter
-    ? { HandbookVersion: { University: { code: universityFilter } } }
-    : {};
+  const categories = await prisma.riasecCategory.findMany({ orderBy: { code: "asc" } });
+  const subcategories = await fetchSubcategories();
+  const systemPrompt = buildSystemPrompt(categories, subcategories);
+
+  const subcategoryIds = subcategories.map((sc) => sc.id) as [string, ...string[]];
+  const RiasecScoreSchema = CategoryScoreSchema.extend({
+    subcategoryScores: z.object(
+      Object.fromEntries(subcategories.map((sc) => [sc.id, z.number().min(0).max(1)])),
+    ),
+    topSubcategories: z
+      .array(
+        z.object({
+          subcategoryId: z.enum(subcategoryIds),
+          rationale: z.string(),
+        }),
+      )
+      .length(3),
+  });
+
+  const degreeWhere = {
+    ...(universityFilter ? { HandbookVersion: { University: { code: universityFilter } } } : {}),
+    ...(rescore ? {} : { RiasecSubcategoryScore: { none: {} } }),
+  };
+  const componentWhere = {
+    ...(universityFilter ? { HandbookVersion: { University: { code: universityFilter } } } : {}),
+    ...(rescore ? {} : { RiasecSubcategoryScore: { none: {} } }),
+  };
 
   const degrees = componentsOnly
     ? []
     : await prisma.degree.findMany({
         where: degreeWhere,
-        select: { id: true, code: true, name: true, description: true },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          description: true,
+          HandbookVersion: { select: { University: { select: { code: true } } } },
+        },
         ...(limit ? { take: limit } : {}),
       });
 
@@ -112,11 +193,22 @@ async function main() {
     ? []
     : await prisma.component.findMany({
         where: componentWhere,
-        select: { id: true, code: true, name: true, type: true, rawData: true },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          type: true,
+          rawData: true,
+          HandbookVersion: { select: { University: { select: { code: true } } } },
+        },
         ...(limit ? { take: limit } : {}),
       });
 
-  console.log(`Scoring ${degrees.length} degrees and ${components.length} components...`);
+  console.log(
+    `Scoring ${degrees.length} degrees and ${components.length} components` +
+      (rescore ? "" : " (already-scored records skipped)") +
+      "...",
+  );
 
   const requests: Anthropic.Messages.Batches.BatchCreateParams["requests"] = [];
 
@@ -180,9 +272,28 @@ async function main() {
     );
   }
 
-  const byId = new Map<string, { targetType: "degree" | "component"; targetId: string; code: string; name: string }>();
-  for (const d of degrees) byId.set(`degree-${d.id}`, { targetType: "degree", targetId: d.id, code: d.code, name: d.name });
-  for (const c of components) byId.set(`component-${c.id}`, { targetType: "component", targetId: c.id, code: c.code, name: c.name });
+  const byId = new Map<
+    string,
+    { targetType: "degree" | "component"; targetId: string; university: string; code: string; name: string }
+  >();
+  for (const d of degrees) {
+    byId.set(`degree-${d.id}`, {
+      targetType: "degree",
+      targetId: d.id,
+      university: d.HandbookVersion.University.code,
+      code: d.code,
+      name: d.name,
+    });
+  }
+  for (const c of components) {
+    byId.set(`component-${c.id}`, {
+      targetType: "component",
+      targetId: c.id,
+      university: c.HandbookVersion.University.code,
+      code: c.code,
+      name: c.name,
+    });
+  }
 
   const draft: DraftEntry[] = [];
   const failures: { customId: string; reason: string }[] = [];
@@ -211,20 +322,35 @@ async function main() {
       continue;
     }
 
-    const { rationale, ...scores } = parsed.data;
+    const { rationale, subcategoryScores, topSubcategories, ...scores } = parsed.data;
     draft.push({
       targetType: meta.targetType,
       targetId: meta.targetId,
+      university: meta.university,
       code: meta.code,
       name: meta.name,
       scores,
       rationale,
+      subcategoryScores,
+      topSubcategoryRationale: topSubcategories,
     });
   }
 
-  const outPath = new URL("./riasec-scores.draft.json", import.meta.url);
-  await writeFile(outPath, JSON.stringify(draft, null, 2));
-  console.log(`Wrote ${draft.length} scored records to ${outPath.pathname}`);
+  const byUniversity = new Map<string, DraftEntry[]>();
+  for (const entry of draft) {
+    const list = byUniversity.get(entry.university) ?? [];
+    list.push(entry);
+    byUniversity.set(entry.university, list);
+  }
+
+  const draftsDir = new URL("./drafts/", import.meta.url);
+  await mkdir(draftsDir, { recursive: true });
+
+  for (const [university, entries] of byUniversity) {
+    const outPath = new URL(`riasec-scores.${university.toLowerCase()}.draft.json`, draftsDir);
+    await writeFile(outPath, JSON.stringify(entries, null, 2));
+    console.log(`Wrote ${entries.length} scored records for ${university} to ${outPath.pathname}`);
+  }
 
   if (failures.length > 0) {
     console.log(`${failures.length} failures (not written to draft):`);

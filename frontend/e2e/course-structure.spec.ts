@@ -319,6 +319,7 @@ const routeDegree = async (
 
 const openDegree = async (page: Page, detail: DegreeDetailResponse) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Plan it out" }).click();
   await page.locator(".university-card").filter({ hasText: detail.degree.university.code }).click();
   await page.locator(".degree-row").filter({ hasText: detail.degree.code }).click();
   await expect(page.getByRole("heading", { name: "Course structure" })).toBeVisible();

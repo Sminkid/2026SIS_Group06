@@ -55,15 +55,18 @@ export const DegreeSelectionPage = ({ university, onBack, onSelectDegree }: Prop
         {status === "ready" && degrees.length === 0 && <AsyncState kind="empty" label="No degrees are available in this handbook." />}
         {status === "ready" && degrees.length > 0 && filteredDegrees.length === 0 && <AsyncState kind="empty" label={`No degrees match “${query}”.`} />}
         {status === "ready" && filteredDegrees.length > 0 && (
-          <div className={appUi.degreeList} aria-live="polite">
+          <div>
             <p className={appUi.resultSummary}>Showing {filteredDegrees.length} of {degrees.length} degrees</p>
-            {filteredDegrees.map((degree) => (
-              <button className={appUi.degreeRow} type="button" key={degree.id} onClick={() => onSelectDegree(degree)}>
-                <span className={appUi.degreeRowCode}>{degree.code}</span><span className={appUi.degreeRowName}>{degree.name}</span>
-                <span className={appUi.degreeRowCp}>{degree.creditPoints === null ? "CP not listed" : `${degree.creditPoints} CP`}</span>
-                <span className={appUi.degreeRowArrow} aria-hidden="true">→</span>
-              </button>
-            ))}
+            <div className={appUi.degreeGrid} aria-live="polite">
+              
+              {filteredDegrees.map((degree) => (
+                <button className={appUi.degreeCard} type="button" key={degree.id} onClick={() => onSelectDegree(degree)}>
+                  <span className={appUi.degreeRowCode}>{degree.code}</span><span className={appUi.degreeRowName}>{degree.name}</span>
+                  {/* <span className={appUi.degreeRowCp}>{degree.creditPoints === null ? "CP not listed" : `${degree.creditPoints} CP`}</span> */}
+                  {/* <span className={appUi.degreeRowArrow} aria-hidden="true">→</span> */}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </section>

@@ -41,8 +41,8 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
   return (
     <main className={appUi.page} id="main-content">
       <Breadcrumbs items={browsing
-        ? [{ label: "Get Started", onClick: onHome }, { label: "All Courses" }]
-        : [{ label: "Get Started", onClick: onHome },
+        ? [{ label: "Home", onClick: onHome }, { label: "All Courses" }]
+        : [{ label: "Home", onClick: onHome },
            { label: "Quiz Result", onClick: onBackToQuizResult },
            { label: "Recommendations" }]} />
       <section className={appUi.pageIntroCompact} aria-labelledby="courses-heading">

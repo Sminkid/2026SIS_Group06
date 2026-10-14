@@ -30,6 +30,7 @@ docs
 /.vscode/settings.json
 docs/
 backend/scripts/
+.claude/
 
 CLAUDE.md
 

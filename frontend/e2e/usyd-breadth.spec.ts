@@ -53,7 +53,9 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => { expect(errors.get(page)).toEqual([]); });
 
 async function open(page: Page) {
-  await page.goto("/"); await page.locator(".university-card").filter({ hasText: "USYD" }).click();
+  await page.goto("/");
+  await page.getByRole("button", { name: "Plan it out" }).click();
+  await page.locator(".university-card").filter({ hasText: "USYD" }).click();
   await page.locator(".degree-row").filter({ hasText: "BHENGINE-04" }).click();
 }
 const focus = (page: Page) => page.getByRole("combobox", { name: "Study plan focus", exact: true });

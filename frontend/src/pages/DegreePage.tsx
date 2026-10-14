@@ -84,7 +84,7 @@ export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onB
   const hasSemanticOverview = detail?.completionSummary.some((summary) => summary.obligation === "OPTIONAL" || summary.obligation === "CONDITIONAL" || summary.obligation === "INFORMATIONAL") ?? false;
 
   return <main className={appUi.page} id="main-content">
-    <Breadcrumbs items={[{ label: "Get Started", onClick: onHome }, 
+    <Breadcrumbs items={[{ label: "Home", onClick: onHome }, 
                          ...(onBackToQuizResult ? [{ label: "Quiz Result", onClick: onBackToQuizResult }] : []), 
                          { label: recommendationsLabel, onClick: onBackToRecommendations }, 
                          { label: "Comparison", onClick: onBackToComparison }, 

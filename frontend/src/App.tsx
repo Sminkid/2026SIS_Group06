@@ -2,7 +2,7 @@ import { appUi } from "./components/ui";
 import { useMemo, useState } from "react";
 import { QuizPage } from "./pages/InterestQuizPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
-import { GetStartedPage } from "./pages/GetStartedPage";
+import { LandingPage } from "./pages/LandingPage";
 import { QuizResultPage } from "./pages/QuizResultPage";
 import { CourseRecommendationsPage } from "./pages/CourseRecommendationsPage";
 import { UniversityComparisonPage } from "./pages/UniversityComparisonPage";
@@ -15,7 +15,7 @@ import type { University, DegreeSummary } from "./types/handbook";
 import logo from "./components/ui/icons/Logo.png";
 
 type Screen =
-    { name: "getStarted" } |
+    { name: "landing" } |
     { name: "quiz" } |
     { name: "quizResult"; result: QuizResult } |
     { name: "courseRecommendation"; result: QuizResult } |
@@ -40,7 +40,7 @@ interface QuizLaunchTarget {
 /** Coordinates the quiz, course recommendation, comparison and degree screens within the shared navigation shell. */
 export const App = () => {
   const [screen, setScreen] = useState<Screen>({
-    name: "getStarted",
+    name: "landing",
   });
   const [quizTarget, setQuizTarget] = useState<QuizLaunchTarget | undefined>();
   const matchTarget = useMemo<DegreeMatchTarget | undefined>(
@@ -55,7 +55,7 @@ export const App = () => {
   // personalise further without having to start over.
   const quiz = useQuizSession(matchTarget);
 
-  const goHome = () => setScreen({ name: "getStarted" });
+  const goHome = () => setScreen({ name: "landing" });
 
   /** Back to wherever the course list was opened from: the recommendations, or the full list. */
   const backToCourses = (result: QuizResult | null): Screen =>
@@ -85,7 +85,7 @@ export const App = () => {
           className={appUi.brand}
           type="button"
           onClick={goHome}
-          aria-label="Degree planner home"
+          aria-label="UniXPrep home"
         >
           <img src={logo} className={appUi.brandMark}/>
         </button>
@@ -109,8 +109,16 @@ export const App = () => {
       </header>
 
       <main className={appUi.appMain}>
-        {screen.name === "getStarted" && (
-          <GetStartedPage onStart={() => startNewQuiz()} />
+        {screen.name === "landing" && (
+          // The landing page has no <main> of its own, so this wrapper is the skip link's target.
+          <div className="min-w-0 flex-1" id="main-content">
+            <LandingPage
+              onStartQuiz={() => startNewQuiz()}
+              // A comparison is always for one course, so both routes start by choosing a course.
+              onPlan={() => setScreen({ name: "allCourses" })}
+              onCompare={() => setScreen({ name: "allCourses" })}
+            />
+          </div>
         )}
 
         {screen.name === "quiz" && (

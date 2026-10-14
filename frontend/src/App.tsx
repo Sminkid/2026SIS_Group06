@@ -1,5 +1,5 @@
 import { appUi } from "./components/ui";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { QuizPage } from "./pages/InterestQuizPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
 import { LandingPage } from "./pages/LandingPage";
@@ -38,10 +38,34 @@ interface QuizLaunchTarget {
 }
 
 /** Coordinates the quiz, course recommendation, comparison and degree screens within the shared navigation shell. */
+const SCREEN_NAMES = new Set<string>(["landing", "quiz", "quizResult", "courseRecommendation", "allCourses", "universityComparison", "degree"]);
+
+/**
+ * The screen saved in the current browser history entry, so a reload stays on the same screen.
+ * Null for entries without one, such as those added by in-page links like "#how-it-works".
+ */
+const savedScreen = (): Screen | null => {
+  const state: unknown = window.history.state;
+  return typeof state === "object" && state !== null && SCREEN_NAMES.has((state as { name?: string }).name ?? "")
+    ? state as Screen : null;
+};
+
 export const App = () => {
-  const [screen, setScreen] = useState<Screen>({
-    name: "landing",
-  });
+  const [screen, setScreenState] = useState<Screen>(() => savedScreen() ?? { name: "landing" });
+  // Every screen change is a browser history entry, so the browser's back and forward buttons
+  // move between screens the same way the breadcrumbs do.
+  const setScreen = useCallback((next: Screen) => {
+    window.history.pushState(next, "");
+    setScreenState(next);
+    window.scrollTo(0, 0);
+  }, []);
+  useEffect(() => {
+    if (!savedScreen()) window.history.replaceState({ name: "landing" } satisfies Screen, "");
+    // In-page links keep the current screen, so only entries with a saved screen change it.
+    const restore = () => { const saved = savedScreen(); if (saved) setScreenState(saved); };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, []);
   const [quizTarget, setQuizTarget] = useState<QuizLaunchTarget | undefined>();
   const matchTarget = useMemo<DegreeMatchTarget | undefined>(
     () =>

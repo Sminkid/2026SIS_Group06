@@ -192,3 +192,23 @@ test("Landing page routes to the planner and the comparison, and fits a phone sc
   await page.getByRole("button", { name: "Plan it out" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Courses" })).toBeVisible();
 });
+
+test("Browser back and forward buttons move between screens, and a reload keeps the screen", async ({ page }) => {
+  await page.goto("/");
+  const landing = page.getByRole("heading", { level: 1, name: "Build your university path" });
+  const courses = page.getByRole("heading", { level: 1, name: "Courses" });
+  await page.getByRole("button", { name: "Plan it out" }).click();
+  await expect(courses).toBeVisible();
+  await page.goBack();
+  await expect(landing).toBeVisible();
+  await page.goForward();
+  await expect(courses).toBeVisible();
+  await page.reload();
+  await expect(courses).toBeVisible();
+  await page.getByRole("button", { name: "UniXPrep home" }).click();
+  await page.getByRole("link", { name: "See how it works" }).click();
+  await page.goBack();
+  await expect(landing).toBeVisible();
+  await page.goBack();
+  await expect(courses).toBeVisible();
+});

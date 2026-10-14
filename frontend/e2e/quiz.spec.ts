@@ -50,6 +50,7 @@ const riasecLabels = {
 // screening-stage (category-only) recommendations surface a real Engineering degree.
 const screeningResponseBody = {
   rankedCategoryIds: [...CATEGORY_IDS],
+  categoryScores: Object.fromEntries(CATEGORY_IDS.map((id, i) => [id, 0.88 - i * 0.12])),
   closingQuestions,
   recommendations: [
     { degreeId: "deg-1", code: "C09066", name: "Bachelor of Engineering (Honours)", description: "<p>Study engineering, build real things, and solve practical problems.</p>", universityCode: "UTS", year: 2026, matchScore: 0.95 },
@@ -74,7 +75,7 @@ const finalResultBody = {
   },
 };
 
-const CONTINUE_BUTTON = /^(Next|See my initial results|See my result)$/;
+const CONTINUE_BUTTON = /^(Next|Continue to a closer look|See my initial results|See my personalised result)$/;
 
 const mockQuizApi = (page: Page): string[] => {
   const errors: string[] = [];
@@ -102,7 +103,7 @@ const mockQuizApi = (page: Page): string[] => {
 
 const startQuiz = async (page: Page) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Interest quiz" }).click();
+  await page.getByRole("button", { name: "Interest Quiz", exact: true }).click();
   await page.getByRole("button", { name: "Start quiz" }).click();
 };
 
@@ -120,8 +121,8 @@ test("engineering-leaning persona: completes the full quiz and is recommended an
   // Screening + the 2 merged bonus questions - no results screen in between (fix #1).
   await answerQuestions(page, 20, "5");
 
-  await expect(page.getByRole("heading", { name: "Your top interest areas" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Skip to personalise further" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Top 3 dimensions breakdown" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Personalise further", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "View course recommendations" })).toBeVisible();
 
   await page.getByRole("button", { name: "View course recommendations" }).click();
@@ -176,8 +177,8 @@ test("Skip to personalise further bypasses the course recommendations screen", a
   await startQuiz(page);
   await answerQuestions(page, 20, "3");
 
-  await expect(page.getByRole("heading", { name: "Your top interest areas" })).toBeVisible();
-  await page.getByRole("button", { name: "Skip to personalise further" }).click();
+  await expect(page.getByRole("heading", { name: "Top 3 dimensions breakdown" })).toBeVisible();
+  await page.getByRole("button", { name: "Personalise further", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Courses that might suit you" })).toHaveCount(0);
   await expect(page.getByText("Question 1 of 25")).toBeVisible();
@@ -188,8 +189,8 @@ test("Skip to personalise further bypasses the course recommendations screen", a
 test("the quiz is reachable from the very first screen via the global nav", async ({ page }) => {
   const errors = mockQuizApi(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Choose your university" })).toBeVisible();
-  await page.getByRole("button", { name: "Interest quiz" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Build your university path" })).toBeVisible();
+  await page.getByRole("button", { name: "Interest Quiz", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Find degrees that match your interests" })).toBeVisible();
   expect(errors).toEqual([]);
 });

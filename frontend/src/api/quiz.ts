@@ -25,6 +25,8 @@ export const submitScreeningResponses = (
   signal?: AbortSignal,
 ): Promise<{
   rankedCategoryIds: string[];
+  /** 0–1 per category from the screening answers; absent from older backends. */
+  categoryScores?: Record<string, number>;
   closingQuestions: QuestionRef[];
   recommendations: DegreeRecommendation[];
 }> => apiPost(`/api/assessment/sessions/${encodeURIComponent(sessionId)}/screening-responses`, { responses }, signal);

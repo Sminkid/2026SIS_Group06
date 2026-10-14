@@ -1,6 +1,6 @@
 import type { DegreeRecommendation, Recommendation } from "../types/quiz";
 
-/** One RIASEC category as shown on the result screens. `score` is only known once personalised. */
+/** One RIASEC category as shown on the result screens. `score` is null when the backend sent no scores. */
 export interface QuizCategorySummary {
   id: string;
   name: string;

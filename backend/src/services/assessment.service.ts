@@ -115,7 +115,7 @@ export const submitScreeningResponses = async (sessionId: string, responses: Res
 
   const recommendations = await getScreeningRecommendations(categoryScores, rank1CategoryId);
 
-  return { rankedCategoryIds, closingQuestions, recommendations };
+  return { rankedCategoryIds, categoryScores: Object.fromEntries(categoryScores), closingQuestions, recommendations };
 };
 
 export const submitClosingResponses = async (sessionId: string, responses: ResponseInput[]) => {

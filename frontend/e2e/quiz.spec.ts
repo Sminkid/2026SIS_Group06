@@ -109,7 +109,7 @@ const startQuiz = async (page: Page) => {
 
 const answerQuestions = async (page: Page, count: number, value: string) => {
   for (let i = 0; i < count; i++) {
-    await page.getByRole("radio", { name: value, exact: true }).click();
+    await page.getByRole("radio", { name: new RegExp(`^${value} `) }).click();
     await page.getByRole("button", { name: CONTINUE_BUTTON }).click();
   }
 };
@@ -148,7 +148,7 @@ test("Likert buttons reflect selection and Next stays disabled until answered", 
   await expect(nextButton).toBeDisabled();
   await expect(page.getByRole("button", { name: "Back" })).toBeDisabled();
 
-  const radioThree = page.getByRole("radio", { name: "3", exact: true });
+  const radioThree = page.getByRole("radio", { name: "3 Neutral" });
   await radioThree.click();
   await expect(radioThree).toHaveAttribute("aria-checked", "true");
   await expect(nextButton).toBeEnabled();
@@ -167,7 +167,7 @@ test("Likert buttons reflect selection and Next stays disabled until answered", 
 
   await page.getByRole("button", { name: "Back" }).click();
   await expect(page.getByText("Question 1 of 18")).toBeVisible();
-  await expect(page.getByRole("radio", { name: "3", exact: true })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("radio", { name: "3 Neutral" })).toHaveAttribute("aria-checked", "true");
 
   expect(errors).toEqual([]);
 });

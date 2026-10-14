@@ -6,6 +6,7 @@ import { LoadingDialog } from "../components/LoadingDialog";
 import type { QuizResult } from "../domain/quizRecommendation";
 import type { QuizSession } from "../hooks/useQuizSession";
 import type { QuestionRef, QuestionResponse } from "../types/quiz";
+import { LIKERT_OPTIONS } from "../domain/likertScale";
 
 interface Props {
   session: QuizSession;
@@ -16,8 +17,6 @@ interface Props {
   onComplete: (result: QuizResult) => void;
 }
 
-const LIKERT_VALUES = [1, 2, 3, 4, 5] as const;
-
 interface LikertQuestionProps {
   question: QuestionRef;
   value: number | undefined;
@@ -27,9 +26,9 @@ interface LikertQuestionProps {
 const LikertQuestion = ({ question, value, onChange }: LikertQuestionProps) => (
   <div className={appUi.quizQuestionCard}>
     <p className={appUi.quizQuestionText}>{question.text}</p>
-    <p className={appUi.description}>Select how this fits you: 1 / Not at all --- 5 / Love it</p>
+    <p className={appUi.description}>Select how well this fits you.</p>
     <div className={appUi.quizLikertRow} role="radiogroup" aria-label={question.text}>
-      {LIKERT_VALUES.map((likertValue) => (
+      {LIKERT_OPTIONS.map(({ value: likertValue, label }) => (
         <button
           key={likertValue}
           type="button"
@@ -38,7 +37,8 @@ const LikertQuestion = ({ question, value, onChange }: LikertQuestionProps) => (
           className={value === likertValue ? appUi.quizLikertButtonSelected : appUi.quizLikertButtonIdle}
           onClick={() => onChange(likertValue)}
         >
-          {likertValue}
+          <strong className={appUi.quizLikertNumber}>{likertValue}</strong>{" "}
+          <p className={appUi.description}>{label}</p>
         </button>
       ))}
     </div>

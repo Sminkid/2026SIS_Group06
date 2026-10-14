@@ -30,9 +30,9 @@ export const glossaryUi = {
   ),
   glossaryChatMessages: "flex-1 overflow-y-auto p-5 flex flex-col gap-4",
   glossaryChatEmpty: "m-0 text-[var(--muted)] text-[length:.85rem] [line-height:1.6]",
-  glossaryMessageUser: cn(glossaryMessageAssistantBase, "bg-[#eaf0fb] self-end [max-width:88%] [border-color:#c9d7ef] [&_>_span]:text-[var(--blue)]"),
+  glossaryMessageUser: cn(glossaryMessageAssistantBase, "bg-[#eaf0fb] self-end [max-width:88%] [border-color:#c9d7ef] [border-radius:var(--radius)] [&_>_span]:text-[var(--blue)]"),
   glossaryMessageError: cn(glossaryMessageAssistantBase, "bg-[#fdeceb] [border-color:#e6b3ad] text-[#a10000] [&_>_span]:text-[#a10000]"),
-  glossaryMessageAssistant: cn(glossaryMessageAssistantBase, "bg-[var(--soft)] self-start [max-width:88%]"),
+  glossaryMessageAssistant: cn(glossaryMessageAssistantBase, "bg-[var(--soft)] self-start [max-width:88%] [border-radius:var(--radius)]"),
   glossaryChatMessageRole: "text-[var(--muted)] text-[length:.65rem] font-extrabold [letter-spacing:.08em] uppercase",
   glossaryMessagePending: cn(glossaryMessageAssistantBase, "bg-[var(--soft)] self-start [max-width:88%] [&_>_p]:text-[var(--muted)] [&_>_p]:italic"),
   glossaryChatForm: cn(

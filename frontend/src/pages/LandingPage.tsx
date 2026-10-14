@@ -1,6 +1,11 @@
 import type { ReactNode } from "react";
 import { appUi } from "../components/ui";
 import { MAX_RESPONSES_PER_SESSION } from "../components/GlossaryChatWidget";
+import { ScoreBar, styleFor } from "../components/QuizCategory";
+import {
+  AssistantPreview, ComparisonPreview, COURSES, CourseCard, CoursesPreview, HOLLAND_CODE, PROFILE, PROFILE_NAMES, QuizPreview,
+  ResultPreview, StudyPlanPreview,
+} from "../components/LandingPreviews";
 
 interface Props {
   onStartQuiz: () => void;
@@ -11,41 +16,13 @@ interface Props {
 /** The quiz asks 18 screening questions and 2 closing questions. */
 const QUIZ_QUESTION_COUNT = 20;
 
-// Mockup content. Course names, fees, rankings and employment rates are real (2026–27 fee guide,
-// QS 2027, QILT 2025); the quiz scores and match percentages are examples. Update when the data changes.
-const PROFILE = [
-  { name: "Realistic", score: 88, colour: "#15803d" },
-  { name: "Conventional", score: 74, colour: "#1d4ed8" },
-  { name: "Artistic", score: 69, colour: "#c2410c" },
-];
-const MATCHES = [
-  { score: 94, name: "Bachelor of Design in Product Design", university: "UTS" },
-  { score: 91, name: "Bachelor of Architecture and Environments", university: "USYD" },
-  { score: 86, name: "Bachelor of Construction Project Management", university: "UTS" },
-  { score: 84, name: "Bachelor of Design in Interior Architecture", university: "UTS" },
-];
-const COMPARISON: Array<[label: string, uts: string, usyd: string]> = [
-  ["Course", "Design in Product Design", "Design"],
-  ["Duration", "3 years", "3 years"],
-  ["Annual fee", "A$9,880", "A$9,537"],
-  ["QS world ranking", "#87", "#28"],
-  ["QS Art and Design", "#85", "101–150"],
-  ["Employment rate", "72.2%", "74.3%"],
-];
 const COVERAGE = [
   { value: "271", label: "Undergraduate courses with fee data" },
   { value: "2026–27", label: "Domestic and international fee guide" },
   { value: "3", label: "Sydney universities: UNSW, USYD and UTS" },
 ];
-const ANSWERS = ["Not at all", "Not really", "Neutral", "Like it", "Love it"];
 
 const Arrow = () => <span aria-hidden="true">→</span>;
-
-const ScoreBar = ({ score, colour }: { score: number; colour: string }) => (
-  <span className={appUi.landingBarTrack}>
-    <span className={appUi.landingBar} style={{ width: `${score}%`, background: colour }} />
-  </span>
-);
 
 interface StepProps { number: number; label: string; title: string; text: string; flip?: boolean; children: ReactNode; }
 
@@ -98,23 +75,25 @@ export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
         <div className={appUi.landingVisual} aria-hidden="true">
           <div className={appUi.landingCard}>
             <p className={appUi.landingMuted}>Example result</p>
-            <p className="font-bold">Your Holland Code is</p>
-            <p className={appUi.landingCode}>R – C – A</p>
+            <p className="font-bold">Your Holland Code Profile is</p>
+            <p className={appUi.landingCode}>{HOLLAND_CODE}</p>
+            <p className="font-semibold text-[length:.85rem]">{PROFILE_NAMES}</p>
             <div className={appUi.landingScores}>
-              {PROFILE.map((item, index) => (
-                <div className="grid gap-2 text-[length:.82rem]" key={item.name}>
-                  <span className="flex justify-between font-semibold">
-                    <span>{index + 1}. {item.name}</span><span style={{ color: item.colour }}>{item.score}%</span>
-                  </span>
-                  <ScoreBar score={item.score} colour={item.colour} />
-                </div>
-              ))}
+              {PROFILE.map((area, index) => {
+                const { colour } = styleFor(area.name);
+                return (
+                  <div className="grid gap-2 text-[length:.82rem]" key={area.name}>
+                    <span className="flex justify-between font-semibold">
+                      <span>{index + 1}. {area.name}</span><span style={{ color: colour }}>{Math.round(area.score * 100)}%</span>
+                    </span>
+                    <ScoreBar score={area.score} colour={colour} />
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <div className={appUi.landingCard}>
-            <span className={appUi.landingTag}>{MATCHES[0].score}% match</span>
-            <p className="font-bold">{MATCHES[0].name}</p>
-            <p className={appUi.landingMuted}>{MATCHES[0].university} · Compare with USYD →</p>
+          <div className={appUi.landingPreview}>
+            <CourseCard {...COURSES[0]!} />
           </div>
         </div>
       </section>
@@ -140,86 +119,27 @@ export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
 
           <Step number={1} label="Quiz" title="Take the interest quiz"
             text={`${QUIZ_QUESTION_COUNT} quick questions about what you naturally enjoy, like being active, building things or organising information. There are no right or wrong answers.`}>
-            <div className={appUi.landingMockCard}>
-              <p className="flex justify-between text-[length:.8rem]">
-                <span>Question 4 of {QUIZ_QUESTION_COUNT}</span><span className="text-[#15803d] font-semibold">15% completed</span>
-              </p>
-              <ScoreBar score={15} colour="#2563eb" />
-              <p className="text-center font-bold text-[length:1.2rem]">Do you like being active?</p>
-              <p className="text-center text-[#4b5563] text-[length:.8rem]">Physical activities, outdoor work, sports or hands-on tools.</p>
-              <div className={appUi.landingAnswers}>
-                {ANSWERS.map((answer, index) => (
-                  <span className={index === 3 ? appUi.landingAnswerSelected : appUi.landingAnswer} key={answer}>
-                    <strong className="block">{index + 1}</strong>{answer}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <QuizPreview />
           </Step>
 
           <Step number={2} label="Result" title="Get your Holland Code" flip
             text="Your answers become a three-letter profile, like R-C-A, with a score for each of your strongest dimensions and a plain-English summary of what it means for you.">
-            <div className={appUi.landingMockCard}>
-              <p className={appUi.landingMuted}>Your top 3</p>
-              {PROFILE.map((item, index) => (
-                <div className={appUi.landingScoreRow} key={item.name}>
-                  <span className="font-semibold">{index + 1}. {item.name}</span>
-                  <ScoreBar score={item.score} colour={item.colour} />
-                  <span className="text-right font-bold">{item.score}%</span>
-                </div>
-              ))}
-              <p className={appUi.landingMuted}>You thrive when combining hands-on making with structured systems and creative, visual problem-solving.</p>
-            </div>
+            <ResultPreview />
           </Step>
 
           <Step number={3} label="Courses" title="See courses that fit you"
-            text="Courses are ranked by how well they match your profile. Each one shows its match score and what you'd actually study, so you can shortlist quickly.">
-            <div className={appUi.landingMatches}>
-              {MATCHES.map((match) => (
-                <div className={appUi.landingMockCard} key={match.name}>
-                  <span className={appUi.landingTag}>{match.score}% match</span>
-                  <p className="font-bold text-[length:.9rem]">{match.name}</p>
-                  <p className={appUi.landingMuted}>{match.university}</p>
-                </div>
-              ))}
-            </div>
+            text="The courses that best match your profile come first. Each card shows how many universities offer it, so you can shortlist and open the comparison in one click.">
+            <CoursesPreview />
           </Step>
 
           <Step number={4} label="Universities" title="Compare universities side by side" flip
             text="Put the same kind of course next to each other: duration, fees, QS rankings and how many graduates find full-time work.">
-            <table className={appUi.landingTable}>
-              <thead>
-                <tr>
-                  <td />
-                  <th className={appUi.landingTableCell}>University of Technology Sydney</th>
-                  <th className={appUi.landingTableCell}>The University of Sydney</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON.map(([label, uts, usyd], index) => {
-                  const cell = index % 2 === 1 ? appUi.landingTableCellHighlight : appUi.landingTableCell;
-                  return (
-                    <tr key={label}>
-                      <th className={cell}>{label}</th><td className={cell}>{uts}</td><td className={cell}>{usyd}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <p className="mt-2 text-[#4b5563] text-[length:.72rem]">Domestic students · 2026–27 fee guide · QS 2027 · QILT 2025 full-time employment</p>
+            <ComparisonPreview />
           </Step>
 
           <Step number={5} label="Study plan" title="Map out every semester"
             text="See the whole degree year by year: the core subjects you have to take, their credit points, and the slots where you choose your own electives.">
-            <p className="mb-3 text-center font-bold text-[length:1.1rem]">Year 1</p>
-            <div className={appUi.landingPlan}>
-              <p className={appUi.landingEyebrow}>Autumn</p>
-              <p className={appUi.landingEyebrow}>Spring</p>
-              <span className={appUi.landingPlanSlot}><strong>Core subject</strong>6 cp</span>
-              <span className={appUi.landingPlanSlot}><strong>Core subject</strong>6 cp</span>
-              <span className={appUi.landingPlanSlot}><strong>Core subject</strong>6 cp</span>
-              <span className={appUi.landingPlanElective}>Choose an elective<span>6 cp</span></span>
-            </div>
+            <StudyPlanPreview />
           </Step>
         </div>
       </section>
@@ -234,11 +154,8 @@ export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
               and prerequisites in plain words. You can ask up to {MAX_RESPONSES_PER_SESSION} questions per visit.
             </p>
           </div>
-          <div className={appUi.landingChat} aria-hidden="true">
-            <p className="m-0 font-bold">UniXPrep assistant</p>
-            <span className={appUi.landingBubbleBot}>Hi! How can I help you?</span>
-            <span className={appUi.landingBubbleUser}>What is an elective?</span>
-            <span className={appUi.landingBubbleBot}>An elective is a subject you choose yourself, instead of one your degree requires.</span>
+          <div className={appUi.landingPreview} aria-hidden="true">
+            <AssistantPreview />
           </div>
         </div>
       </section>

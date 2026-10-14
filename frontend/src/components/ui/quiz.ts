@@ -2,7 +2,11 @@ import { cn } from "./cn";
 
 // The marker (dot or tick) uses the text colour, so each state recolours the label and marker together.
 const quizStepBase = "flex items-center text-sm";
-const likertButtonBase = "w-10 h-10 grid place-items-center border-[1px] border-solid cursor-pointer font-bold";
+// Same card as the landing page's example answers: the number on top, its meaning underneath.
+const likertButtonBase = cn(
+  "grid content-center gap-1 min-h-16 [padding:.65rem_.25rem] border-[1px] border-solid [border-radius:.75rem]",
+  "[font:inherit] text-[length:.8rem] [@media(max-width:480px)]:text-[length:.68rem] [line-height:1.2] text-center cursor-pointer min-w-0",
+);
 
 /** Static Tailwind recipes preserve the quiz's appearance and responsive states. */
 export const quizUi = {
@@ -33,16 +37,17 @@ export const quizUi = {
   quizQuestionCard: cn(
     "grid gap-3 [margin:0_0_1.5rem] border-none bg-[var(--surface)]",
   ),
-  quizQuestionText: "m-0 font-bold",
-  quizLikertRow: "flex gap-5 flex-wrap mb-5",
+  quizQuestionText: "m-0 font-bold text-xl",
+  quizLikertRow: "grid grid-cols-5 gap-2 max-w-[34rem] mb-5",
+  quizLikertNumber: "block text-[length:1rem] font-medium",
   // Idle/selected are two complete, non-overlapping strings picked one-at-a-time - never
   // concatenate them, since two conflicting `text-[...]` utilities from separate strings
   // don't resolve in class-attribute order (Tailwind's generated-CSS order decides instead).
   quizLikertButtonIdle: cn(
     likertButtonBase,
-    "border-[color:var(--line)] [border-radius:var(--radius)] bg-transparent text-[var(--navy)] [&:hover]:border-[color:var(--blue)]",
+    "border-[color:var(--line)] bg-[white] text-[#111827] [&:hover]:border-[color:#2563eb]",
   ),
-  quizLikertButtonSelected: cn(likertButtonBase, "border-[color:var(--navy)] [border-radius:var(--radius)] bg-[var(--navy)] text-[white]"),
+  quizLikertButtonSelected: cn(likertButtonBase, "border-[color:#2563eb] bg-[#eff4ff] text-[#1d4ed8]"),
   quizFormFooter: "flex items-center justify-between gap-4 flex-wrap",
   quizResultSection: "grid gap-8 [margin:1.5rem_0]",
   // Result page: the Holland Code heading, the top-3 cards and the bars for the remaining areas.

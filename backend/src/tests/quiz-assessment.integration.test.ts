@@ -20,6 +20,7 @@ interface StartSessionResponse {
 
 interface ScreeningResponse {
   rankedCategoryIds: string[];
+  categoryScores: Record<string, number>;
   closingQuestions: QuestionRef[];
   recommendations: { degreeId: string; code: string; name: string; matchScore: number }[];
 }
@@ -292,5 +293,28 @@ describe("database-backed Quiz Assessment API", { skip: !process.env.DATABASE_UR
       "expected subcategory-level matching, not the coarse category-only fallback",
     );
     assert.ok(result.recommendation!.matchScore > 0.5, `expected a confident match, got ${result.recommendation!.matchScore}`);
+  });
+  test("the personalised result re-ranks categories when the drill-down answers change the scores", async () => {
+    // Screening puts Realistic first and Social second; the drill-down then favours Social.
+    const session = await post<StartSessionResponse>("/api/assessment/sessions", {}, 201);
+    const screeningValue: Record<string, number> = { "riasec-realistic": 5, "riasec-social": 4 };
+    const screening = await post<ScreeningResponse>(
+      `/api/assessment/sessions/${session.sessionId}/screening-responses`,
+      { responses: session.questions.map((q) => ({ questionId: q.id, value: screeningValue[q.categoryId] ?? 1 })) },
+    );
+    assert.equal(screening.rankedCategoryIds[0], "riasec-realistic");
+    assert.equal(Object.keys(screening.categoryScores).length, 6, "screening should return a score per category");
+
+    await post(`/api/assessment/sessions/${session.sessionId}/closing-responses`, {
+      responses: screening.closingQuestions.map((q) => ({ questionId: q.id, value: 1 })),
+    });
+    const drillDown = await post<{ questions: QuestionRef[] }>(`/api/assessment/sessions/${session.sessionId}/drill-down`, {});
+    const result = await post<AssessmentResult>(`/api/assessment/sessions/${session.sessionId}/drill-down-responses`, {
+      responses: drillDown.questions.map((q) => ({ questionId: q.id, value: q.categoryId === "riasec-social" ? 5 : 1 })),
+    });
+
+    const scores = result.rankedCategoryIds.map((id) => result.categoryScores[id]!);
+    assert.deepEqual(scores, [...scores].sort((a, b) => b - a), "categories should be ordered by their final scores");
+    assert.equal(result.rankedCategoryIds[0], "riasec-social", `expected Social to overtake Realistic, got ${result.rankedCategoryIds[0]}`);
   });
 });

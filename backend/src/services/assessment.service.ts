@@ -172,7 +172,7 @@ export const getResult = async (sessionId: string, degreeCode?: string, universi
 };
 
 const computeResult = async (
-  rankedCategoryIds: string[],
+  screeningRankedCategoryIds: string[],
   sessionId: string,
   degreeCode?: string,
   universityCode?: string,
@@ -196,13 +196,16 @@ const computeResult = async (
   }
 
   const categoryScores = new Map<string, number>();
-  for (const categoryId of rankedCategoryIds) {
+  for (const categoryId of screeningRankedCategoryIds) {
     const stage1 = stage1ByCategory.get(categoryId) ?? [];
     const stage2 = stage2ByCategory.get(categoryId) ?? [];
     const stage1Score = normaliseScore(stage1.map((r) => r.value));
     const stage2Score = normaliseScore(stage2.map((r) => r.value));
     categoryScores.set(categoryId, blendCategoryScore(stage1Score, stage1.length || STAGE1_ITEM_COUNT, stage2Score, stage2.length));
   }
+  // Re-rank on the blended scores so the drill-down answers can change the order, not just the
+  // percentages. The sort is stable and the map is in screening order, so ties keep that order.
+  const rankedCategoryIds = rankCategories(categoryScores);
   const subcategoryScores = computeScoresByKey(bySubcategory);
 
   let recommendation = null;

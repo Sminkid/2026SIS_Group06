@@ -185,7 +185,7 @@ export const App = () => {
         )}
 
         {screen.name === "universityComparison" && (
-          <UniversityComparisonPage 
+          <UniversityComparisonPage key={screen.course.courseKey}
             course={screen.course} 
             onSelectUniversity={(university, degree) =>
               setScreen({ name: "degree", result: screen.result, course: screen.course, university, degree })

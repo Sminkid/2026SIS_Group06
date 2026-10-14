@@ -93,7 +93,7 @@ function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
       .then((handbook) => fetchDegrees(selectedUniversityCode, handbook.year, controller.signal))
       .then((result) => {
         setDegrees(result);
-        setSelectedDegreeId(result.find((degree) => classifyDegree(degree.name).key === courseKey)?.id ?? "");
+        setSelectedDegreeId(result.find((degree) => classifyDegree(degree.name, degree.code).key === courseKey)?.id ?? "");
         setStatus("idle");
       })
       .catch((error) => {

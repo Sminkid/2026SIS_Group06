@@ -13,16 +13,63 @@ import { PrismaClient } from "../../generated/prisma/client.js";
 // noUncheckedIndexedAccess option to a file that isn't written against it. Keep this in sync by
 // hand if that file's AWARD_PATTERN/FIELD_ALIASES/normalisation logic changes.
 const AWARD_PATTERN = "(?:Bachelor|Master|Doctor|Diploma|Undergraduate Certificate|Graduate Certificate|Graduate Diploma)\\s+(?:of|in)\\b";
-const AWARD_SPLIT = new RegExp(`\\s+(?:and\\s+)?(?=${AWARD_PATTERN})`, "i");
+const AWARD_SPLIT = new RegExp(`(?<!Graduate)\\s+(?:and\\s+)?(?=${AWARD_PATTERN})`, "i");
 const AWARD_PARTS = /^(Bachelor|Master|Doctor|Diploma|Undergraduate Certificate|Graduate Certificate|Graduate Diploma)\s+(of|in)\s+(.+)$/i;
 const HONOURS = /\s*\(?\bHonours\b\)?/gi;
-const DELIVERY_VARIANTS = /\s*\((Offshore|off-shore|on-shore|Co-op|Extended)\)/gi;
+const DELIVERY_VARIANTS = /\s*\((Offshore|off-shore|on-shore|Co-op|Extended|Bengaluru)\)/gi;
+const MAIN_CAMPUS = /\s*\(Sydney\)/gi;
+const UNSW_PROGRAM_CODE = /^\d{4}$/;
+const UNSW_SPECIALISATION_CODE = /^[A-Z]{4}[A-Z0-9]{2}$/;
+const ENGINEERING_HONOURS = "Bachelor of Engineering (Honours)";
+const SHORTHAND: Array<[RegExp, string]> = [
+  [/^1st Yr - /i, ""],
+  [/^Grad(?:uate)? Dip(?:loma)?(?: in| -)\s*/i, "Graduate Diploma in "],
+  [/^Grad(?:uate)? Cert(?:ificate)?(?: in| -)\s*/i, "Graduate Certificate in "],
+  [/\bEng\b/g, "Engineering"],
+  [/\bHons\b/g, "Honours"],
+  [/\s+w\s+/g, " with "],
+  [/\s+-\s+.*$/, ""],
+  [/^(Bachelor|Master)\s+(?!of\b)/i, "$1 of "],
+];
+const COMBINED_SEPARATOR = /\s+\/\s+/;
+const PART_LEVEL = /^(Bachelor|Master)(?:\s+of)?\s+/i;
 const FIELD_ALIASES: Record<string, { key: string; label: string }> = {
   "computing science": { key: "computing", label: "Computing" },
+  "computer science": { key: "computing", label: "Computing" },
+  "cyber security": { key: "cybersecurity", label: "Cybersecurity" },
+  law: { key: "laws", label: "Laws" },
+  "criminology and criminal justice": { key: "criminology", label: "Criminology" },
+  "exercise science": { key: "sport and exercise science", label: "Sport and Exercise Science" },
 };
 
 const normaliseField = (field: string): string =>
   field.toLowerCase().replace(/&/g, "and").replace(/,/g, "").replace(/\s+/g, " ").trim();
+
+const levelForProgramCode = (code: string): string => {
+  if (code.startsWith("5")) return "Graduate Diploma in";
+  if (code.startsWith("70")) return "Undergraduate Certificate in";
+  if (code.startsWith("7")) return "Graduate Certificate in";
+  if (code.startsWith("8")) return "Master of";
+  return "Bachelor of";
+};
+
+const expandName = (name: string, code: string | undefined): string => {
+  const expanded = SHORTHAND.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), name.trim());
+  const firstLevel = code && UNSW_PROGRAM_CODE.test(code) ? levelForProgramCode(code) : null;
+  const parts = expanded.split(COMBINED_SEPARATOR);
+  if (parts.length === 1) return firstLevel && !new RegExp(AWARD_PATTERN, "i").test(expanded) ? `${firstLevel} ${expanded}` : expanded;
+  let level = firstLevel ?? "Bachelor of";
+  const fields: string[] = [];
+  return parts.map((part) => {
+    const withoutLevel = part.replace(PART_LEVEL, "");
+    const ownLevel = PART_LEVEL.exec(part)?.[1];
+    const field = normaliseField(withoutLevel.replace(HONOURS, ""));
+    if (ownLevel) level = `${ownLevel.replace(/\b\w/g, (letter) => letter.toUpperCase())} of`;
+    else if (fields.includes(field)) level = "Master of";
+    fields.push(field);
+    return `${level} ${withoutLevel}`;
+  }).join(" and ");
+};
 
 const classifyAward = (award: string): { key: string } => {
   const honours = /\bHonours\b/i.test(award);
@@ -40,8 +87,12 @@ const classifyAward = (award: string): { key: string } => {
 };
 
 /** Local stand-in for the frontend's classifyDegree() - see the comment above. */
-const classifyDegreeKey = (name: string): string => {
-  const awards = name.replace(DELIVERY_VARIANTS, "").trim().split(AWARD_SPLIT).filter(Boolean).map(classifyAward);
+const classifyDegreeKey = (name: string, code?: string): string => {
+  if (code && UNSW_SPECIALISATION_CODE.test(code)) {
+    return code.endsWith("H") ? classifyDegreeKey(ENGINEERING_HONOURS) : `minor:${normaliseField(name)}`;
+  }
+  const expanded = expandName(name, code).replace(MAIN_CAMPUS, "");
+  const awards = expanded.replace(DELIVERY_VARIANTS, "").trim().split(AWARD_SPLIT).filter(Boolean).map(classifyAward);
   return awards.map((award) => award.key).sort().join(" + ");
 };
 
@@ -203,7 +254,7 @@ async function main() {
 
   const rows: { name: string; code?: string; university?: string; regexKey: string; llmLabel: string }[] = [];
   for (const degree of degreeNames) {
-    const regexKey = classifyDegreeKey(degree.name);
+    const regexKey = classifyDegreeKey(degree.name, degree.code);
     const llmLabel = await classifyLive(degree.name);
     rows.push({ ...degree, regexKey, llmLabel });
   }

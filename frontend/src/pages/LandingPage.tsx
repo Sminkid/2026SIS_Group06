@@ -35,7 +35,7 @@ const COMPARISON: Array<[label: string, uts: string, usyd: string]> = [
 const COVERAGE = [
   { value: "271", label: "Undergraduate courses with fee data" },
   { value: "2026–27", label: "Domestic and international fee guide" },
-  { value: "2", label: "Sydney universities: USYD and UTS" },
+  { value: "3", label: "Sydney universities: UNSW, USYD and UTS" },
 ];
 const ANSWERS = ["Not at all", "Not really", "Neutral", "Like it", "Love it"];
 
@@ -65,7 +65,7 @@ const Step = ({ number, label, title, text, flip = false, children }: StepProps)
 export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
   const quizButton = <button className={appUi.landingPrimary} type="button" onClick={onStartQuiz}>Take the interest quiz</button>;
   const features = [
-    { title: "Find courses that fit", text: "See which USYD and UTS courses match what you enjoy.", action: "Browse courses", onClick: onPlan },
+    { title: "Find courses that fit", text: "See which courses match what you enjoy.", action: "Browse courses", onClick: onPlan },
     { title: "Compare universities", text: "Fees, QS rankings and graduate employment, side by side.", action: "Compare universities", onClick: onCompare },
     { title: "Plan every semester", text: "Lay out your core subjects and electives year by year.", action: "Plan a degree", onClick: onPlan },
   ];
@@ -84,7 +84,7 @@ export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
             <a className={appUi.landingLink} href="#how-it-works">See how it works <Arrow /></a>
           </div>
           <p className={appUi.landingNote}>
-            {QUIZ_QUESTION_COUNT} questions · About 5 minutes · Free · Built on the official USYD and UTS handbooks
+            {QUIZ_QUESTION_COUNT} questions · About 5 minutes · Free · Built on the official UNSW, USYD and UTS handbooks
           </p>
           <div className={appUi.landingShortcut}>
             <div>
@@ -186,7 +186,7 @@ export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
           </Step>
 
           <Step number={4} label="Universities" title="Compare universities side by side" flip
-            text="Put the same kind of course at USYD and UTS next to each other: duration, fees, QS rankings and how many graduates find full-time work.">
+            text="Put the same kind of course next to each other: duration, fees, QS rankings and how many graduates find full-time work.">
             <table className={appUi.landingTable}>
               <thead>
                 <tr>

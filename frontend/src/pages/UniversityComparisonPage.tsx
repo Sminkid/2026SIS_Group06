@@ -8,7 +8,7 @@ import {
   annualFee, compareToLowest, estimatedTotal, formatAud, formatDuration, lowestOf,
   MAX_COMPARED_COURSES, type FeeBasis,
 } from "../domain/feeComparison";
-import { latestRanking, rankingPosition } from "../domain/rankingLabel";
+import { formatRank, worldRanking } from "../domain/universityOutcomes";
 import { trapDialogFocus } from "../components/ui/dialog";
 import { lockPageScroll } from "../components/ui/pageScroll";
 import { primaryOfferings, type CourseRecommendation } from "../domain/courseAggregation";
@@ -201,8 +201,8 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
   const feeYear = feeRecords.find((fee) => fee !== null)?.feeYear;
 
   const rankingFor = (university: University): string => {
-    const ranking = latestRanking(university.rankings);
-    return ranking ? rankingPosition(ranking) : "Not available";
+    const ranking = worldRanking(university);
+    return ranking ? formatRank(ranking) : "Not available";
   };
 
   const removeExtraOffering = (universityId: string) =>

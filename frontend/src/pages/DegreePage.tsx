@@ -2,7 +2,7 @@ import { appUi } from "../components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchDegreeDetail } from "../api/degrees";
 import { AsyncState } from "../components/AsyncState";
-import { Breadcrumbs } from "../components/Breadcrumbs";
+import { Breadcrumbs, type BreadcrumbItem } from "../components/Breadcrumbs";
 import type { DegreeDetailResponse, DegreeSummary, RequirementGroup, University } from "../types/handbook";
 import { useComponentSelections } from "../hooks/useComponentSelections";
 import { SubjectDetailsDialog } from "../components/SubjectDetailsDialog";
@@ -14,12 +14,9 @@ import { StudyPlanRenderer } from "../components/study-plan/StudyPlanRenderer";
 interface Props { 
   university: University; 
   degree: DegreeSummary;
-  onHome: () => void;
-  /** Omitted when the degree was reached by browsing rather than through the quiz. */
-  onBackToQuizResult?: () => void;
-  onBackToRecommendations: () => void; onStartQuiz: () => void;
-  recommendationsLabel?: string;
-  onBackToComparison: () => void;
+  /** The pages before this one, which depend on how the degree was reached (comparison or handbook). */
+  breadcrumbs: BreadcrumbItem[];
+  onStartQuiz: () => void;
 }
 const componentIndex = (groups: RequirementGroup[]) => {
   const index = new Map<string, { id: string; code: string }>();
@@ -32,7 +29,7 @@ const componentIndex = (groups: RequirementGroup[]) => {
 };
 
 /** Combines the degree overview, formal requirements and separately allocated roadmap. */
-export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onBackToRecommendations, onBackToComparison, onStartQuiz, recommendationsLabel = "Recommendations" }: Props) => {
+export const DegreePage = ({ university, degree, breadcrumbs, onStartQuiz }: Props) => {
   const [detail, setDetail] = useState<DegreeDetailResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
@@ -84,11 +81,7 @@ export const DegreePage = ({ university, degree, onHome, onBackToQuizResult, onB
   const hasSemanticOverview = detail?.completionSummary.some((summary) => summary.obligation === "OPTIONAL" || summary.obligation === "CONDITIONAL" || summary.obligation === "INFORMATIONAL") ?? false;
 
   return <main className={appUi.page} id="main-content">
-    <Breadcrumbs items={[{ label: "Home", onClick: onHome }, 
-                         ...(onBackToQuizResult ? [{ label: "Quiz Result", onClick: onBackToQuizResult }] : []), 
-                         { label: recommendationsLabel, onClick: onBackToRecommendations }, 
-                         { label: "Comparison", onClick: onBackToComparison }, 
-                         { label: "Study Plan"}]} />
+    <Breadcrumbs items={[...breadcrumbs, { label: "Study Plan" }]} />
     {status === "loading" && <AsyncState kind="loading" label="Loading degree requirements" />}
     {status === "error" && <AsyncState kind="error" label="We couldn't load this degree's requirements." onRetry={retry} />}
     {status === "ready" && detail && <>

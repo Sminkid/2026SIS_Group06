@@ -7,6 +7,9 @@ import { QuizResultPage } from "./pages/QuizResultPage";
 import { CourseRecommendationsPage } from "./pages/CourseRecommendationsPage";
 import { UniversityComparisonPage } from "./pages/UniversityComparisonPage";
 import { DegreePage } from "./pages/DegreePage";
+import { HomePage } from "./pages/HomePage";
+import { DegreeSelectionPage } from "./pages/DegreeSelectionPage";
+import type { BreadcrumbItem } from "./components/Breadcrumbs";
 import { useQuizSession } from "./hooks/useQuizSession";
 import type { DegreeMatchTarget } from "./api/quiz";
 import type { QuizResult } from "./domain/quizRecommendation";
@@ -28,7 +31,11 @@ type Screen =
       course: CourseRecommendation;
       university: University; 
       degree: DegreeSummary; 
-    }
+    } |
+    // The handbook route: pick a university, then one of its degrees, without the quiz or the comparison.
+    { name: "universities" } |
+    { name: "degrees"; university: University } |
+    { name: "handbookDegree"; university: University; degree: DegreeSummary }
 
 /** A degree the quiz was launched from, so its result is matched to that degree and can return to it. */
 interface QuizLaunchTarget {
@@ -38,7 +45,7 @@ interface QuizLaunchTarget {
 }
 
 /** Coordinates the quiz, course recommendation, comparison and degree screens within the shared navigation shell. */
-const SCREEN_NAMES = new Set<string>(["landing", "quiz", "quizResult", "courseRecommendation", "allCourses", "universityComparison", "degree"]);
+const SCREEN_NAMES = new Set<string>(["landing", "quiz", "quizResult", "courseRecommendation", "allCourses", "universityComparison", "degree", "universities", "degrees", "handbookDegree"]);
 
 /**
  * The screen saved in the current browser history entry, so a reload stays on the same screen.
@@ -129,6 +136,13 @@ export const App = () => {
           >
             View All Courses
           </button>
+          <button
+            className={appUi.textButton}
+            type="button"
+            onClick={() => setScreen({ name: "universities" })}
+          >
+            University Handbooks
+          </button>
         </nav>
       </header>
 
@@ -200,11 +214,39 @@ export const App = () => {
         {screen.name === "degree" && (
           <DegreePage 
             university={screen.university} degree={screen.degree}
+            breadcrumbs={[
+              { label: "Home", onClick: goHome },
+              ...(screen.result ? [{ label: "Quiz Result", onClick: backToQuizResult(screen.result) }] : []),
+              { label: screen.result ? "Recommendations" : "All Courses", onClick: () => setScreen(backToCourses(screen.result)) },
+              { label: "Comparison", onClick: () => setScreen({ name: "universityComparison", result: screen.result, course: screen.course }) },
+            ] satisfies BreadcrumbItem[]}
+            onStartQuiz={() =>
+              startNewQuiz({ university: screen.university, degree: screen.degree, returnTo: screen })
+            }
+          />
+        )}
+
+        {screen.name === "universities" && (
+          <HomePage onHome={goHome} onSelectUniversity={(university) => setScreen({ name: "degrees", university })} />
+        )}
+
+        {screen.name === "degrees" && (
+          <DegreeSelectionPage
+            university={screen.university}
             onHome={goHome}
-            onBackToQuizResult={backToQuizResult(screen.result)}
-            onBackToRecommendations={() => setScreen(backToCourses(screen.result))}
-            recommendationsLabel={screen.result ? undefined : "All Courses"}
-            onBackToComparison={() => setScreen({ name: "universityComparison", result: screen.result, course: screen.course })}
+            onBack={() => setScreen({ name: "universities" })}
+            onSelectDegree={(degree) => setScreen({ name: "handbookDegree", university: screen.university, degree })}
+          />
+        )}
+
+        {screen.name === "handbookDegree" && (
+          <DegreePage
+            university={screen.university} degree={screen.degree}
+            breadcrumbs={[
+              { label: "Home", onClick: goHome },
+              { label: "University Handbooks", onClick: () => setScreen({ name: "universities" }) },
+              { label: screen.university.code, onClick: () => setScreen({ name: "degrees", university: screen.university }) },
+            ]}
             onStartQuiz={() =>
               startNewQuiz({ university: screen.university, degree: screen.degree, returnTo: screen })
             }

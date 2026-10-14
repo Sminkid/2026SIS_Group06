@@ -91,7 +91,7 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => { expect(failures.get(page)).toEqual([]); });
 const openDegree = async (page: Page, code: string, university = "UTS") => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Plan it out" }).click();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
   await page.locator(".university-card").filter({ hasText: university }).click();
   await page.locator(".degree-row").filter({ hasText: code }).click();
   await expect(page.locator(".degree-hero")).toContainText(code);

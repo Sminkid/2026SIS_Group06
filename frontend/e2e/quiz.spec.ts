@@ -95,7 +95,13 @@ const mockQuizApi = (page: Page): string[] => {
     if (path.endsWith("/closing-responses")) return route.fulfill({ json: { ok: true } });
     if (path.endsWith("/drill-down")) return route.fulfill({ json: { questions: drillDownQuestions } });
     if (path.endsWith("/drill-down-responses")) return route.fulfill({ json: finalResultBody });
-    if (path === "/api/universities") return route.fulfill({ json: [] });
+    // The course list groups the recommended degrees from each university's handbook.
+    if (path === "/api/universities") return route.fulfill({ json: [{ id: "uts", code: "UTS", name: "University of Technology Sydney", rankings: [] }] });
+    if (path.endsWith("/handbooks/latest")) return route.fulfill({ json: { year: 2026 } });
+    if (path === "/api/universities/UTS/degrees") {
+      return route.fulfill({ json: screeningResponseBody.recommendations.map((degree) =>
+        ({ id: degree.degreeId, code: degree.code, name: degree.name, creditPoints: 144, handbookYear: degree.year })) });
+    }
     return route.fulfill({ json: {} });
   });
   return errors;

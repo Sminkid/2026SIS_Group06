@@ -58,7 +58,7 @@ for (const width of [1440, 1280, 768, 390]) {
   test(`Frontend pages retain their appearance at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    await page.getByRole("button", { name: "Plan it out" }).click();
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
     await expect(page.getByRole("button", { name: /UTS/ })).toBeVisible();
     await capture(page, `home-${width}`);
     await page.getByRole("button", { name: /UTS/ }).click();
@@ -69,8 +69,7 @@ for (const width of [1440, 1280, 768, 390]) {
     await expect(page.getByText("Loading study plans")).toHaveCount(0);
     await capture(page, `engineering-${width}`);
     await page.getByRole("button", { name: "UniXPrep home" }).click();
-    await page.getByRole("button", { name: "Plan it out" }).click();
-    await page.getByRole("button", { name: /USYD/ }).click();
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
     await page.getByRole("button", { name: /USYD/ }).click();
     await page.getByRole("button", { name: new RegExp(fixture.usyd.degree.code) }).click();
     await expect(page.getByRole("heading", { name: "Course structure" })).toBeVisible();
@@ -90,7 +89,10 @@ test("Loading, error, retry, empty search and keyboard focus remain accessible",
   const pending = new Promise<void>(resolve => { release = resolve; });
   await page.route("**/api/universities", async route => { await pending; await route.fulfill({ status: 500, json: { error: "Unavailable" } }); });
   await page.goto("/");
-  await page.getByRole("button", { name: "Plan it out" }).click();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
+  await expect(page.getByRole("status")).toHaveText("Loading universities");
+  // Reload so keyboard navigation starts from the top of the page; the app stays on the same screen.
+  await page.reload();
   await expect(page.getByRole("status")).toHaveText("Loading universities");
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to main content" })).toBeFocused();
@@ -114,7 +116,7 @@ test("UTS Nursing program selection and fixed roadmap work at desktop, tablet an
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await page.evaluate(() => localStorage.clear());
-    await page.getByRole("button", { name: "Plan it out" }).click();
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
     await page.getByRole("button", { name: /UTS/ }).click();
     await page.getByRole("button", { name: /C10122/ }).click();
     await expect(page.getByRole("heading", { name: "Bachelor of Nursing", exact: true })).toBeVisible();

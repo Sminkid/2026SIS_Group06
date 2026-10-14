@@ -1,7 +1,7 @@
 import { AsyncState } from "../AsyncState";
 import { DegreeCompletionOverview } from "../DegreeCompletionOverview";
 import { RequirementAccordion } from "../RequirementAccordion";
-import { appUi } from "../ui";
+import { appUi, cn } from "../ui";
 import type { DegreeStructureProps } from "./types";
 
 export const GenericDegreeStructure = ({ detail, universityCode, handbookYear, selections, selectionNotice,
@@ -15,7 +15,7 @@ export const GenericDegreeStructure = ({ detail, universityCode, handbookYear, s
     selections={selections} onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject}
   />;
 
-  return <section className={appUi.contentSection} aria-labelledby="requirements-heading">
+  return <section className={cn(appUi.contentSection, "requirements-section")} aria-labelledby="requirements-heading">
     <div className={appUi.sectionHeading}><div><h2 id="requirements-heading">Course structure</h2></div>
       <span className={appUi.resultCount}>{detail.requirements.length} sections</span></div>
     <p className={appUi.sectionNote}>{hasSemanticOverview

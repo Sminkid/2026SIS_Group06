@@ -6,12 +6,24 @@ export const navigationUi = {
   appMain: "flex flex-1 min-w-0",
   siteHeader: cn(
     "site-header sticky [z-index:20] top-0 h-20 flex items-center justify-between",
+    // On phones the three nav links don't fit beside the logo, so they move to a second row.
+    "[@media(max-width:560px)]:h-auto [@media(max-width:560px)]:flex-wrap [@media(max-width:560px)]:[padding-block:.5rem]",
     "[padding:0_max(1.25rem,_calc((100vw_-_74rem)/2))] bg-[linear-gradient(180deg,var(--header-gradient-start)_0%,var(--header-gradient-end)_100%)]",
   ),
   brand: "inline-flex items-center p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
   brandMark: "w-30 h-10 object-contain",
   siteHeaderNote: "text-[var(--muted)] text-[length:.85rem] [@media(max-width:720px)]:hidden",
-  siteHeaderNav: "flex items-center gap-6",
+  siteHeaderNav: "relative flex items-center gap-6 [@media(max-width:560px)]:w-full [@media(max-width:560px)]:justify-between [@media(max-width:560px)]:gap-2",
+  // On phones the links fill the row, so each pop-up spans the nav instead of hanging off its own link.
+  navItem: "group relative inline-flex [@media(max-width:560px)]:static",
+  navTooltip: cn(
+    "pointer-events-none absolute top-full [z-index:30] mt-1 w-64 [padding:.65rem_.8rem]",
+    "[@media(max-width:560px)]:left-0 [@media(max-width:560px)]:w-auto",
+    "border-[1px] border-solid border-[color:var(--line)] [border-radius:12px] bg-[var(--surface)] shadow-lg",
+    "text-[#0a0a0a] text-left text-[length:.82rem] font-normal [line-height:1.45]",
+    "invisible opacity-0 transition-opacity duration-150 motion-reduce:transition-none",
+    "group-hover:visible group-hover:opacity-100 group-has-[:focus-visible]:visible group-has-[:focus-visible]:opacity-100",
+  ),
   siteHeaderLink: cn(
     "p-0 border-0 bg-transparent text-[var(--blue)] text-[length:.9rem] font-bold cursor-pointer [&:hover]:underline",
     "aria-[current=page]:text-[var(--navy)] aria-[current=page]:underline",
@@ -46,7 +58,7 @@ export const navigationUi = {
   degreeList: "[border-top:1px_solid_var(--line)] mt-5",
   resultSummary: "mb-3 text-[var(--muted)] text-[length:.82rem]",
   degreeGrid: cn(
-    "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(400px,1fr))]",
+    "grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))]",
   ),
   degreeCard: cn(
     "flex flex-col gap-2 [padding:1.2rem] [border-radius:var(--radius)] border-[1px] border-solid border-[color:var(--line)]",
@@ -58,21 +70,21 @@ export const navigationUi = {
     "cursor-pointer [&:hover]:bg-[var(--surface)]",
     "[@media(max-width:720px)]:[grid-template-columns:5.25rem_minmax(0,1fr)_auto] [@media(max-width:720px)]:gap-3",
   ),
-  degreeRowCode: "text-[var(--blue)] text-[length:.88rem] font-extrabold",
-  degreeRowName: "[font-weight:500]",
   degreeRowCp: "text-[var(--muted)] text-[length:.85rem] text-right [@media(max-width:720px)]:[grid-column:2] [@media(max-width:720px)]:text-left",
-  degreeRowArrow: "text-[var(--blue)] mt-auto [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
-  pageLanding: cn(
-    "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0_5rem]",
-    "[padding-top:clamp(3.5rem,_8vw,_7rem)] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
+  // A whole card that is one button, for the university and degree lists; matches the course cards.
+  listCard: cn(
+    "flex flex-col items-start gap-2 [padding:1.2rem] [border-radius:var(--radius)] border-[1px] border-solid border-[color:var(--line)]",
+    "bg-[var(--surface)] [font:inherit] text-left text-[#0a0a0a] cursor-pointer transition-shadow [&:hover]:shadow-md",
+    "[&:hover]:[border-color:var(--blue)] [&:focus-visible]:outline-[3px] [&:focus-visible]:outline-[#78a4e5]",
   ),
+  listCardCode: "text-[var(--blue)] text-[length:.78rem] font-extrabold [letter-spacing:.08em]",
+  listCardName: "text-[length:1.1rem] font-bold [line-height:1.35]",
+  listCardMeta: "text-[var(--muted)] text-[length:.85rem]",
+  listCardAction: "mt-auto pt-1 text-[var(--blue)] font-bold",
+  degreeRowArrow: "text-[var(--blue)] mt-auto [@media(max-width:720px)]:[grid-column:3] [@media(max-width:720px)]:[grid-row:1_/_span_2]",
   pageIntro: "mb-15",
-  universityGrid: "grid [grid-template-columns:repeat(auto-fit,_minmax(17rem,_1fr))] gap-4 mt-5",
   universityCard: cn(
     "flex university-card min-h-30 text-center justify-center items-center border-[1px] border-solid",
     "border-[color:var(--line)] [border-radius:var(--radius)] bg-[var(--surface)]",
   ),
-  universityCardCode: "mb-10 text-[var(--blue)] text-[length:.8rem] font-extrabold [letter-spacing:.12em]",
-  universityCardName: "max-w-72 text-[length:1.25rem] font-bold [line-height:1.35]",
-  cardAction: "mt-auto pt-6 text-[var(--muted)] text-[length:.88rem] [font-weight:650]",
 } as const;

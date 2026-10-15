@@ -13,6 +13,7 @@ import {
   type ComponentCandidate,
   type QuestionRef,
 } from "./assessment-scoring.js";
+import { groupEquivalentTitles } from "./title-matching.js";
 
 interface ResponseInput {
   questionId: string;
@@ -61,7 +62,17 @@ const getScreeningRecommendations = async (categoryScores: Map<string, number>, 
   }));
   const ranked = rankComponentCandidates(categoryScores, new Map(), topCategoryId, candidates);
   const degreeById = new Map(degrees.map((d) => [d.id, d]));
-  return ranked.slice(0, SCREENING_RECOMMENDATION_COUNT).map((match) => {
+  // The same course is offered under slightly different titles by several universities; keep only the best-scoring
+  // offering of each so the recommendations aren't near-duplicates. `ranked` is already sorted by match score.
+  const groupByDegreeId = groupEquivalentTitles(degrees.map((d) => ({ id: d.id, name: d.name, kind: "DEGREE" })));
+  const seenGroups = new Set<string>();
+  const distinct = ranked.filter((match) => {
+    const groupId = groupByDegreeId.get(match.candidate.id)!;
+    if (seenGroups.has(groupId)) return false;
+    seenGroups.add(groupId);
+    return true;
+  });
+  return distinct.slice(0, SCREENING_RECOMMENDATION_COUNT).map((match) => {
     const degree = degreeById.get(match.candidate.id)!;
     return {
       degreeId: degree.id,
@@ -115,7 +126,7 @@ export const submitScreeningResponses = async (sessionId: string, responses: Res
 
   const recommendations = await getScreeningRecommendations(categoryScores, rank1CategoryId);
 
-  return { rankedCategoryIds, closingQuestions, recommendations };
+  return { rankedCategoryIds, categoryScores: Object.fromEntries(categoryScores), closingQuestions, recommendations };
 };
 
 export const submitClosingResponses = async (sessionId: string, responses: ResponseInput[]) => {
@@ -172,7 +183,7 @@ export const getResult = async (sessionId: string, degreeCode?: string, universi
 };
 
 const computeResult = async (
-  rankedCategoryIds: string[],
+  screeningRankedCategoryIds: string[],
   sessionId: string,
   degreeCode?: string,
   universityCode?: string,
@@ -196,13 +207,16 @@ const computeResult = async (
   }
 
   const categoryScores = new Map<string, number>();
-  for (const categoryId of rankedCategoryIds) {
+  for (const categoryId of screeningRankedCategoryIds) {
     const stage1 = stage1ByCategory.get(categoryId) ?? [];
     const stage2 = stage2ByCategory.get(categoryId) ?? [];
     const stage1Score = normaliseScore(stage1.map((r) => r.value));
     const stage2Score = normaliseScore(stage2.map((r) => r.value));
     categoryScores.set(categoryId, blendCategoryScore(stage1Score, stage1.length || STAGE1_ITEM_COUNT, stage2Score, stage2.length));
   }
+  // Re-rank on the blended scores so the drill-down answers can change the order, not just the
+  // percentages. The sort is stable and the map is in screening order, so ties keep that order.
+  const rankedCategoryIds = rankCategories(categoryScores);
   const subcategoryScores = computeScoresByKey(bySubcategory);
 
   let recommendation = null;

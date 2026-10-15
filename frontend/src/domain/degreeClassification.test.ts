@@ -86,3 +86,58 @@ test("recommendations from either university resolve to one shared course", () =
   assert.deepEqual(recommended.map((course) => course.courseName), ["Bachelor of Engineering (Honours)", "Bachelor of Science"]);
   assert.deepEqual(otherCourses(recommended, courses).map((course) => course.courseName), ["Bachelor of Information Technology"]);
 });
+
+const unswCourse = (code: string, name: string) => classifyDegree(name, code);
+
+test("UNSW program titles without an award are matched to the other universities' degrees", () => {
+  assert.equal(unswCourse("3707", "Engineering (Honours)").key, classifyDegree("Bachelor of Engineering (Honours)").key);
+  assert.equal(unswCourse("3706", "Engineering Science").key, classifyDegree("Bachelor of Engineering Science").key);
+  assert.equal(unswCourse("3778", "Computer Science").key, classifyDegree("Bachelor of Computing").key);
+  assert.equal(unswCourse("4701", "Law").key, classifyDegree("Bachelor of Laws").key);
+  assert.equal(unswCourse("4702", "Law (Honours)").key, classifyDegree("Bachelor of Laws (Honours)").key);
+  assert.equal(unswCourse("3777", "Cyber Security (Sydney)").key, classifyDegree("Bachelor of Cybersecurity").key);
+  assert.equal(unswCourse("3422", "Criminology & Criminal Justice").key, classifyDegree("Bachelor of Criminology").key);
+  assert.equal(unswCourse("4504", "Arts & Social Sciences (Hons)").key, "bachelor:arts and social sciences:honours");
+});
+
+test("UNSW program codes give the award level", () => {
+  assert.equal(unswCourse("7022", "Computer Science").key, classifyDegree("Undergraduate Certificate in Computing").key);
+  assert.equal(unswCourse("5059", "Mine Geotechnical Engineering").displayName, "Graduate Diploma in Mine Geotechnical Engineering");
+  assert.equal(unswCourse("8335", "Master Mining Engineering").displayName, "Master of Mining Engineering");
+});
+
+test("UNSW shorthand combined degrees match the spelled-out names", () => {
+  assert.equal(unswCourse("3767", "1st Yr - Bachelor Engineering (Honours) / Science").key,
+    classifyDegree("Bachelor of Engineering (Honours) Bachelor of Science").key);
+  assert.equal(unswCourse("3764", "1st Yr - Bachelor Engineering (Honours) / Commerce - Aerospace Engineering").key,
+    classifyDegree("Bachelor of Commerce and Bachelor of Engineering Honours").key);
+  assert.equal(unswCourse("3768", "Bachelor Eng (Honours) / Master Biomedical Eng - Bioinformatics Eng").displayName,
+    "Bachelor of Engineering (Honours) and Master of Biomedical Engineering");
+  // The same field twice is an integrated bachelor and master.
+  assert.equal(unswCourse("3736", "Engineering (Honours) / Engineering").displayName,
+    "Bachelor of Engineering (Honours) and Master of Engineering");
+  assert.equal(unswCourse("5373", "Grad Dip - Engineering Science - Biomedical Engineering").displayName,
+    "Graduate Diploma in Engineering Science");
+});
+
+test("UNSW campuses, specialisations and minors", () => {
+  assert.equal(unswCourse("3774", "Computer Science (Bengaluru)").variant, "Bengaluru");
+  assert.equal(unswCourse("3777", "Cyber Security (Sydney)").variant, null);
+  const stream = unswCourse("AEROAH", "Aerospace Engineering");
+  assert.equal(stream.key, classifyDegree("Bachelor of Engineering (Honours)").key);
+  assert.equal(stream.variant, "Aerospace Engineering specialisation");
+  assert.equal(unswCourse("ENGGA2", "Humanitarian Engineering").isCourse, false);
+});
+
+test("quiz recommendations from UTS or USYD include the UNSW equivalent", () => {
+  const unsw = university("UNSW");
+  const withUnsw = groupCourses([uts, usyd, unsw], {
+    UTS: [degree("C09066", "Bachelor of Engineering (Honours)")],
+    USYD: [degree("BHENGINE-04", "Bachelor of Engineering Honours")],
+    UNSW: [degree("AEROAH", "Aerospace Engineering"), degree("3707", "Engineering (Honours)"), degree("ENGGA2", "Humanitarian Engineering")],
+  });
+  const [engineering] = matchCourses(["Bachelor of Engineering (Honours)"], withUnsw);
+  assert.deepEqual(primaryOfferings(engineering!).map((offering) => offering.degree.code), ["C09066", "BHENGINE-04", "3707"]);
+  assert.equal(engineering!.offerings.length, 4, "the UNSW specialisation is offered as a variant of the degree");
+  assert.equal([...withUnsw.values()].some((course) => course.courseName.includes("Humanitarian")), false);
+});

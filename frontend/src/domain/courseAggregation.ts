@@ -30,7 +30,8 @@ export const groupCourses = (
   const groups = new Map<string, CourseRecommendation>();
   for (const university of universities) {
     for (const degree of degreesByUniversity[university.code] ?? []) {
-      const { key, displayName, variant } = classifyDegree(degree.name);
+      const { key, displayName, variant, isCourse } = classifyDegree(degree.name, degree.code);
+      if (!isCourse) continue;
       const group = groups.get(key) ?? { courseKey: key, courseName: displayName, offerings: [] };
       group.offerings.push({ university, degree, variant });
       groups.set(key, group);

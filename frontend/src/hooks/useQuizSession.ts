@@ -82,6 +82,7 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
   // top one stands in as the match target when the quiz wasn't launched from a specific degree.
   const [screeningRecommendations, setScreeningRecommendations] = useState<DegreeRecommendation[]>([]);
   const [pendingRankedCategoryIds, setPendingRankedCategoryIds] = useState<string[]>([]);
+  const [pendingCategoryScores, setPendingCategoryScores] = useState<Record<string, number> | undefined>();
 
   const start = useCallback(async () => {
     setStatus("submitting");
@@ -90,6 +91,7 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
       setLabels(riasecLabels);
       setScreeningRecommendations([]);
       setPendingRankedCategoryIds([]);
+      setPendingCategoryScores(undefined);
       setStep({ name: "screening", sessionId: session.sessionId, questions: session.questions, phase: "generic" });
       setStatus("idle");
     } catch {
@@ -107,6 +109,7 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
           const result = await submitScreeningResponses(sessionId, responses);
           setScreeningRecommendations(result.recommendations);
           setPendingRankedCategoryIds(result.rankedCategoryIds);
+          setPendingCategoryScores(result.categoryScores);
           setStep({
             name: "screening",
             sessionId,
@@ -121,7 +124,9 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
         const bonusResponses = responses.filter((r) => bonusQuestionIds.has(r.questionId));
         await submitClosingResponses(sessionId, bonusResponses);
         const drillDown = await startDrillDown(sessionId);
-        const result = buildInitialQuizResult(pendingRankedCategoryIds, screeningRecommendations, labels ?? EMPTY_LABELS);
+        const result = buildInitialQuizResult(
+          pendingRankedCategoryIds, screeningRecommendations, labels ?? EMPTY_LABELS, pendingCategoryScores,
+        );
         setStep({ name: "screeningResult", sessionId, result, drillDownQuestions: drillDown.questions });
         setStatus("idle");
         return { ok: true, result };
@@ -130,7 +135,7 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
         return FAILED;
       }
     },
-    [step, labels, pendingRankedCategoryIds, screeningRecommendations],
+    [step, labels, pendingRankedCategoryIds, pendingCategoryScores, screeningRecommendations],
   );
 
   /** Moves from the initial results into the optional fine-tuning questions. */
@@ -175,6 +180,7 @@ export const useQuizSession = (matchTarget?: DegreeMatchTarget) => {
     setLabels(null);
     setScreeningRecommendations([]);
     setPendingRankedCategoryIds([]);
+    setPendingCategoryScores(undefined);
   }, []);
 
   return {

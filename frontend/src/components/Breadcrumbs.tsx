@@ -1,5 +1,6 @@
 import { appUi } from "./ui";
-interface BreadcrumbsProps { items: Array<{ label: string; onClick?: () => void }>; }
+export interface BreadcrumbItem { label: string; onClick?: () => void }
+interface BreadcrumbsProps { items: BreadcrumbItem[]; }
 
 /** Renders keyboard-accessible navigation with a noninteractive current location. */
 export const Breadcrumbs = ({ items }: BreadcrumbsProps) => (

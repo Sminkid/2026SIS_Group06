@@ -1,7 +1,8 @@
 import { appUi } from "../components/ui";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { formatScorePercent } from "../domain/quizResult";
-import type { QuizResult } from "../domain/quizRecommendation";
+import type { QuizCategorySummary, QuizResult } from "../domain/quizRecommendation";
+import { ScoreBar, styleFor, TOP_TAGS } from "../components/QuizCategory";
 
 interface Props {
   result: QuizResult;
@@ -15,41 +16,80 @@ interface Props {
 }
 
 const TOP_DESCRIBED = 3;
+const letterOf = (category: QuizCategorySummary) => category.name.charAt(0).toUpperCase();
 
 /** Shows initial results first, then (optionally) the personalised result after fine-tuning. */
 export const QuizResultPage = ({ result, onViewCourses, onPersonalise, onRetake, onHome, onBackToDegree }: Props) => {
   const personalised = result.stage === "personalised";
+  const top = result.rankedCategories.slice(0, TOP_DESCRIBED);
+  const others = result.rankedCategories.slice(TOP_DESCRIBED);
 
   return (
     <main className={appUi.page} id="main-content">
       <Breadcrumbs items={[{ label: "Home", onClick: onHome }, { label: "Quiz Result" }]} />
       <section className={appUi.pageIntroCompact}>
         <p className={appUi.eyebrow}>{personalised ? "Your personalised result" : "Your initial result"}</p>
-        <h1>{result.primaryInterest}</h1>
-        <p className={appUi.lead}>{result.summary}</p>
+        <h1 className="mb-0 [font-size:clamp(1.5rem,3vw,2rem)] [letter-spacing:-.025em]">Your Holland Code Profile is</h1>
+        {top.length > 0 && (
+          <p className={appUi.quizHollandCode} aria-label={`Holland Code ${top.map(letterOf).join(", ")}`}>
+            {top.map(letterOf).join(" – ")}
+          </p>
+        )}
+        <p className={appUi.quizHollandNames}>
+          {top.length > 0 ? top.map((category) => category.name).join(" • ") : result.primaryInterest}
+        </p>
+        <p className={appUi.landingNote}>{result.summary}</p>
       </section>
 
       <section className={appUi.quizResultSection}>
-        <h2>Your top interest areas</h2>
-        <ul className={appUi.quizScoreList} aria-label={personalised ? "RIASEC category scores" : "Ranked RIASEC categories"}>
-          {result.rankedCategories.map((category, index) => (
-            <li key={category.id}>
-              {personalised && category.score !== null ? (
-                <>
-                  <strong>{category.name}</strong>
-                  <span>{formatScorePercent(category.score)}</span>
-                </>
-              ) : (
-                <div>
-                  <strong>
-                    #{index + 1} {category.name}
-                  </strong>
-                  {index < TOP_DESCRIBED && category.description && <p className={appUi.muted}>{category.description}</p>}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <div className={appUi.quizBreakdown}>
+          <h2>Top {top.length} dimensions breakdown</h2>
+          <ol className={appUi.quizTopList} aria-label="Your top interest areas">
+            {top.map((category, index) => {
+              const { colour, tint, icon: categoryIcon } = styleFor(category.name);
+              return (
+                <li className={appUi.quizTopCard} key={category.id}>
+                  <div className={appUi.quizTopCardHeader}>
+                    <span className={appUi.quizTopIcon} style={{ color: colour, background: tint, borderColor: `${colour}33` }}>
+                      {categoryIcon}
+                    </span>
+                    {category.score !== null && (
+                      <span className={appUi.quizTopPercent} style={{ color: colour }}>{formatScorePercent(category.score)}</span>
+                    )}
+                  </div>
+                  <h3 className={appUi.quizTopName}>
+                    <span className={appUi.srOnly}>#{index + 1} </span>{category.name} ({letterOf(category)})
+                  </h3>
+                  <p className={appUi.quizTopTag} style={{ color: colour }}>{TOP_TAGS[index]}</p>
+                  {category.description && <p className={appUi.quizTopDescription}>{category.description}</p>}
+                  {category.score !== null && <ScoreBar score={category.score} colour={colour} />}
+                </li>
+              );
+            })}
+          </ol>
+
+          {others.length > 0 && (
+            <>
+              <h3 className={appUi.quizOtherHeading}>Your other interest areas</h3>
+              <ol className={appUi.quizOtherList} start={TOP_DESCRIBED + 1} aria-label="Your other interest areas">
+                {others.map((category, index) => {
+                  const { colour } = styleFor(category.name);
+                  return (
+                    <li className={appUi.quizOtherRow} key={category.id}>
+                      <span className={appUi.quizOtherName}>{TOP_DESCRIBED + index + 1}. {category.name}</span>
+                      {category.score !== null ? (
+                        <>
+                          <span className={appUi.quizOtherBar}><ScoreBar score={category.score} colour={colour} /></span>
+                          <span className={appUi.quizOtherPercent}>{formatScorePercent(category.score)}</span>
+                        </>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ol>
+            </>
+          )}
+        </div>
 
         {personalised && result.suggestedMajor && (
           <div className={appUi.quizRecommendationCard}>
@@ -67,7 +107,7 @@ export const QuizResultPage = ({ result, onViewCourses, onPersonalise, onRetake,
           <div className={appUi.quizRecommendationCard}>
             <p className={appUi.eyebrow}>Want a more precise match?</p>
             <p>
-              These results are based on your general answers. Answer some more questions about your specific
+              These results are based on your general answers. Answer 25 more questions about your specific
               interests to refine them and find the best major or stream within your matched courses. You can view
               course recommendations now and come back to this whenever you like.
             </p>
@@ -84,7 +124,7 @@ export const QuizResultPage = ({ result, onViewCourses, onPersonalise, onRetake,
             Retake quiz
           </button>
           <button className={appUi.primaryButton} type="button" onClick={onViewCourses}>
-            View course recommendations
+            View course recommendations <span aria-hidden="true">→</span>
           </button>
         </div>
         {onBackToDegree && (

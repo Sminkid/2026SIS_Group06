@@ -75,8 +75,9 @@ export const buildInitialQuizResult = (
   rankedCategoryIds: string[],
   degrees: DegreeRecommendation[],
   labels: RiasecLabels,
+  categoryScores?: Record<string, number>,
 ): QuizResult => {
-  const rankedCategories = categorySummaries(rankedCategoryIds, labels);
+  const rankedCategories = categorySummaries(rankedCategoryIds, labels, categoryScores);
   return {
     stage: "initial",
     primaryInterest: rankedCategories[0]?.name ?? "Your interests",

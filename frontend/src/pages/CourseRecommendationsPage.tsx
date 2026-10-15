@@ -66,9 +66,11 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
               Want these recommendations to be more personalised? Answer some more specific questions to refine
               your matches and see the best-fit major or stream for each course.
             </p>
-            <button className={appUi.primaryButton} type="button" onClick={onPersonalise}>
-              Personalise further
-            </button>
+            <div>
+              <button className={appUi.backButton} type="button" onClick={onPersonalise}>
+                Personalise further
+              </button>
+            </div>
           </div>
         )}
         <section className={appUi.degreeTools}>

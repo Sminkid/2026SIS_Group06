@@ -28,6 +28,9 @@ interface Props {
 
 type Offering = { university: University; degree: DegreeSummary };
 
+/** Universities shown when the page opens; more can be added up to MAX_COMPARED_COURSES. */
+const DEFAULT_COMPARED = 2;
+
 const feeFor = (fees: CourseFee[], universityCode: string, degree: DegreeSummary): CourseFee | null => {
   const matches = fees.filter((fee) => fee.universityCode === universityCode && fee.degreeId === degree.id);
   if (matches.length === 0) return null;
@@ -90,7 +93,7 @@ function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
       .then((handbook) => fetchDegrees(selectedUniversityCode, handbook.year, controller.signal))
       .then((result) => {
         setDegrees(result);
-        setSelectedDegreeId(result.find((degree) => classifyDegree(degree.name).key === courseKey)?.id ?? "");
+        setSelectedDegreeId(result.find((degree) => classifyDegree(degree.name, degree.code).key === courseKey)?.id ?? "");
         setStatus("idle");
       })
       .catch((error) => {
@@ -168,18 +171,22 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
   const [extraOfferings, setExtraOfferings] = useState<Offering[]>([]);
+  // Universities offering this course that are shown as columns; the rest can be added back from the dialog.
+  const [shownIds, setShownIds] = useState<string[]>(() =>
+    primaryOfferings(course).slice(0, DEFAULT_COMPARED).map((offering) => offering.university.id));
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [basis, setBasis] = useState<FeeBasis>("domestic");
   // Chosen delivery variant per university, e.g. Co-op instead of the standard degree; defaults to the standard one.
   const [variantChoice, setVariantChoice] = useState<Record<string, string>>({});
   const variantsFor = (university: University) =>
     course.offerings.filter((offering) => offering.university.id === university.id);
-  const courseOfferings = primaryOfferings(course).map((primary): Offering => {
+  const courseOfferings = primaryOfferings(course).filter((primary) => shownIds.includes(primary.university.id)).map((primary): Offering => {
     const chosen = variantsFor(primary.university).find((offering) => offering.degree.id === variantChoice[primary.university.id]);
     return { university: primary.university, degree: (chosen ?? primary).degree };
   });
   const offerings = [...courseOfferings, ...extraOfferings];
   const canAdd = offerings.length < MAX_COMPARED_COURSES;
+  const canRemove = offerings.length > DEFAULT_COMPARED;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -202,8 +209,20 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
   const feeYear = feeRecords.find((fee) => fee !== null)?.feeYear.replace("-", "–");
   const notAvailable = <span className={appUi.feeMissing}>Not available</span>;
 
-  const removeExtraOffering = (universityId: string) =>
+  const removeOffering = (universityId: string) => {
+    setShownIds((prev) => prev.filter((id) => id !== universityId));
     setExtraOfferings((prev) => prev.filter((offering) => offering.university.id !== universityId));
+  };
+  // A degree that belongs to this course goes back in as a course column, so its variant picker returns.
+  const addOffering = (offering: Offering) => {
+    if (course.offerings.some(({ degree }) => degree.id === offering.degree.id)) {
+      setShownIds((prev) => [...prev, offering.university.id]);
+      setVariantChoice((prev) => ({ ...prev, [offering.university.id]: offering.degree.id }));
+    } else {
+      setExtraOfferings((prev) => [...prev, offering]);
+    }
+    setIsAddOpen(false);
+  };
 
   const rows: Array<{ id: string; label: ReactNode; render: (offering: Offering, index: number) => ReactNode }> = [
     { id: "course-code", label: "Course Code", render: ({ degree }) => degree.code },
@@ -304,10 +323,10 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
                     return (
                       <th key={university.id}>
                         <div className={cn(appUi.universityCard, "relative h-full")}>
-                          {isExtra && (
+                          {canRemove && (
                             <button type="button" className={appUi.closeButton}
                               aria-label={`Remove ${university.name}`}
-                              onClick={() => removeExtraOffering(university.id)}>
+                              onClick={() => removeOffering(university.id)}>
                               ✕
                             </button>
                           )}
@@ -385,7 +404,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
           courseKey={course.courseKey}
           excludedCodes={offerings.map(({ university }) => university.code)}
           onClose={() => setIsAddOpen(false)}
-          onAdd={(offering) => { setExtraOfferings((prev) => [...prev, offering]); setIsAddOpen(false); }}
+          onAdd={addOffering}
         />
       )}
     </main>

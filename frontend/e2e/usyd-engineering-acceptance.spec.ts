@@ -41,7 +41,7 @@ test.beforeEach(async ({page})=>{
   });
 });
 test.afterEach(async ({page})=>{ expect(failures.get(page)).toEqual([]); });
-async function open(page:Page) { await page.goto("/"); await page.getByRole("button", { name: "Plan it out" }).click();
+async function open(page:Page) { await page.goto("/"); await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
  await page.locator(".university-card").filter({hasText:"USYD"}).click(); await page.locator(".degree-row").filter({hasText:"BHENGINE-04"}).click(); }
 const focusControl=(page:Page)=>page.getByRole("combobox",{name:"Study plan focus",exact:true});
 const academicStorage=(page:Page)=>page.evaluate(()=>localStorage.getItem("degree-planner:components:USYD:2026:BHENGINE-04"));
@@ -144,8 +144,7 @@ test("formal Breadth progress persists under Base and a different manual focus; 
   else { const parent=selected.locator("xpath=ancestor::section[1]"); await parent.getByRole("button",{name:"Clear movable subjects from period"}).click(); }
   await expect(progress).toContainText("6 / 24 CP");
   await page.reload();
-  await page.getByRole("button", { name: "Plan it out" }).click();
-  await page.locator(".university-card").filter({hasText:"USYD"}).click();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
   await page.locator(".university-card").filter({hasText:"USYD"}).click();
   await page.locator(".degree-row").filter({hasText:"BHENGINE-04"}).click();
   await expect(progress).toContainText("6 / 24 CP");

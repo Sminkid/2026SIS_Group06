@@ -1,0 +1,29 @@
+Category key,Covers,International 2027 rate per UOC (AUD),Domestic CSP 2027 per year / EFTSL (AUD)
+BUS,"Business (Commerce, Economics, Actuarial, Business)",1240,18025
+INFS,Information Systems,1240,9880
+LAW,Law,1145,18025
+ENG,"Engineering, Computer Science, Cyber Security, Surveying",1330,9880
+SCI,"Science (incl. Advanced Science, Biotech, Med Chem, Materials, Env Mgmt, Data Science)",1375,9880
+MATH,Advanced Mathematics,1375,4908
+PSYC,Psychology (professional pathway),1375,9880
+AVIA,Aviation (Flying / RPAS),1375,9880
+AVIM,Aviation (Management),1375,18025
+HLTH,"Medical Science, Vision Science, Optometry, Nutrition, Pharmacy",1390,9880
+EXPT,"Exercise Science, Physiotherapy, Exercise Physiology",1415,9880
+MED,Medicine (Medical Studies / Doctor of Medicine),2175,14046
+ARTS,"Arts, Social Sciences, War Studies",1035,18025
+MDIA,Media,1035,18025
+CRIM,Criminology,1040,18025
+PPE,"Politics, Philosophy and Economics",1090,18025
+SOCW,Social Work (professional pathway),1035,9880
+EDU,Education,1090,4908
+DES,"Design, Fine Arts, Media Arts, Art Theory",1050,9880
+MUS,Music,1035,9880
+ARCH,Architectural Studies,1145,9880
+BENV,"Interior/Landscape Architecture, City Planning, Construction, Computational & Industrial Design",1105,9880
+Sources and method,,,
+"International: UNSW 2027 International Tuition Fees, undergraduate cost per unit of credit by course prefix — https://www.unsw.edu.au/student/managing-your-studies/fees/international (retrieved 14 Oct 2026).",,,
+"Domestic: Australian Government 2027 maximum student contribution amounts per EFTSL — https://www.studyassist.gov.au/financial-and-study-support/commonwealth-supported-places/student-contribution-amounts (Band 1 $4,908; Band 2 $9,880; Band 3 $14,046; Band 4 $18,025).",,,
+"Method: international fee per year = rate per UOC x 48 UOC (standard full-time year). Double degrees use the average of their component rates. Check: this reproduces UNSW's published 2026 indicative first-year fees (e.g. Commerce $1,180 x 48 = $56,640 vs $56,500 published; Computer Science $1,270 x 48 = $60,960 vs $61,000).",,,
+These are ESTIMATES. Real fees depend on the actual courses taken each year. UNSW degree pages still showed 2026 indicative fees at time of retrieval; replace with official 2027 per-degree figures when published.,,,
+Blue numbers are inputs — edit them here and the Degrees sheet recalculates.,,,

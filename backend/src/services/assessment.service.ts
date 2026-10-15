@@ -13,6 +13,7 @@ import {
   type ComponentCandidate,
   type QuestionRef,
 } from "./assessment-scoring.js";
+import { groupEquivalentTitles } from "./title-matching.js";
 
 interface ResponseInput {
   questionId: string;
@@ -61,7 +62,17 @@ const getScreeningRecommendations = async (categoryScores: Map<string, number>, 
   }));
   const ranked = rankComponentCandidates(categoryScores, new Map(), topCategoryId, candidates);
   const degreeById = new Map(degrees.map((d) => [d.id, d]));
-  return ranked.slice(0, SCREENING_RECOMMENDATION_COUNT).map((match) => {
+  // The same course is offered under slightly different titles by several universities; keep only the best-scoring
+  // offering of each so the recommendations aren't near-duplicates. `ranked` is already sorted by match score.
+  const groupByDegreeId = groupEquivalentTitles(degrees.map((d) => ({ id: d.id, name: d.name, kind: "DEGREE" })));
+  const seenGroups = new Set<string>();
+  const distinct = ranked.filter((match) => {
+    const groupId = groupByDegreeId.get(match.candidate.id)!;
+    if (seenGroups.has(groupId)) return false;
+    seenGroups.add(groupId);
+    return true;
+  });
+  return distinct.slice(0, SCREENING_RECOMMENDATION_COUNT).map((match) => {
     const degree = degreeById.get(match.candidate.id)!;
     return {
       degreeId: degree.id,

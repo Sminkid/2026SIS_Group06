@@ -13,7 +13,19 @@ export const navigationUi = {
   brand: "inline-flex items-center p-0 border-0 bg-transparent [font-weight:750] cursor-pointer",
   brandMark: "w-30 h-10 object-contain",
   siteHeaderNote: "text-[var(--muted)] text-[length:.85rem] [@media(max-width:720px)]:hidden",
-  siteHeaderNav: "flex items-center gap-6 [@media(max-width:560px)]:w-full [@media(max-width:560px)]:justify-between [@media(max-width:560px)]:gap-2",
+  siteHeaderNav: "relative flex items-center gap-6 [@media(max-width:560px)]:w-full [@media(max-width:560px)]:justify-between [@media(max-width:560px)]:gap-2",
+  // On phones the links fill the row, so each pop-up spans the nav instead of hanging off its own link.
+  navItem: "group relative inline-flex [@media(max-width:560px)]:static",
+  // Hidden until its link is hovered or focused from the keyboard; a mouse click alone doesn't keep it open.
+  // Lines up with its link's right edge; on phones it spans the nav row, so it ends at the right-most link.
+  navTooltip: cn(
+    "pointer-events-none absolute top-full left-0 [z-index:30] mt-1 w-64 [padding:.65rem_.8rem]",
+    "[@media(max-width:560px)]:left-0 [@media(max-width:560px)]:w-auto",
+    "border-[1px] border-solid border-[color:var(--line)] [border-radius:12px] bg-[var(--surface)] shadow-lg",
+    "text-[#0a0a0a] text-left text-[length:.82rem] font-normal [line-height:1.45]",
+    "invisible opacity-0 transition-opacity duration-150 motion-reduce:transition-none",
+    "group-hover:visible group-hover:opacity-100 group-has-[:focus-visible]:visible group-has-[:focus-visible]:opacity-100",
+  ),
   siteHeaderLink: cn(
     "p-0 border-0 bg-transparent text-[var(--blue)] text-[length:.9rem] font-bold cursor-pointer [&:hover]:underline",
     "aria-[current=page]:text-[var(--navy)] aria-[current=page]:underline",

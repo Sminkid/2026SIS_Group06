@@ -2,6 +2,7 @@ import { appUi } from "./components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { QuizPage } from "./pages/InterestQuizPage";
 import { GlossaryChatWidget } from "./components/GlossaryChatWidget";
+import { NavLink } from "./components/NavLink";
 import { LandingPage } from "./pages/LandingPage";
 import { QuizResultPage } from "./pages/QuizResultPage";
 import { CourseRecommendationsPage } from "./pages/CourseRecommendationsPage";
@@ -122,27 +123,21 @@ export const App = () => {
         </button>
 
         <nav className={appUi.siteHeaderNav} aria-label="Primary">
-          <button
-            className={appUi.textButton}
-            type="button"
+          <NavLink
+            label="Interest Quiz"
+            description="Answer 20 quick questions to find your Holland Code, then see which courses suit your interests."
             onClick={() => startNewQuiz()}
-          >
-            Interest Quiz
-          </button>
-          <button
-            className={appUi.textButton}
-            type="button"
+          />
+          <NavLink
+            label="View All Courses"
+            description="Browse every course offered by UNSW, USYD and UTS, and compare the universities that offer it."
             onClick={() => setScreen({ name: "allCourses" })}
-          >
-            View All Courses
-          </button>
-          <button
-            className={appUi.textButton}
-            type="button"
+          />
+          <NavLink
+            label="University Handbooks"
+            description="Choose a university to explore its official handbook: its degrees, their requirements and study plans."
             onClick={() => setScreen({ name: "universities" })}
-          >
-            University Handbooks
-          </button>
+          />
         </nav>
       </header>
 

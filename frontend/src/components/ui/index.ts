@@ -6,6 +6,7 @@ import { studyPathUi } from "./studyPath";
 import { studyPlanUi } from "./studyPlan";
 import { subjectChoiceUi } from "./subjectChoice";
 import { feeComparisonUi } from "./feeComparison";
+import {universityHeaderUi} from "./universityHeader";
 import { quizUi } from "./quiz";
 import { landingUi } from "./landing";
 export { cn } from "./cn";
@@ -20,6 +21,7 @@ export const appUi = {
   ...studyPlanUi,
   ...subjectChoiceUi,
   ...feeComparisonUi,
+  ...universityHeaderUi,
   ...quizUi,
   ...landingUi,
 } as const;

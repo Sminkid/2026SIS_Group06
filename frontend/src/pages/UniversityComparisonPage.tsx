@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { appUi, cn } from "../components/ui";
+import { appUi } from "../components/ui";
 import { AsyncState } from "../components/AsyncState";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { fetchCourseFees } from "../api/fees";
@@ -15,6 +15,7 @@ import { primaryOfferings, type CourseRecommendation } from "../domain/courseAgg
 import { classifyDegree } from "../domain/degreeClassification";
 import type { University, DegreeSummary, EmploymentBenchmark } from "../types/handbook";
 import type { CourseFee } from "../types/fee";
+import { UniversityLogo } from "../components/UniversityLogo";
 
 interface Props {
   course: CourseRecommendation;
@@ -46,26 +47,45 @@ const comparisonTag = (value: number | null, lowest: number | null): ReactNode =
     ? <span className={appUi.feeTagLowest}>Lowest</span>
     : <span className={appUi.feeTagMore}>+{formatAud(comparison.difference)}</span>;
 };
+/**
+ * Lists the universities not yet compared. Picking one fills the next column with its card (`pending`),
+ * then asks for the course there, preselecting that university's equivalent of the course being compared.
+ */
+/** The comparison column's header: logo above the name, with a remove button when the column can go. */
+const UniversityHeaderCard = ({ university, onRemove }: { university: University; onRemove?: () => void }) => (
+  <div className={appUi.uniHeaderCard}>
+    {onRemove && (
+      <button type="button" className={appUi.uniRemove} aria-label={`Remove ${university.name}`} onClick={onRemove}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25"
+          strokeLinecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+      </button>
+    )}
+    <UniversityLogo university={university} />
+    <span className={appUi.uniHeaderName}>{university.name}</span>
+  </div>
+);
 
 /**
- * Lets the user pick any university + degree not already in the comparison and add it as a column,
- * preselecting that university's equivalent of the course being compared when it has one.
+ * Lists the universities not yet compared. Picking one fills the next column with its card (`pending`),
+ * then asks for the course there, preselecting that university's equivalent of the course being compared.
  */
-function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
-  courseKey: string; excludedCodes: string[]; onClose: () => void; onAdd: (offering: Offering) => void;
+function AddUniversityDialog({ courseKey, excludedCodes, pending, onPick, onBack, onClose, onAdd }: {
+  courseKey: string; excludedCodes: string[]; pending: University | null;
+  onPick: (university: University) => void; onBack: () => void; onClose: () => void; onAdd: (offering: Offering) => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const returnFocus = useRef(document.activeElement as HTMLElement | null);
   const [universities, setUniversities] = useState<University[] | null>(null);
-  const [selectedUniversityCode, setSelectedUniversityCode] = useState("");
+  const [query, setQuery] = useState("");
   const [degrees, setDegrees] = useState<DegreeSummary[] | null>(null);
   const [selectedDegreeId, setSelectedDegreeId] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
-  const availableUniversities = useMemo(
-    () => (universities ?? []).filter((university) => !excludedCodes.includes(university.code)),
-    [universities, excludedCodes],
-  );
+  const matches = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return (universities ?? []).filter((university) => !excludedCodes.includes(university.code)
+      && (!normalized || `${university.name} ${university.code}`.toLowerCase().includes(normalized)));
+  }, [universities, excludedCodes, query]);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -80,17 +100,19 @@ function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchUniversities(controller.signal).then(setUniversities).catch(() => setUniversities([]));
+    fetchUniversities(controller.signal).then(setUniversities).catch((error) => {
+      if (!(error instanceof DOMException && error.name === "AbortError")) setUniversities([]);
+    });
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
-    if (!selectedUniversityCode) { setDegrees(null); setSelectedDegreeId(""); return; }
+    if (!pending) { setDegrees(null); setSelectedDegreeId(""); return; }
     const controller = new AbortController();
     setStatus("loading");
     setDegrees(null);
-    fetchLatestHandbook(selectedUniversityCode, controller.signal)
-      .then((handbook) => fetchDegrees(selectedUniversityCode, handbook.year, controller.signal))
+    fetchLatestHandbook(pending.code, controller.signal)
+      .then((handbook) => fetchDegrees(pending.code, handbook.year, controller.signal))
       .then((result) => {
         setDegrees(result);
         setSelectedDegreeId(result.find((degree) => classifyDegree(degree.name, degree.code).key === courseKey)?.id ?? "");
@@ -100,12 +122,11 @@ function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
         if (!(error instanceof DOMException && error.name === "AbortError")) setStatus("error");
       });
     return () => controller.abort();
-  }, [selectedUniversityCode, courseKey]);
+  }, [pending, courseKey]);
 
   const confirmAdd = () => {
-    const university = availableUniversities.find((item) => item.code === selectedUniversityCode);
     const degree = degrees?.find((item) => item.id === selectedDegreeId);
-    if (university && degree) onAdd({ university, degree });
+    if (pending && degree) onAdd({ university: pending, degree });
   };
 
   return (
@@ -113,53 +134,62 @@ function AddUniversityDialog({ courseKey, excludedCodes, onClose, onAdd }: {
       className="rounded-2xl border-0 p-0 backdrop:bg-black/40"
       onCancel={(event) => { event.preventDefault(); onClose(); }}>
       <div className="flex w-[min(28rem,90vw)] flex-col gap-4 p-6">
-        <div className="flex items-start justify-between gap-3">
-          <h2 id="add-university-heading" className="m-0 text-lg font-bold">Add university</h2>
-        </div>
-
-        <label className="flex flex-col gap-1 text-sm font-semibold">
-          University
-          <select
-            className="rounded border border-solid border-[color:var(--line)] p-2 text-sm"
-            value={selectedUniversityCode}
-            onChange={(event) => setSelectedUniversityCode(event.target.value)}
-          >
-            <option value="">Select a university…</option>
-            {availableUniversities.map((university) => (
-              <option key={university.id} value={university.code}>{university.name}</option>
-            ))}
-          </select>
-        </label>
-
-        {selectedUniversityCode && (
-          <label className="flex flex-col gap-1 text-sm font-semibold">
-            Degree
-            <select
-              className="rounded border border-solid border-[color:var(--line)] p-2 text-sm"
-              value={selectedDegreeId}
-              disabled={degrees === null}
-              onChange={(event) => setSelectedDegreeId(event.target.value)}
-            >
-              <option value="">{status === "loading" ? "Loading degrees…" : "Select a degree…"}</option>
-              {(degrees ?? []).map((degree) => (
-                <option key={degree.id} value={degree.id}>{degree.name}</option>
-              ))}
-            </select>
-          </label>
+        {pending === null ? (
+          <>
+            <h2 id="add-university-heading" className="m-0 text-lg font-bold">Add university</h2>
+            <label className={appUi.uniPickerSearch}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+              <input type="search" placeholder="Find a university" aria-label="Find a university"
+                value={query} onChange={(event) => setQuery(event.target.value)} />
+            </label>
+            {universities === null && <p className="m-0 text-sm">Loading universities…</p>}
+            {universities !== null && matches.length === 0 && <p className="m-0 text-sm">No universities match your search.</p>}
+            {matches.length > 0 && (
+              <ul className={appUi.uniPickerList}>
+                {matches.map((university) => (
+                  <li key={university.id}>
+                    <button type="button" className={appUi.uniPickerOption} onClick={() => onPick(university)}>
+                      <span className={appUi.uniOptionTile}><UniversityLogo university={university} size="option" /></span>
+                      <span className="grid">
+                        <span className="font-bold">{university.name}</span>
+                        <span className="text-sm text-[var(--muted)]">{university.code}</span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="flex justify-end">
+              <button type="button" className={appUi.cancelButton} onClick={onClose}>Cancel</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 id="add-university-heading" className="m-0 text-lg font-bold">Choose a course at {pending.name}</h2>
+            <label className="flex flex-col gap-1 text-sm font-semibold">
+              Course
+              <select
+                className="rounded border border-solid border-[color:var(--line)] p-2 text-sm"
+                value={selectedDegreeId}
+                disabled={degrees === null}
+                onChange={(event) => setSelectedDegreeId(event.target.value)}
+              >
+                <option value="">{status === "loading" ? "Loading courses…" : "Select a course…"}</option>
+                {(degrees ?? []).map((degree) => (
+                  <option key={degree.id} value={degree.id}>{degree.name}</option>
+                ))}
+              </select>
+            </label>
+            {status === "error" && <p role="alert" className="m-0 text-sm">We couldn't load this university's courses.</p>}
+            <div className="flex flex-row justify-between">
+              <button type="button" className={appUi.primaryButton} disabled={!selectedDegreeId} onClick={confirmAdd}>
+                Add to comparison
+              </button>
+              <button type="button" className={appUi.cancelButton} onClick={onBack}>Back</button>
+            </div>
+          </>
         )}
-        {status === "error" && <p role="alert" className="m-0 text-sm">We couldn't load this university's degrees.</p>}
-
-        <div className="flex flex-row justify-between">
-          <button
-            type="button"
-            className={appUi.primaryButton}
-            disabled={!selectedUniversityCode || !selectedDegreeId}
-            onClick={confirmAdd}
-          >
-            Add to comparison
-          </button>
-          <button type="button" className={appUi.cancelButton} onClick={onClose}>Cancel</button>
-        </div>
       </div>
     </dialog>
   );
@@ -175,6 +205,8 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
   const [shownIds, setShownIds] = useState<string[]>(() =>
     primaryOfferings(course).slice(0, DEFAULT_COMPARED).map((offering) => offering.university.id));
   const [isAddOpen, setIsAddOpen] = useState(false);
+  // A university picked in the dialog whose course hasn't been chosen yet; it holds the next column meanwhile.
+  const [pendingUniversity, setPendingUniversity] = useState<University | null>(null);
   const [basis, setBasis] = useState<FeeBasis>("domestic");
   // Chosen delivery variant per university, e.g. Co-op instead of the standard degree; defaults to the standard one.
   const [variantChoice, setVariantChoice] = useState<Record<string, string>>({});
@@ -185,7 +217,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
     return { university: primary.university, degree: (chosen ?? primary).degree };
   });
   const offerings = [...courseOfferings, ...extraOfferings];
-  const canAdd = offerings.length < MAX_COMPARED_COURSES;
+  const canAdd = offerings.length + (pendingUniversity ? 1 : 0) < MAX_COMPARED_COURSES;
   const canRemove = offerings.length > DEFAULT_COMPARED;
 
   useEffect(() => {
@@ -221,8 +253,19 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
     } else {
       setExtraOfferings((prev) => [...prev, offering]);
     }
-    setIsAddOpen(false);
+    closeAdd();
   };
+  const closeAdd = () => {
+    setIsAddOpen(false);
+    setPendingUniversity(null);
+  };
+  const placeholderCell = (rowIndex: number, text: string) => (
+    <td>
+      <div className={rowIndex % 2 === 0 ? appUi.uniInfo : appUi.uniInfoAlt}>
+        <span className={appUi.feeMissing}>{text}</span>
+      </div>
+    </td>
+  );
 
   const rows: Array<{ id: string; label: ReactNode; render: (offering: Offering, index: number) => ReactNode }> = [
     { id: "course-code", label: "Course Code", render: ({ degree }) => degree.code },
@@ -321,32 +364,30 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
                     const isExtra = extraOfferings.some((offering) => offering.university.id === university.id);
                     const variants = isExtra ? [] : variantsFor(university);
                     return (
-                      <th key={university.id}>
-                        <div className={cn(appUi.universityCard, "relative h-full")}>
-                          {canRemove && (
-                            <button type="button" className={appUi.closeButton}
-                              aria-label={`Remove ${university.name}`}
-                              onClick={() => removeOffering(university.id)}>
-                              ✕
-                            </button>
-                          )}
-                          {university.name}
-                          {variants.length > 1 && (
-                            <select className="mt-2 block w-full rounded border border-solid border-[color:var(--line)] p-1 text-xs font-normal"
-                              aria-label={`${university.name} degree option`} value={degree.id}
-                              onChange={(event) => setVariantChoice((prev) => ({ ...prev, [university.id]: event.target.value }))}>
-                              {variants.map((offering) => (
-                                <option key={offering.degree.id} value={offering.degree.id}>{offering.degree.name}</option>
-                              ))}
-                            </select>
-                          )}
-                        </div>
+                      <th key={university.id} scope="col" className="align-top">
+                        <UniversityHeaderCard university={university}
+                          onRemove={canRemove ? () => removeOffering(university.id) : undefined} />
+                        {variants.length > 1 && (
+                          <select className={appUi.uniVariantSelect}
+                            aria-label={`${university.name} degree option`} value={degree.id}
+                            onChange={(event) => setVariantChoice((prev) => ({ ...prev, [university.id]: event.target.value }))}>
+                            {variants.map((offering) => (
+                              <option key={offering.degree.id} value={offering.degree.id}>{offering.degree.name}</option>
+                            ))}
+                          </select>
+                        )}
                       </th>
                     );
                   })}
+                  {pendingUniversity && (
+                    <th scope="col" className="align-top">
+                      <UniversityHeaderCard university={pendingUniversity} onRemove={closeAdd} />
+                    </th>
+                  )}
                   {canAdd && (
-                    <th>
-                      <button className={appUi.secondaryButton} type="button" onClick={() => setIsAddOpen(true)}>
+                    <th className="align-top">
+                      <button className={appUi.uniAddSlot} type="button" onClick={() => setIsAddOpen(true)}>
+                        <span className={appUi.uniAddIcon} aria-hidden="true">+</span>
                         Add university
                       </button>
                     </th>
@@ -368,6 +409,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
                         </div>
                       </td>
                     ))}
+                    {pendingUniversity && placeholderCell(rowIndex, rowIndex === 0 ? "Choose a course" : "—")}
                   </tr>
                 ))}
                 <tr>
@@ -380,6 +422,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
                       </button>
                     </td>
                   ))}
+                  {pendingUniversity && <td />}
                 </tr>
               </tbody>
             </table>
@@ -403,7 +446,10 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
         <AddUniversityDialog
           courseKey={course.courseKey}
           excludedCodes={offerings.map(({ university }) => university.code)}
-          onClose={() => setIsAddOpen(false)}
+          pending={pendingUniversity}
+          onPick={setPendingUniversity}
+          onBack={() => setPendingUniversity(null)}
+          onClose={closeAdd}
           onAdd={addOffering}
         />
       )}

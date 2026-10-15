@@ -18,7 +18,7 @@ interface Props {
 const QUIZ_QUESTION_COUNT = 20;
 
 const COVERAGE = [
-  { value: "271", label: "Undergraduate courses with fee data" },
+  { value: "433", label: "Undergraduate courses with fee data" },
   { value: "2026–27", label: "Domestic and international fee guide" },
   { value: "3", label: "Sydney universities: UNSW, USYD and UTS" },
 ];

@@ -12,6 +12,8 @@
   --radius: 20px;
 }
 * { box-sizing: border-box; }
+html { scroll-padding-top: 4.9rem; }
+@media (max-width: 560px) { html { scroll-padding-top: 7.5rem; } }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, input, select { font: inherit; } button { color: inherit; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible, a:focus-visible { outline: 3px solid #78a4e5; outline-offset: 2px; }

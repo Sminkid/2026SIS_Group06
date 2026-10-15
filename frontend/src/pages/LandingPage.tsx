@@ -10,7 +10,8 @@ import {
 interface Props {
   onStartQuiz: () => void;
   onPlan: () => void;
-  onCompare: () => void;
+  /** The "What you can do" link: every journey starts by picking a course from the full list. */
+  onBrowseCourses: () => void;
 }
 
 /** The quiz asks 18 screening questions and 2 closing questions. */
@@ -23,6 +24,17 @@ const COVERAGE = [
 ];
 
 const Arrow = () => <span aria-hidden="true">→</span>;
+
+const featureIcon = (paths: ReactNode) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+    strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths}</svg>
+);
+/** Search for finding courses, scales for comparing universities, a calendar for the semester plan. */
+const FEATURE_ICONS = {
+  find: featureIcon(<><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></>),
+  compare: featureIcon(<><path d="M12 3v18" /><path d="M5 7h14" /><path d="m5 7-3 7a3 3 0 0 0 6 0Z" /><path d="m19 7-3 7a3 3 0 0 0 6 0Z" /><path d="M8 21h8" /></>),
+  plan: featureIcon(<><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h18" /><path d="M8 14h2" /><path d="M14 14h2" /><path d="M8 18h2" /></>),
+};
 
 interface StepProps { number: number; label: string; title: string; text: string; flip?: boolean; children: ReactNode; }
 
@@ -39,12 +51,12 @@ const Step = ({ number, label, title, text, flip = false, children }: StepProps)
 );
 
 /** Introduces UniXPrep and routes students to the quiz, the planner or the comparison. */
-export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
+export const LandingPage = ({ onStartQuiz, onPlan, onBrowseCourses }: Props) => {
   const quizButton = <button className={appUi.landingPrimary} type="button" onClick={onStartQuiz}>Take the interest quiz</button>;
   const features = [
-    { title: "Find courses that fit", text: "See which courses match what you enjoy.", action: "Browse courses", onClick: onPlan },
-    { title: "Compare universities", text: "Fees, QS rankings and graduate employment, side by side.", action: "Compare universities", onClick: onCompare },
-    { title: "Plan every semester", text: "Lay out your core subjects and electives year by year.", action: "Plan a degree", onClick: onPlan },
+    { title: "Find courses that fit", text: "See which courses match what you enjoy.", icon: FEATURE_ICONS.find, colour: "#15803d", tint: "#ecfdf3" },
+    { title: "Compare universities", text: "Fees, QS rankings and graduate employment, side by side.", icon: FEATURE_ICONS.compare, colour: "#1d4ed8", tint: "#eff6ff" },
+    { title: "Plan every semester", text: "Lay out your core subjects and electives year by year.", icon: FEATURE_ICONS.plan, colour: "#c2410c", tint: "#fff7ed" },
   ];
 
   return (
@@ -103,12 +115,19 @@ export const LandingPage = ({ onStartQuiz, onPlan, onCompare }: Props) => {
         <div className={appUi.landingFeatures}>
           {features.map((feature) => (
             <div className={appUi.landingCard} key={feature.title}>
-              <h3 className="m-0 text-[length:1.1rem]">{feature.title}</h3>
+              <span className={appUi.landingFeatureIcon} style={{ color: feature.colour, background: feature.tint, borderColor: `${feature.colour}33` }}>
+                {feature.icon}
+              </span>
+              <h3 className="m-0 p-0 text-[length:1.1rem]">{feature.title}</h3>
               <p className={appUi.landingMuted}>{feature.text}</p>
-              <button className={appUi.landingLink} type="button" onClick={feature.onClick}>{feature.action} <Arrow /></button>
             </div>
           ))}
         </div>
+        <p className={appUi.landingFeaturesNext}>
+          <button className={appUi.landingLink} type="button" onClick={onBrowseCourses}>
+            Start by browsing all courses and picking one <Arrow />
+          </button>
+        </p>
       </section>
 
       <section className={appUi.landingBand} id="how-it-works" aria-labelledby="how-title">

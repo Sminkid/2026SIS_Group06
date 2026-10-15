@@ -188,7 +188,7 @@ test("Landing page routes to the planner and the comparison, and fits a phone sc
   await expect(page.getByText("20 questions · About 5 minutes")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
   // Both routes start by choosing a course, since a comparison and a study plan are for one course.
-  await page.getByRole("button", { name: "Compare universities" }).click();
+  await page.getByRole("button", { name: "Start by browsing all courses and picking one" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Courses" })).toBeVisible();
   await page.getByRole("button", { name: "UniXPrep home" }).click();
   await page.getByRole("button", { name: "Plan it out" }).click();

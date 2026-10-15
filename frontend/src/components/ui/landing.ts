@@ -36,6 +36,9 @@ export const landingUi = {
   landingSectionTitle: "[margin:0_0_.5rem] text-[#2563eb] text-[length:clamp(1.9rem,4vw,2.6rem)] [line-height:1.1] [letter-spacing:-.03em]",
   landingBody: "m-0 text-[#374151] [line-height:1.6]",
   landingFeatures: "grid gap-4 mt-8 sm:grid-cols-3",
+  // Same tinted tile as the quiz result cards' icons; the colour is set inline per card.
+  landingFeatureIcon: "w-11 h-11 grid place-items-center [border-radius:12px] border-[1px] border-solid",
+  landingFeaturesNext: "[margin:1.5rem_0_0]",
   landingStep: "grid gap-10 [padding:2.5rem_0] md:grid-cols-2 md:items-center",
   landingStepTitle: "[margin:0_0_.75rem] text-[length:1.6rem] [letter-spacing:-.02em]",
   // Previews of the app's pages use the app's own font, so they look like the real screens.

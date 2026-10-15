@@ -149,7 +149,7 @@ export const App = () => {
               onStartQuiz={() => startNewQuiz()}
               // A comparison is always for one course, so both routes start by choosing a course.
               onPlan={() => setScreen({ name: "allCourses" })}
-              onCompare={() => setScreen({ name: "allCourses" })}
+              onBrowseCourses={() => setScreen({ name: "allCourses" })}
             />
           </div>
         )}

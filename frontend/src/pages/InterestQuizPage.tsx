@@ -213,8 +213,8 @@ export const QuizPage = ({ session, onHome, onBackToDegree, onComplete }: Props)
 
       {step.name === "intro" && (
         <section className={appUi.pageIntroCompact}>
-          <p className={appUi.eyebrow}>Interest quiz</p>
-          <h1>Find degrees that match your interests</h1>
+          <p className={appUi.eyebrow}>Find degrees that match your interests</p>
+          <h1>Interest quiz</h1>
           <div className={appUi.quizIntro}>
             <p className={appUi.lead}>
               Answer 20 short questions about what you enjoy and we&apos;ll show your initial results and the

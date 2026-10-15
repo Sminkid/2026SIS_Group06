@@ -16,10 +16,8 @@ export const navigationUi = {
   siteHeaderNav: "relative flex items-center gap-6 [@media(max-width:560px)]:w-full [@media(max-width:560px)]:justify-between [@media(max-width:560px)]:gap-2",
   // On phones the links fill the row, so each pop-up spans the nav instead of hanging off its own link.
   navItem: "group relative inline-flex [@media(max-width:560px)]:static",
-  // Hidden until its link is hovered or focused from the keyboard; a mouse click alone doesn't keep it open.
-  // Lines up with its link's right edge; on phones it spans the nav row, so it ends at the right-most link.
   navTooltip: cn(
-    "pointer-events-none absolute top-full left-0 [z-index:30] mt-1 w-64 [padding:.65rem_.8rem]",
+    "pointer-events-none absolute top-full [z-index:30] mt-1 w-64 [padding:.65rem_.8rem]",
     "[@media(max-width:560px)]:left-0 [@media(max-width:560px)]:w-auto",
     "border-[1px] border-solid border-[color:var(--line)] [border-radius:12px] bg-[var(--surface)] shadow-lg",
     "text-[#0a0a0a] text-left text-[length:.82rem] font-normal [line-height:1.45]",

@@ -29,7 +29,7 @@ export const QuizResultPage = ({ result, onViewCourses, onPersonalise, onRetake,
       <Breadcrumbs items={[{ label: "Home", onClick: onHome }, { label: "Quiz Result" }]} />
       <section className={appUi.pageIntroCompact}>
         <p className={appUi.eyebrow}>{personalised ? "Your personalised result" : "Your initial result"}</p>
-        <h2 className="text-black">Your Holland Code Profile is</h2>
+        <h1 className="mb-0 [font-size:clamp(1.5rem,3vw,2rem)] [letter-spacing:-.025em]">Your Holland Code Profile is</h1>
         {top.length > 0 && (
           <p className={appUi.quizHollandCode} aria-label={`Holland Code ${top.map(letterOf).join(", ")}`}>
             {top.map(letterOf).join(" – ")}

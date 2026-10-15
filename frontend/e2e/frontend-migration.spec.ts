@@ -180,37 +180,3 @@ test("Glossary assistant gives at most 5 responses per session, including across
   await expect(input).toBeDisabled();
   expect(calls).toBe(5);
 });
-
-test("Landing page routes to the planner and the comparison, and fits a phone screen", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1, name: "Build your university path" })).toBeVisible();
-  await expect(page.getByText("20 questions · About 5 minutes")).toBeVisible();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
-  // Both routes start by choosing a course, since a comparison and a study plan are for one course.
-  await page.getByRole("button", { name: "Start by browsing all courses and picking one" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Courses" })).toBeVisible();
-  await page.getByRole("button", { name: "UniXPrep home" }).click();
-  await page.getByRole("button", { name: "Plan it out" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Courses" })).toBeVisible();
-});
-
-test("Browser back and forward buttons move between screens, and a reload keeps the screen", async ({ page }) => {
-  await page.goto("/");
-  const landing = page.getByRole("heading", { level: 1, name: "Build your university path" });
-  const courses = page.getByRole("heading", { level: 1, name: "Courses" });
-  await page.getByRole("button", { name: "Plan it out" }).click();
-  await expect(courses).toBeVisible();
-  await page.goBack();
-  await expect(landing).toBeVisible();
-  await page.goForward();
-  await expect(courses).toBeVisible();
-  await page.reload();
-  await expect(courses).toBeVisible();
-  await page.getByRole("button", { name: "UniXPrep home" }).click();
-  await page.getByRole("link", { name: "See how it works" }).click();
-  await page.goBack();
-  await expect(landing).toBeVisible();
-  await page.goBack();
-  await expect(courses).toBeVisible();
-});

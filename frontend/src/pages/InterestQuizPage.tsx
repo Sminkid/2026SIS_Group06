@@ -44,7 +44,6 @@ const LikertQuestion = ({ question, value, onChange }: LikertQuestionProps) => (
     </div>
     <p className={appUi.description}>There are no right or wrong answers — answer honestly based on what you naturally enjoy to get the most
 accurate academic and career recommendations.</p>
-    <p className={appUi.description}>Skipping a question may make your recommendations less accurate on every results page.</p>
   </div>
 );
 
@@ -144,6 +143,7 @@ const QuestionStep = ({
         >
           Skip this question
         </button>
+        <p className={appUi.description}>Skipping a question may make your recommendations less accurate on every results page.</p>
       </div>
       <ol className={appUi.quizStepList} aria-label="Quiz progress">
         {questions.map((item, itemIndex) => {

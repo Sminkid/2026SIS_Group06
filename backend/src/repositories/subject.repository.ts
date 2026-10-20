@@ -12,6 +12,7 @@ export const findSubjectSearchRecord = async (
   limit: number,
   componentCode?: string,
   requirementGroupId?: string,
+  offset = 0,
 ) => getPrisma().university.findUnique({
   where: { code: universityCode },
   select: {
@@ -43,6 +44,7 @@ export const findSubjectSearchRecord = async (
               : {}),
           },
           orderBy: [{ code: "asc" }, { name: "asc" }],
+          skip: offset,
           take: limit,
           select: {
             id: true,

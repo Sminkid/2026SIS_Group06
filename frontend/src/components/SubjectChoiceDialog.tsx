@@ -1,7 +1,7 @@
 import { trapDialogFocus } from "./ui/dialog";
 import { lockPageScroll } from "./ui/pageScroll";
 import { appUi } from "./ui";
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
 import { fetchSubjectAccessConditionsBatch, searchSubjects } from "../api/subjects";
 import { validateSubjectCandidate } from "../domain/plannerValidation";
 import { collectRequirementPoolContexts, getSubjectSelectionAction } from "../domain/subjectChoiceEligibility";
@@ -94,12 +94,15 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
   })}</div>;
 };
 
+/** How many subjects a broad choice lists at a time. */
+const SUBJECT_PAGE_SIZE = 30;
+
 /** Shows verified component pools or broad search in a keyboard-accessible native dialog. */
 export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, scope, planner, onClose, onOpenSubject, onSelect, adaptAccess, focusedView }: Props) => {
   const dialogRef = useRef<HTMLDialogElement>(null); const requestRef = useRef<AbortController | null>(null);
   const [query, setQuery] = useState(""); const [externalResults, setExternalResults] = useState<SubjectSearchResult[]>([]);
   const [externalStatus, setExternalStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [accessConditions, setAccessConditions] = useState<Record<string, SubjectAccessConditions>>({}); const [message, setMessage] = useState("");
+  const [accessConditions, setAccessConditions] = useState<Record<string, SubjectAccessConditions>>({}); const [message, setMessage] = useState(""); const [shownTerm, setShownTerm] = useState(""); const [hasMore, setHasMore] = useState(false); const [loadingMore, setLoadingMore] = useState(false);
   const [candidateQuery, setCandidateQuery] = useState("");
   const [ownership, setOwnership] = useState<Record<string, string>>({});
   const [poolFilter, setPoolFilter] = useState(scope.defaultPoolGroupId ?? "");
@@ -172,12 +175,23 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
     && !(focusedView?.id === poolFilter && (focusedView.status === "loading" || (focusedView.status === "ready" && focusedView.sections.length)))) {
       setPoolFilter(scope.defaultPoolGroupId ?? ""); setOwnership({});
     } }, [scope.groups, scope.defaultPoolGroupId, poolFilter, focusedView?.id, focusedView?.status, focusedView?.sections.length]);
+  // Loads a page of subjects: the whole handbook in code order when `term` is empty, otherwise the matches.
+  // `append` keeps the subjects already shown, for "Show more".
+  const loadSubjects = useCallback((term: string, append: boolean, offset = 0) => {
+    requestRef.current?.abort();
+    const controller = new AbortController(); requestRef.current = controller; setMessage(""); setExternalStatus(append ? "ready" : "loading");
+    setShownTerm(term); setLoadingMore(append);
+    void searchSubjects({ universityCode, handbookYear, query: term || undefined, limit: SUBJECT_PAGE_SIZE, offset, signal: controller.signal }).then((subjects) => {
+      setExternalResults((current) => (append ? [...current, ...subjects] : subjects));
+      setHasMore(subjects.length === SUBJECT_PAGE_SIZE); setLoadingMore(false); setExternalStatus("ready");
+    }).catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) { setLoadingMore(false); setExternalStatus("error"); } });
+  }, [universityCode, handbookYear]);
+  // A broad choice opens with the handbook's subjects listed, so there's something to pick without searching.
+  useEffect(() => { if (choiceItem && scope.kind === "BROAD") loadSubjects("", false); }, [choiceItem?.id, scope.kind, loadSubjects]);
   const submitSearch = (event: FormEvent) => {
-    event.preventDefault(); const normalized = query.trim(); if (normalized.length < 2) { setMessage("Enter at least two characters."); return; }
-    const controller = new AbortController(); requestRef.current = controller; setMessage(""); setExternalStatus("loading");
-    void searchSubjects({ universityCode, handbookYear, query: normalized, limit: 30, signal: controller.signal }).then((subjects) => {
-      setExternalResults(subjects); setExternalStatus("ready");
-    }).catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) setExternalStatus("error"); });
+    event.preventDefault(); const normalized = query.trim();
+    if (normalized.length === 1) { setMessage("Enter at least two characters, or clear the search to see all subjects."); return; }
+    loadSubjects(normalized, false);
   };
   if (!choiceItem) return <dialog onKeyDown={trapDialogFocus} className={appUi.subjectDialog} ref={dialogRef} />;
   const resultProps = { planner, choiceItem, accessConditions, onOpenSubject, onSelect };
@@ -243,7 +257,14 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
     {scope.kind === "BROAD" && <details className={appUi.externalSubjectSearch} open><summary>Search electives</summary><p>Results outside this requirement are not verified to count.</p>
       <form className={appUi.subjectSearch} onSubmit={submitSearch}><label htmlFor="subject-query">Search by subject code or name</label><div><input id="subject-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
         <button className={appUi.primaryButton} type="submit">Search</button></div>{message && <p className={appUi.fieldError} role="alert">{message}</p>}</form>
-      <div aria-live="polite">{externalStatus === "loading" && <AsyncState kind="loading" label="Searching subjects" />}{externalStatus === "error" && <AsyncState kind="error" label="We couldn't search subjects." />}
-        {externalStatus === "ready" && externalResults.length === 0 && <AsyncState kind="empty" label="No matching subjects were found." />}{externalStatus === "ready" && <SubjectResults {...resultProps} results={externalResults} selectable={scope.kind === "BROAD"} requiredCore={false} quotaGroup={scope.kind === "BROAD" ? scope.groups?.[0] : undefined} />}</div></details>
+      <div aria-live="polite">{externalStatus === "loading" && <AsyncState kind="loading" label={shownTerm ? "Searching subjects" : "Loading subjects"} />}
+        {externalStatus === "error" && <AsyncState kind="error" label="We couldn't load subjects." onRetry={() => loadSubjects(shownTerm, false)} />}
+        {externalStatus === "ready" && externalResults.length === 0 && <AsyncState kind="empty" label={shownTerm ? `No subjects match “${shownTerm}”.` : "No subjects are listed in this handbook."} />}
+        {externalStatus === "ready" && externalResults.length > 0 && <>
+          <p className={appUi.subjectListSummary}>{shownTerm ? `Subjects matching “${shownTerm}”` : "All subjects"} · showing {externalResults.length}</p>
+          <SubjectResults {...resultProps} results={externalResults} selectable={scope.kind === "BROAD"} requiredCore={false} quotaGroup={scope.kind === "BROAD" ? scope.groups?.[0] : undefined} />
+          {hasMore && <button className={appUi.textButton} type="button" disabled={loadingMore} aria-busy={loadingMore}
+            onClick={() => loadSubjects(shownTerm, true, externalResults.length)}>{loadingMore ? "Loading…" : "Show more subjects"}</button>}
+        </>}</div></details>
     }</div></dialog>;
 };

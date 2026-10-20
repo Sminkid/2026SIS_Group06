@@ -76,6 +76,7 @@ export const searchSubjects = async (
   limit: number,
   componentCode?: string,
   requirementGroupId?: string,
+  offset = 0,
 ): Promise<SubjectSearchResult[]> => {
   const university = await findSubjectSearchRecord(
     universityCode,
@@ -84,6 +85,7 @@ export const searchSubjects = async (
     limit,
     componentCode,
     requirementGroupId,
+    offset,
   );
   if (!university) throw new ApiError(404, `University '${universityCode}' not found`);
   const handbook = university.HandbookVersion[0];

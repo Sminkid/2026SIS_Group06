@@ -23,10 +23,18 @@ import { UsydEngineeringProgressCard, type UsydAcademicComponent } from "./UsydE
 import { UsydEngineeringReadOnlyCard } from "./UsydEngineeringReadOnlyCard";
 import { useUsydChoiceFocus } from "./useUsydChoiceFocus";
 import { useUsydEngineeringValidation } from "./useUsydEngineeringValidation";
-const canUsydSwap = (item: Parameters<typeof isUsydMovable>[0]) => !item.subject || isUsydMovable(item);
+/**
+ * Only subjects placed in a choice slot can be moved; the roadmap's standard subjects stay where the university put them.
+ * A choice slot fixed to one core subject counts as standard too.
+ */
+const isUsydChoiceMovable = (item: Parameters<typeof isUsydMovable>[0]) =>
+  Boolean(item.choiceOrigin) && item.choiceOrigin?.componentRequirementKind !== "FIXED" && isUsydMovable(item);
+const canUsydSwap = (item: Parameters<typeof isUsydMovable>[0]) => !item.subject || isUsydChoiceMovable(item);
 
 interface Props { plan: StudyPlan; requirements: RequirementGroup[]; handbookYear: number; degreeCode: string;
-  degreeCreditPoints: number | null; focusComponent?: RequirementComponent; academicComponents: UsydAcademicComponent[]; academicStreamMismatch?: string; }
+  degreeCreditPoints: number | null; focusComponent?: RequirementComponent; academicComponents: UsydAcademicComponent[]; academicStreamMismatch?: string;
+  /** Called with true while the editable personal plan is shown, and false otherwise. */
+  onEditableChange?: (editable: boolean) => void; }
 
 /** A keyed session owns only orchestration. Shared state persists each resolved CUSP identity separately. */
 export function UsydEngineeringPersonalPlan(props: Props) {
@@ -53,14 +61,14 @@ export function UsydEngineeringPersonalPlan(props: Props) {
   [props.handbookYear, props.degreeCode, streamReference?.code, specialisation?.component.code]);
   // Wait for exact component identity; a partially hydrated context must never carry a draft to another key.
   return <div data-usyd-plan-id={props.plan.id}>
-    {componentStatus === "ready" && props.focusComponent && !specialisation && <p role="status" className="mb-4 text-sm text-amber-900">This formal specialisation is unavailable in the selected stream.</p>}
+    {componentStatus === "ready" && props.focusComponent && !specialisation && <p role="status" className={appUi.selectionNotice}>This formal specialisation is unavailable in the selected stream.</p>}
     {componentStatus === "loading" && <AsyncState kind="loading" label="Loading eligible study path subjects" />}
     {componentStatus === "error" && <AsyncState kind="error" label="Couldn't load eligible study path subjects." onRetry={() => setRetryKey(key => key + 1)} />}
     {componentStatus === "ready" && <PersonalPlanSession key={JSON.stringify(context)} {...props} context={context} stream={stream} specialisation={specialisation} />}
   </div>;
 }
 
-function PersonalPlanSession({ plan, context, stream, specialisation, requirements, handbookYear, degreeCreditPoints, academicComponents, academicStreamMismatch }: Props & {
+function PersonalPlanSession({ plan, context, stream, specialisation, requirements, handbookYear, degreeCreditPoints, academicComponents, academicStreamMismatch, onEditableChange }: Props & {
   context: ReturnType<typeof usydPlannerContext>; stream?: ComponentDetailResponse; specialisation?: ComponentDetailResponse;
 }) {
   const template = useMemo(() => adaptUsydEngineeringPlan(plan), [plan]);
@@ -74,6 +82,7 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
   const [notice, setNotice] = useState("");
   useEffect(() => { if (!notice) return; const timeout = window.setTimeout(() => setNotice(""), 5000); return () => window.clearTimeout(timeout); }, [notice]);
   const editable = Boolean(state.planner && !official);
+  useEffect(() => { onEditableChange?.(editable); return () => onEditableChange?.(false); }, [editable, onEditableChange]);
   const displayed = useMemo(() => editable && state.planner ? plannerToStudyPlan(state.planner, template) : plan, [editable, state.planner, template, plan]);
   const items = useMemo(() => state.planner ? [...plannerItems(state.planner), ...state.planner.unassignedItems] : [], [state.planner]);
   const activeChoice = items.find(item => item.plannerItemId === activeChoiceId);
@@ -92,12 +101,12 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
   const renderCard = (item: StudyPlanItem, scheduled: string) => {
     if (!editable) return <UsydEngineeringReadOnlyCard key={item.id} item={item} scheduled={scheduled} onOpenSubject={setDetailsCode} />;
     const allocation = items.find(old => old.plannerItemId === item.id);
-    const movable = allocation && isUsydMovable(allocation);
+    const movable = allocation && isUsydChoiceMovable(allocation);
     return <RoadmapCard key={item.id} item={item} editable={editable} scheduled={scheduled} showReadOnlyDetails issues={editable && item.subject ? issuesFor(item.subject.code) : []}
       prerequisite={editable && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], issuesFor(item.subject.code), { hasPlan: true, loading: status === "loading" }) : undefined}
       onChoose={item => setActiveChoiceId(item.id)} onOpenSubject={setDetailsCode} onRestoreChoice={state.restoreChoiceSlot}
       onMove={movable ? setMoving : undefined} onSwap={allocation && movable && isCustomPosition(allocation) ? setSwapping : undefined}
-      readOnlyChoiceNote="Customize to choose from eligible subjects" />;
+      readOnlyChoiceNote="Customise to choose from eligible subjects" />;
   };
   const tableD = usydGroups(requirements).find(group => group.candidateSources.some(source => source.tableName === "Table D"));
   const dalyellPoints = items.filter(item => item.subject && item.choiceOrigin?.formalRequirementGroupId === tableD?.id)
@@ -112,43 +121,43 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
     <UsydEngineeringFocusSummary focus={specialisation} breadth={usydEngineeringSpecialisations(stream).find(option => option.component.code === specialisation?.component.code)?.kind === "BREADTH_SPECIALISATION"}
       handbookYear={handbookYear} onOpenSubject={setDetailsCode} />
     <div className={editable ? appUi.plannerToolbarActive : appUi.plannerToolbar}>
-      <div><strong>{editable ? "My personal plan" : "Official CUSP roadmap"}</strong><p>{state.planner ? "Your draft is saved automatically on this device." : "Create an editable copy of this official roadmap."}</p></div>
+      <div><strong>{editable ? "My personal plan" : "Official CUSP roadmap"}</strong><p>{state.planner ? "Your draft is kept until you leave or refresh this page." : "Create an editable copy of this official roadmap."}</p></div>
       <div className={appUi.plannerToolbarActions}>
-        {!state.planner ? <button className={appUi.primaryButton} type="button" onClick={() => { state.customize(); setOfficial(false); }}>Customize Plan</button> : <>
+        {!state.planner ? <button className={appUi.primaryButton} type="button" onClick={() => { state.customize(); setOfficial(false); }}>Customise Plan</button> : <>
           <button className={appUi.secondaryButton} type="button" onClick={() => { setOfficial(value => !value); setActiveChoiceId(null); }}>{official ? "View personal plan" : "View official roadmap"}</button>
           <button className={appUi.secondaryButton} type="button" onClick={() => { state.reset(); setOfficial(false); setNotice("Personal plan reset to the official template."); }}>Reset to official plan</button>
-          <button className={appUi.textButtonDanger} type="button" onClick={() => { state.clear(); setOfficial(false); setNotice("Personal draft removed."); }}>Remove personal draft</button>
+          <button className={appUi.textButtonDanger} type="button" onClick={() => { state.clear(); setOfficial(false); setNotice("Custom changes cleared."); }}>Clear custom changes</button>
         </>}
       </div>
     </div>
-    <p role="status" className="text-sm font-semibold">{editable ? "Editable personal plan" : "Read-only official roadmap"}</p>
+    <p role="status" className="[margin:0_0_.75rem] text-[var(--muted)] text-[length:.8rem] font-bold">{editable ? "Editable personal plan" : "Read-only official roadmap"}</p>
     {notice && <p role="status">{notice}</p>}
     {editable && <>
-      <section aria-label="Personal plan summary" className="mb-5 rounded-xl border border-solid border-blue-200 bg-blue-50/40 p-4 sm:p-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-3"><h3 className="m-0 text-base font-bold">Personal plan summary</h3>
-        <strong className="text-xl text-blue-900">{selectedPoints} / {targetPoints} CP selected</strong></div>
-      <progress className="mt-3 h-2 w-full accent-blue-800" aria-label="Selected degree credit points" value={Math.min(selectedPoints, targetPoints)} max={targetPoints} />
-      <p className="mb-2 mt-2 text-sm font-semibold">{validation ? `${planWarnings.length} plan warnings${verificationNotes.length ? ` · ${verificationNotes.length} verification notes` : ""}` : "Checking plan requirements…"}</p>
-      <p className="text-sm text-slate-600">Selected credit points include unscheduled subjects. Formal completion, unknown rules and conditional requirements still need handbook verification.</p>
+      <section aria-label="Personal plan summary" className={appUi.planPanel}>
+      <div className={appUi.planPanelHeader}><h3>Personal plan summary</h3>
+        <strong className={appUi.planPanelTotal}>{selectedPoints} / {targetPoints} CP selected</strong></div>
+      <progress className={appUi.planProgress} aria-label="Selected degree credit points" value={Math.min(selectedPoints, targetPoints)} max={targetPoints} />
+      <p className="font-semibold text-[#0a0a0a]">{validation ? `${planWarnings.length} plan warnings${verificationNotes.length ? ` · ${verificationNotes.length} verification notes` : ""}` : "Checking plan requirements…"}</p>
+      <p className={appUi.planPanelNote}>Selected credit points include unscheduled subjects. Formal completion, unknown rules and conditional requirements still need handbook verification.</p>
       {status === "error" && <p role="alert">Couldn't check access conditions. Your plan is saved; reload to retry.</p>}
-      {validation && <details className="mb-4 text-sm"><summary>Review plan warnings ({planWarnings.length}){verificationNotes.length > 0 && ` and verification notes (${verificationNotes.length})`}</summary>
+      {validation && <details><summary>Review plan warnings ({planWarnings.length}){verificationNotes.length > 0 && ` and verification notes (${verificationNotes.length})`}</summary>
         {planWarnings.map((issue, index) => <p key={`warning:${index}`} data-usyd-plan-warning>{issue.subjectCode && `${issue.subjectCode}: `}{issue.message}</p>)}
         {verificationNotes.length > 0 && <p className="font-semibold">Handbook verification notes</p>}
         {verificationNotes.map((issue, index) => <p key={`note:${index}`} data-usyd-verification-note>{issue.subjectCode && `${issue.subjectCode}: `}{issue.message}</p>)}
       </details>}
-      {tableD && <label className="mb-4 block text-sm"><input type="checkbox" checked={dalyell} onChange={event => { setDalyell(event.target.checked); try { localStorage.setItem(`usyd:dalyell:${handbookYear}:${context.degreeCode}`, String(event.target.checked)); } catch { /* Session state remains available. */ } }} /> I am enrolled in the Dalyell Stream</label>}
-      {tableD && dalyell && <p className="mb-4 text-sm">Dalyell allocation: {dalyellPoints} / {tableD.requiredCreditPoints ?? 12} CP from Table D. Enrolment and formal completion need verification.</p>}
-      {tableD && !dalyell && dalyellPoints > 0 && <p role="alert" className="mb-4 text-sm text-amber-900">Your draft contains Table D allocations. Confirm Dalyell enrolment or replace those selections with subjects eligible for your current requirements.</p>}
+      {tableD && <label className={appUi.planCheckbox}><input type="checkbox" checked={dalyell} onChange={event => { setDalyell(event.target.checked); try { localStorage.setItem(`usyd:dalyell:${handbookYear}:${context.degreeCode}`, String(event.target.checked)); } catch { /* Session state remains available. */ } }} /> I am enrolled in the Dalyell Stream</label>}
+      {tableD && dalyell && <p>Dalyell allocation: {dalyellPoints} / {tableD.requiredCreditPoints ?? 12} CP from Table D. Enrolment and formal completion need verification.</p>}
+      {tableD && !dalyell && dalyellPoints > 0 && <p role="alert" className={appUi.planPanelWarning}>Your draft contains Table D allocations. Confirm Dalyell enrolment or replace those selections with subjects eligible for your current requirements.</p>}
       </section>
-      {academicStreamMismatch && <p role="status" className="mb-4 text-sm text-slate-600">Your formal specialisations remain selected under {academicStreamMismatch}. Preview that stream to see their progress against its personal plan.</p>}
+      {academicStreamMismatch && <p role="status" className={appUi.planPanelNotice}>Your formal specialisations remain selected under {academicStreamMismatch}. Preview that stream to see their progress against its personal plan.</p>}
       {academicComponents.length > 0 ? <div className="mb-5 grid gap-4 lg:grid-cols-2" aria-label="Formal specialisation progress">{academicComponents.map(selection => <UsydEngineeringProgressCard key={selection.reference.code}
         selection={selection} subjects={selectedSubjects} onOpenSubject={setDetailsCode} handbookYear={handbookYear}
         hasConflict={Boolean(validation?.results.some(issue => issue.code === "ANTI_REQUISITE_CONFLICT" && selection.detail?.requirements.some(group => group.items.some(item => item.subject?.code === issue.subjectCode))))} />)}</div>
-        : specialisation && !academicStreamMismatch && <p className="mb-5 text-sm text-slate-600">This specialisation is your roadmap focus. Select it in Course Structure to track formal progress.</p>}
+        : specialisation && !academicStreamMismatch && <p className={appUi.planPanelNotice}>This specialisation is your roadmap focus. Select it in Course Structure to track formal progress.</p>}
     </>}
     <OfficialPlanRoadmap plan={displayed} renderItem={renderCard} renderPeriodActions={editable ? period => {
-      const canClear = items.filter(item => period.items.some(position => position.id === item.plannerItemId) && isUsydMovable(item));
-      return canClear.length ? <button className={`${plannerUi.action} mb-3`} type="button" onClick={() => { state.clearPeriod(period.id, canClear.map(item => item.plannerItemId)); setNotice("Movable subjects were moved to Unscheduled subjects. Locked activities remain in place."); }}>Clear movable subjects from period</button> : null;
+      const canClear = items.filter(item => period.items.some(position => position.id === item.plannerItemId) && isUsydChoiceMovable(item));
+      return canClear.length ? <button className={`${plannerUi.action} mb-3`} type="button" onClick={() => { state.clearPeriod(period.id, canClear.map(item => item.plannerItemId)); setNotice("Chosen subjects were moved to Unscheduled subjects. Standard subjects stay in place."); }}>Clear chosen subjects from period</button> : null;
     } : undefined} />
     {editable && state.planner && state.planner.unassignedItems.length > 0 && <section aria-labelledby="usyd-unscheduled-heading" className="mt-6"><h3 id="usyd-unscheduled-heading">Unscheduled subjects</h3>
       <p>Use Move to restore a subject to a period. Clearing a period preserves each subject's allocation.</p>
@@ -168,7 +177,7 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
     <SubjectDetailsDialog subjectCode={detailsCode} universityCode="USYD" handbookYear={handbookYear} onClose={() => setDetailsCode(null)}
       planIssues={detailsCode ? issuesFor(detailsCode) : []} hasPlan={editable} adaptAccess={normalizeUsydEngineeringAccess} />
     {state.planner && moving && <MoveSubjectDialog key={moving} planner={state.planner} sourceId={moving} universityCode="USYD" handbookYear={handbookYear}
-      canMove={isUsydMovable} adaptAccess={normalizeUsydEngineeringAccess} onClose={() => setMoving(null)} onConfirm={(id, target, facts) => state.moveItem(id, target, facts, isUsydMovable)} />}
+      canMove={isUsydChoiceMovable} adaptAccess={normalizeUsydEngineeringAccess} onClose={() => setMoving(null)} onConfirm={(id, target, facts) => state.moveItem(id, target, facts, isUsydChoiceMovable)} />}
     {state.planner && swapping && <SwapPositionDialog key={swapping} planner={state.planner} sourceId={swapping} universityCode="USYD" handbookYear={handbookYear}
       adaptAccess={normalizeUsydEngineeringAccess} canSwap={canUsydSwap} onClose={() => setSwapping(null)} onConfirm={(source, target, facts) => state.swapPositions(source, target, facts, canUsydSwap)} />}
   </>;

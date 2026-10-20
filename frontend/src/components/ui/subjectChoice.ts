@@ -17,8 +17,8 @@ const candidateAccessBase = "[margin:.65rem_0_0] text-[length:.72rem] [line-heig
 export const subjectChoiceUi = {
   subjectResultList: "grid [gap:.6rem] pt-4",
   subjectResult: cn(
-    "subject-result grid [grid-template-columns:minmax(0,1fr)_10.5rem] items-center gap-5 p-4 border-[1px]",
-    "border-solid border-[color:var(--line)] bg-[var(--surface)] [&_h3]:[margin:.25rem_0_.55rem]",
+    "subject-result grid [grid-template-columns:minmax(0,1fr)_auto] items-center gap-5 p-4 border-[1px]",
+    "border-solid border-[color:var(--line)] bg-[var(--surface)] [&_h3]:[margin:.25rem_0_.55rem] [&_h3]:p-0",
     "[&_h3]:text-[length:.92rem] [&_h3]:[line-height:1.35] [@media(max-width:720px)]:[grid-template-columns:1fr]",
     "[@media(max-width:720px)]:items-stretch",
   ),
@@ -30,11 +30,12 @@ export const subjectChoiceUi = {
   candidateAccessSatisfied: cn(candidateAccessBase, "text-[#216e4e]"),
   candidateAccessWarning: cn(candidateAccessBase, "text-[#842c34]"),
   subjectResultActions: cn(
-    "flex [flex:0_0_10.5rem] flex-col items-stretch justify-center [gap:.45rem] [&_button]:w-full",
+    "flex min-w-[10.5rem] flex-col items-stretch justify-center [gap:.45rem] [&_button]:w-full [&_button]:min-h-10",
+    "[&_button]:[padding:.5rem_.75rem] [&_button]:text-[length:.85rem] [&_button]:[line-height:1.25] [&_button]:text-center",
     "[&_button]:whitespace-normal [@media(max-width:720px)]:[width:min(100%,_16rem)]",
   ),
   subjectDialog: cn(
-    "[width:min(100%_-_2rem,_52rem)] max-w-none h-auto [max-height:90vh] m-auto p-0 border-0 text-[var(--navy)]",
+    "[width:min(100%_-_2rem,_52rem)] max-w-none h-auto [max-height:90vh] m-auto p-0 border-0",
     "bg-[var(--surface)] [box-shadow:-.5rem_0_1.75rem_rgba(20,33,61,.16)] [&::backdrop]:bg-[rgba(14,24,43,.55)]",
     "[@media(max-width:720px)]:w-full [@media(max-width:720px)]:h-auto [@media(max-width:720px)]:[max-height:92vh]",
     "[@media(max-width:720px)]:mt-auto",
@@ -46,7 +47,7 @@ export const subjectChoiceUi = {
     "[&_p:last-child]:text-[var(--muted)] [&_p:last-child]:text-[length:.85rem]",
   ),
   dialogClose: cn(
-    "w-10 h-10 [flex:0_0_auto] border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
+    "w-10 h-10 [flex:0_0_auto] border-none bg-[var(--surface)]",
     "text-[length:1.5rem] [line-height:1] cursor-pointer",
   ),
   eligibilityNoteMatched: cn(
@@ -59,7 +60,7 @@ export const subjectChoiceUi = {
   ),
   subjectResultsGrouped: "min-h-0 flex-1 overflow-y-auto [padding:1rem_1.5rem_1.5rem] [&_[role]]:mt-4 grid gap-4",
   eligiblePoolFilter: cn(
-    "mx-6 mt-5 grid min-w-0 gap-2 text-[var(--navy)] text-sm font-bold",
+    "mx-6 mt-5 grid min-w-0 gap-2 text-[#0a0a0a] text-sm font-bold",
     "[&_select]:min-h-12 [&_select]:min-w-0 [&_select]:w-full [&_select]:[padding:.8rem_2rem_.8rem_.85rem]",
     "[&_select]:border-[1px] [&_select]:border-solid [&_select]:border-[color:#9aabc3] [&_select]:bg-[var(--soft)]",
     "[&_select]:text-base [&_select]:font-semibold",
@@ -72,7 +73,7 @@ export const subjectChoiceUi = {
   ),
   candidateOwnership: cn(
     "mt-3 grid min-w-0 gap-1 text-xs text-[var(--muted)]",
-    "[&_select]:min-w-0 [&_select]:w-full [&_select]:min-h-10 [&_select]:p-2 [&_select]:text-[var(--navy)]",
+    "[&_select]:min-w-0 [&_select]:w-full [&_select]:min-h-10 [&_select]:p-2 [&_select]:text-[#0a0a0a]",
     "[&_select]:border-[1px] [&_select]:border-solid [&_select]:border-[color:var(--line)] [&_select]:bg-[var(--surface)]",
   ),
   candidateSourceBadges: "mt-2 flex flex-wrap gap-1 text-xs text-[var(--muted)] [&_span]:bg-[var(--soft)] [&_span]:px-2 [&_span]:py-1 [&_span]:[overflow-wrap:anywhere]",
@@ -84,11 +85,43 @@ export const subjectChoiceUi = {
     "[&_summary]:cursor-pointer [&_>_p]:[margin:.65rem_0_0] [&_>_p]:text-[#674a18] [&_>_p]:text-[length:.75rem]",
     "[&_form]:[padding-left:0] [&_form]:[padding-right:0]",
   ),
+  subjectListSummary: "[margin:.4rem_0] text-[var(--muted)] text-[length:.8rem]",
   subjectSearch: cn(
     "grid gap-2 [padding:1.25rem_1.5rem] [border-bottom:1px_solid_var(--line)] [&_>_label]:text-[length:.78rem]",
     "[&_>_label]:[font-weight:750] [&_>_div]:grid [&_>_div]:[grid-template-columns:minmax(0,1fr)_auto]",
     "[&_input]:min-w-0 [&_input]:[padding:.75rem_.85rem] [&_input]:border-[1px] [&_input]:border-solid",
-    "[&_input]:border-[color:#bfc6d1] [&_input]:[border-right:0]",
+    // A rounded input with a gap before its button, like the other search fields.
+    "[&_input]:border-[color:#bfc6d1] [&_input]:[border-radius:.5rem] [&_>_div]:gap-2",
   ),
+  // "Move subject": a compact version of the Choose-a-subject dialog.
+  moveDialog: cn(
+    "[width:min(100%_-_2rem,_34rem)] max-w-none h-fit [max-height:90vh] m-auto p-0 border-0 overflow-hidden",
+    "bg-[var(--surface)] [box-shadow:0_1rem_2.5rem_rgba(20,33,61,.18)] [&::backdrop]:bg-[rgba(14,24,43,.55)]",
+  ),
+  moveDialogPanel: "[max-height:90vh] flex flex-col",
+  moveDialogBody: "grid gap-4 min-h-0 overflow-y-auto overscroll-contain [padding:1.25rem_1.5rem]",
+  moveSubject: cn(
+    "grid [gap:.2rem] [padding:.85rem_1rem] border-[1px] border-solid border-[color:var(--line)] bg-[var(--soft)]",
+    "[&_span]:text-[var(--blue)] [&_span]:text-[length:.72rem] [&_span]:font-extrabold",
+    "[&_strong]:text-[#0a0a0a] [&_strong]:text-[length:.95rem] [&_strong]:[line-height:1.4]",
+    "[&_small]:text-[var(--muted)] [&_small]:text-[length:.78rem]",
+  ),
+  moveField: cn(
+    "grid [gap:.45rem] text-[#0a0a0a] text-[length:.85rem] font-bold [&_select]:w-full [&_select]:min-w-0",
+    "[&_select]:min-h-12 [&_select]:[padding:.8rem_2.5rem_.8rem_.85rem] [&_select]:border-[1px] [&_select]:border-solid",
+    "[&_select]:border-[color:#bfc6d1] [&_select]:bg-[var(--surface)] [&_select]:text-[#0a0a0a] [&_select]:text-base",
+    "[&_select]:font-normal",
+  ),
+  moveChecking: "m-0 text-[var(--muted)] text-[length:.82rem]",
+  moveResults: "grid gap-2 empty:hidden",
+  moveError: cn(
+    "m-0 [padding:.65rem_.8rem] [border-left:3px_solid_#9b2c35] bg-[#fdf2f3] text-[#842c34]",
+    "text-[length:.82rem] [line-height:1.5]",
+  ),
+  moveWarning: cn(
+    "m-0 [padding:.65rem_.8rem] [border-left:3px_solid_#b86b00] bg-[#fff8e8] text-[#674a18]",
+    "text-[length:.82rem] [line-height:1.5]",
+  ),
+  moveDialogFooter: "flex flex-wrap justify-end gap-3 [padding:1rem_1.5rem] [border-top:1px_solid_var(--line)]",
   fieldError: "m-0 text-[#9b2c35] text-[length:.75rem]",
 } as const;

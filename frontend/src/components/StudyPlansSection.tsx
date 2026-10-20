@@ -70,6 +70,13 @@ export const StudyPlansSection = ({
   const [activeChoice, setActiveChoice] = useState<StudyPlanItem | null>(null);
   const [swapSourceId, setSwapSourceId] = useState<string | null>(null);
   const [planNotice, setPlanNotice] = useState("");
+  // Confirms Reset/Clear for a few seconds, as the USYD planner does.
+  const [actionNotice, setActionNotice] = useState("");
+  useEffect(() => {
+    if (!actionNotice) return;
+    const timeout = window.setTimeout(() => setActionNotice(""), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [actionNotice]);
   const retry = useCallback(() => setReloadKey((key) => key + 1), []);
 
   useEffect(() => {
@@ -301,16 +308,17 @@ export const StudyPlansSection = ({
         <div>
           <strong>{planner ? "Custom planner active" : "Want to experiment?"}</strong>
           <p>{planner
-            ? "Your draft is separate from the official handbook and saved automatically on this device."
+            ? "Your draft is separate from the official handbook. It's kept until you leave or refresh this page."
             : "Create a private editable copy of this official plan. The handbook data will stay unchanged."}</p>
         </div>
         <div className={appUi.plannerToolbarActions}>
           {planner ? <>
-            <button className={appUi.secondaryButton} type="button" onClick={reset}>Reset to official plan</button>
-            <button className={appUi.textButtonDanger} type="button" onClick={clear}>Clear custom changes</button>
-          </> : <button className={appUi.primaryButton} type="button" onClick={customize}>Customize plan</button>}
+            <button className={appUi.secondaryButton} type="button" onClick={() => { reset(); setActionNotice("Personal plan reset to the official template."); }}>Reset to official plan</button>
+            <button className={appUi.textButtonDanger} type="button" onClick={() => { clear(); setActionNotice("Custom changes cleared."); }}>Clear custom changes</button>
+          </> : <button className={appUi.primaryButton} type="button" onClick={customize}>Customise plan</button>}
         </div>
       </div>
+      {actionNotice && <p role="status">{actionNotice}</p>}
       {planner && <div className={appUi.roadmapBasis} role="status">
         <strong>Roadmap based on: {selectedPlan.title}</strong>
         {Object.values(componentDetails).length > 0 && <span>Personalised with: {Object.values(componentDetails).map((detail) => detail.component.name).join(" · ")}</span>}
@@ -325,6 +333,7 @@ export const StudyPlansSection = ({
       <OfficialPlanRoadmap plan={displayedPlan} renderItem={(item, scheduled) => <RoadmapCard
                     item={item}
                     editable={planner !== null}
+                    showReadOnlyDetails
                     onChoose={setActiveChoice}
                     onOpenSubject={(code, issues) => setRequirementDetail({ code, issues })}
                     issues={item.subject ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}

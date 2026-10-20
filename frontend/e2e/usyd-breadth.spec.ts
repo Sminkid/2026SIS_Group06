@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openSection } from "./sections";
+import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import { readFileSync } from "node:fs";
 import type { ComponentDetailResponse, DegreeDetailResponse, RequirementGroup, StudyPlan } from "../src/types/handbook";
 import { usydEngineeringSpecialisations, usydFormalFocusId } from "../src/domain/usydEngineeringSpecialisations";
@@ -26,6 +28,7 @@ const plans = formal.plans.map(p => {
 const errors = new WeakMap<Page, string[]>();
 const candidateRequests = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
+  acceptLeavingDegreePages(page);
   const failures: string[] = []; errors.set(page, failures); candidateRequests.set(page, []);
   page.on("pageerror", e => failures.push(e.message));
   await page.route("**/api/**", async route => {
@@ -54,7 +57,7 @@ test.afterEach(async ({ page }) => { expect(errors.get(page)).toEqual([]); });
 
 async function open(page: Page) {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
   await page.locator(".university-card").filter({ hasText: "USYD" }).click();
   await page.locator(".degree-row").filter({ hasText: "BHENGINE-04" }).click();
 }
@@ -92,6 +95,7 @@ test("formal Breadth Course Structure requirements seed a reversible preview wit
   const stream = formal.streams.find(s => s.component.name === "Software Engineering")!;
   const option = usydEngineeringSpecialisations(stream).find(o => o.kind === "BREADTH_SPECIALISATION" && /Humanitarian/.test(o.component.name))!;
   const streamSection = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i }).locator("..");
+  await openSection(page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i }));
   await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
   const breadthSection = streamSection.getByRole("button", { name: /Optional Breadth specialisation/ }).locator("..");
   await breadthSection.getByRole("button", { name: /Optional Breadth specialisation/ }).click();
@@ -112,6 +116,7 @@ test("formal Breadth Course Structure requirements seed a reversible preview wit
 test("Chemical's sole optional Breadth requires an explicit choice and can be cleared", async ({ page }) => {
   await open(page);
   const section = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i }).locator("..");
+  await openSection(page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i }));
   await section.getByRole("radio", { name: /Chemical and Biomolecular Engineering/ }).check();
   const breadth = section.getByRole("button", { name: /Optional Breadth specialisation/ }).locator("..");
   await breadth.getByRole("button", { name: /Optional Breadth specialisation/ }).click();
@@ -124,7 +129,7 @@ test("Chemical's sole optional Breadth requires an explicit choice and can be cl
   await expect(breadth.getByRole("region", { name: "Selected specialisation" })).toHaveCount(0);
 });
 
-test("Breadth Customize Plan offers authoritative subjects with lazy free pools and persists formal ownership", async ({ page }) => {
+test("Breadth Customise Plan offers authoritative subjects with lazy free pools and persists formal ownership", async ({ page }) => {
   await open(page);
   const stream = formal.streams.find(s => s.component.name === "Software Engineering")!;
   const option = usydEngineeringSpecialisations(stream).find(o => o.kind === "BREADTH_SPECIALISATION" && /Humanitarian/.test(o.component.name))!;
@@ -132,7 +137,7 @@ test("Breadth Customize Plan offers authoritative subjects with lazy free pools 
   await page.getByRole("combobox", { name: "Engineering Stream", exact: true }).selectOption("Software Engineering");
   await expect(focus(page)).toHaveValue("BASE");
   await focus(page).selectOption(usydFormalFocusId(option));
-  await page.getByRole("button", { name: "Customize Plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise Plan", exact: true }).click();
   expect(candidateRequests.get(page)).toEqual([]);
   await page.locator(".plan-item--choice").filter({ has: page.getByText("Free Electives", { exact: true }) }).getByRole("button", { name: "Choose", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Choose a subject", exact: true });

@@ -1,8 +1,8 @@
 import { cn } from "./cn";
 
 const asyncStateBase = cn(
-    "min-h-48 grid place-items-center content-center gap-4 p-8 border-[1px] border-solid",
-    "border-[color:var(--line)] text-center [&_p]:m-0",
+    "min-h-48 grid place-items-center content-center gap-4 p-8",
+    "border-none text-center [&_p]:m-0",
   );
 const textButtonBase = "[padding:.7rem_.35rem] border-0 bg-transparent font-bold cursor-pointer [&:hover]:underline";
 
@@ -12,17 +12,17 @@ export const commonUi = {
     "skip-link fixed [z-index:100] [top:.65rem] [left:.65rem] [padding:.7rem_1rem] text-[white] bg-[var(--navy)]",
     "[font-weight:750] [transform:translateY(-160%)] [&:focus]:[transform:translateY(0)]",
   ),
-  asyncStateError: cn(asyncStateBase, "text-[#8c2e35] bg-[#fffafa] [border-color:#e8c7ca]"),
-  asyncState: cn(asyncStateBase, "text-[var(--muted)] bg-[var(--surface)]"),
+  asyncStateError: cn(asyncStateBase, "text-[#8c2e35]"),
+  asyncState: cn(asyncStateBase, "text-[var(--muted)]"),
   spinner: cn(
     "w-7 h-7 border-[2px] border-solid border-[color:var(--line)] [border-top-color:var(--blue)] rounded-full",
     "animate-spin [animation-duration:750ms] motion-reduce:animate-none",
   ),
+  // Outlined companion to primaryButton, e.g. "Select", "Reset to official plan", "Try again".
   secondaryButton: cn(
-    "w-full h-full min-h-30 p-7 cursor-pointer",
-    "border-[1px] [border-radius:var(--radius)] border-solid [border-color:var(--line)] bg-[var(--surface)]",
-    "[transition:border-color_160ms,_transform_160ms] motion-reduce:transition-none motion-reduce:transform-none",
-    "[&:hover]:[border-color:var(--navy)] [&:hover]:[transform:translateY(-2px)]",
+    "[padding:.6rem_1rem] [border-radius:var(--radius)] border-[1px] border-solid [border-color:var(--line)] bg-[var(--surface)]",
+    "text-[#0a0a0a] font-bold cursor-pointer [&:hover:not(:disabled)]:[border-color:var(--navy)] [&:hover:not(:disabled)]:text-[var(--navy)]",
+    "[&:disabled]:opacity-50 [&:disabled]:cursor-not-allowed",
   ),
   stepLabel: "[margin:0_0_.8rem] text-[var(--blue)] text-[length:.76rem] font-extrabold [letter-spacing:.12em] uppercase",
   sectionHeading: cn(
@@ -39,8 +39,9 @@ export const commonUi = {
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
   primaryButton: cn(
-    "min-w-30 [padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
-    "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",
+    "min-w-30 [padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[var(--mint)] text-[#0a0a0a]",
+    "font-bold cursor-pointer [&:hover:not(:disabled)]:bg-[var(--green)]",
+    "[&:disabled]:opacity-50 [&:disabled]:cursor-not-allowed",
   ),
   viewPlanButton: cn(
     "w-full [padding:.7rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",

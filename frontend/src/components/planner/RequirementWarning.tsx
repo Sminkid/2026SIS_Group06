@@ -15,6 +15,6 @@ export function RequirementWarning({ state, year, university, sourceUrl }: {
       : `Prerequisite information is not available in the current dataset. Check the official ${university} handbook when planning enrolment.`}</p>
     <ul className="my-2 list-disc space-y-1 pl-5">{state.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul>
     {state.rawText.map(text => <p className="my-2 whitespace-pre-wrap [overflow-wrap:anywhere]" key={text}>Handbook reference: {text}</p>)}
-    <p className="mb-0 mt-2">Handbook year: {year}{safeUrl && <> · <a className="underline text-blue-800" href={safeUrl} target="_blank" rel="noreferrer">Official subject source</a></>}</p>
+    <p className="mb-0 mt-2">Handbook year: {year}{safeUrl && <> · <a className="font-semibold text-[var(--blue)] no-underline [&:hover]:underline" href={safeUrl} target="_blank" rel="noreferrer">Official subject source <span aria-hidden="true">↗</span></a></>}</p>
   </aside>;
 }

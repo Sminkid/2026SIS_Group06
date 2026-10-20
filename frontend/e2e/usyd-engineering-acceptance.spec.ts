@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openSection } from "./sections";
+import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import { readFileSync } from "node:fs";
 import type { ComponentDetailResponse, DegreeDetailResponse, RequirementCandidateSourceSummary, RequirementCandidateSubjectsResponse, StudyPlan } from "../src/types/handbook";
 import { adaptUsydEngineeringPlan, resolveUsydEngineeringChoice, usydGroups } from "../src/domain/usydEngineeringPlanner";
@@ -18,6 +20,7 @@ const proofs = captured.memberships.map(m=>({sourceId:m.source.id,subjects:allSu
 const failures = new WeakMap<Page,string[]>();
 const requests = new WeakMap<Page,URL[]>();
 test.beforeEach(async ({page})=>{
+  acceptLeavingDegreePages(page);
   failures.set(page,[]); requests.set(page,[]); page.on("pageerror",error=>failures.get(page)!.push(error.message));
   await page.route("**/api/**",async route=>{
     const url=new URL(route.request().url()); const path=url.pathname; let body:unknown;
@@ -41,7 +44,7 @@ test.beforeEach(async ({page})=>{
   });
 });
 test.afterEach(async ({page})=>{ expect(failures.get(page)).toEqual([]); });
-async function open(page:Page) { await page.goto("/"); await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
+async function open(page:Page) { await page.goto("/"); await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
  await page.locator(".university-card").filter({hasText:"USYD"}).click(); await page.locator(".degree-row").filter({hasText:"BHENGINE-04"}).click(); }
 const focusControl=(page:Page)=>page.getByRole("combobox",{name:"Study plan focus",exact:true});
 const academicStorage=(page:Page)=>page.evaluate(()=>localStorage.getItem("degree-planner:components:USYD:2026:BHENGINE-04"));
@@ -65,7 +68,7 @@ for(const stream of captured.streams) test(`${stream.component.name}: all focus/
     for(const variant of preview.variants) {
       await page.getByRole("combobox",{name:"Study plan variant",exact:true}).selectOption(variant.plan.id);
       await expect(page.locator(`[data-usyd-plan-id="${variant.plan.id}"]`)).toBeVisible();
-      await expect(page.getByRole("button",{name:"Customize Plan",exact:true})).toBeVisible();
+      await expect(page.getByRole("button",{name:"Customise Plan",exact:true})).toBeVisible();
       visited.add(variant.plan.id);
       const option=options.find(o=>usydFormalFocusId(o)===focus.id);
       const detail=formal.components.find(c=>c.component.id===option?.component.id);
@@ -73,7 +76,7 @@ for(const stream of captured.streams) test(`${stream.component.name}: all focus/
         await expect(page.getByRole("complementary",{name:"Roadmap focus summary"})).toContainText(detail.component.name);
         await expect(page.getByRole("complementary",{name:"Roadmap focus summary"})).toContainText("keeps elective slots open");
       } else await expect(page.getByRole("complementary",{name:"Roadmap focus summary"})).toHaveCount(0);
-      await page.getByRole("button",{name:"Customize Plan",exact:true}).click();
+      await page.getByRole("button",{name:"Customise Plan",exact:true}).click();
       await expect(page.getByRole("region",{name:"Personal plan summary"})).toContainText("/ 192 CP selected");
       await expect(page.getByRole("region",{name:"Formal specialisation progress"})).toHaveCount(0);
       const slots=adaptUsydEngineeringPlan(variant.plan).years.flatMap(y=>y.periods.flatMap(p=>p.items)).filter(i=>i.itemType==="CHOICE");
@@ -113,12 +116,13 @@ test("formal Breadth progress persists under Base and a different manual focus; 
   const stream=captured.streams.find(s=>s.component.name==="Software Engineering")!;
   const option=usydEngineeringSpecialisations(stream).find(o=>o.component.name==="Humanitarian Engineering (Breadth)")!;
   const course=page.getByRole("button",{name:/Engineering Stream.*120 credit points.*Choose one/i}).locator("..");
+  await openSection(page.getByRole("button",{name:/Engineering Stream.*120 credit points.*Choose one/i}));
   await course.getByRole("radio",{name:/Software Engineering/}).check();
   const breadth=course.getByRole("button",{name:/Optional Breadth specialisation/}).locator("..");
   await breadth.getByRole("button",{name:/Optional Breadth specialisation/}).click();
   await breadth.getByRole("radio",{name:/Humanitarian Engineering \(Breadth\)/}).check();
   await expect(focusControl(page)).toHaveValue(usydFormalFocusId(option));
-  await page.getByRole("button",{name:"Customize Plan",exact:true}).click();
+  await page.getByRole("button",{name:"Customise Plan",exact:true}).click();
   const progress=page.getByRole("region",{name:"Humanitarian Engineering (Breadth) formal progress"});
   await expect(progress).toContainText("0 / 24 CP");
   const choice=page.locator(".plan-item--choice").filter({hasText:/Free Electives/}).first();
@@ -140,33 +144,28 @@ test("formal Breadth progress persists under Base and a different manual focus; 
   const summary=await summaryCard.textContent();
   const selected=page.locator(".plan-item--filled").filter({hasText:"CIVL3310"});
   const period=selected.locator("xpath=ancestor::*[contains(@class,'study-plan-period')]");
-  if(await period.count()) await period.getByRole("button",{name:"Clear movable subjects from period"}).click();
-  else { const parent=selected.locator("xpath=ancestor::section[1]"); await parent.getByRole("button",{name:"Clear movable subjects from period"}).click(); }
-  await expect(progress).toContainText("6 / 24 CP");
-  await page.reload();
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
-  await page.locator(".university-card").filter({hasText:"USYD"}).click();
-  await page.locator(".degree-row").filter({hasText:"BHENGINE-04"}).click();
+  if(await period.count()) await period.getByRole("button",{name:"Clear chosen subjects from period"}).click();
+  else { const parent=selected.locator("xpath=ancestor::section[1]"); await parent.getByRole("button",{name:"Clear chosen subjects from period"}).click(); }
   await expect(progress).toContainText("6 / 24 CP");
   await page.locator(".plan-item--filled").filter({hasText:"CIVL3310"}).getByRole("button",{name:"Remove subject & restore choice"}).click();
   await expect(progress).toContainText("0 / 24 CP");
   const before=await academicStorage(page);
-  await focusControl(page).selectOption("BASE"); await page.getByRole("button",{name:"Customize Plan",exact:true}).click();
+  await focusControl(page).selectOption("BASE"); await page.getByRole("button",{name:"Customise Plan",exact:true}).click();
   await expect(progress).toContainText("0 / 24 CP"); expect(await academicStorage(page)).toBe(before);
   await page.getByRole("button",{name:"Reset to official plan",exact:true}).click(); await expect(progress).toContainText("0 / 24 CP");
-  await page.getByRole("button",{name:"Remove personal draft",exact:true}).click();
-  await expect(page.getByText("Personal draft removed.",{exact:true})).toBeVisible();
-  await expect(page.getByText("Personal draft removed.",{exact:true})).toHaveCount(0,{timeout:7000});
+  await page.getByRole("button",{name:"Clear custom changes",exact:true}).click();
+  await expect(page.getByText("Custom changes cleared.",{exact:true})).toBeVisible();
+  await expect(page.getByText("Custom changes cleared.",{exact:true})).toHaveCount(0,{timeout:7000});
   const other=usydEngineeringSpecialisations(stream).find(o=>o.component.name==="Innovation and Entrepreneurship (Breadth)")!;
   await focusControl(page).selectOption(usydFormalFocusId(other));
-  await page.getByRole("button",{name:"Customize Plan",exact:true}).click();
+  await page.getByRole("button",{name:"Customise Plan",exact:true}).click();
   await expect(progress).toBeVisible();
   await expect(page.getByRole("region",{name:"Innovation and Entrepreneurship (Breadth) formal progress"})).toHaveCount(0);
   expect(await academicStorage(page)).toBe(before);
   await course.getByRole("radio",{name:/Civil Engineering/}).check();
   await page.getByRole("combobox",{name:"Engineering Stream",exact:true}).selectOption("Civil Engineering");
   await expect(focusControl(page)).toHaveValue("BASE");
-  await page.getByRole("button",{name:"Customize Plan",exact:true}).click();
+  await page.getByRole("button",{name:"Customise Plan",exact:true}).click();
   await expect(progress).toHaveCount(0);
   expect(summary).toContain("/ 192 CP selected");
 });
@@ -182,7 +181,7 @@ test("focused membership failure falls back to the normal pool and retry restore
   const option=usydEngineeringSpecialisations(stream).find(o=>o.component.name==="Humanitarian Engineering (Breadth)")!;
   await page.getByRole("combobox",{name:"Engineering Stream",exact:true}).selectOption("Software Engineering");
   await focusControl(page).selectOption(usydFormalFocusId(option));
-  await page.getByRole("button",{name:"Customize Plan",exact:true}).click();
+  await page.getByRole("button",{name:"Customise Plan",exact:true}).click();
   await page.locator(".plan-item--choice").filter({hasText:/Free Electives/}).first().getByRole("button",{name:"Choose",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Choose a subject",exact:true});
   await expect(dialog).toContainText("Couldn't verify all focused subjects");
@@ -199,24 +198,28 @@ test("focused membership failure falls back to the normal pool and retry restore
 test("UNKNOWN Computational requirements show manual progress even when every listed unit is planned",async({page})=>{
   await open(page);
   const course=page.getByRole("button",{name:/Engineering Stream.*120 credit points.*Choose one/i}).locator("..");
+  await openSection(page.getByRole("button",{name:/Engineering Stream.*120 credit points.*Choose one/i}));
   await course.getByRole("radio",{name:/^Mechanical Engineering stream/i}).check();
   const spec=course.getByRole("region",{name:"Selected stream"}).getByRole("button",{name:/^Specialisation/}).locator("..");
   await spec.getByRole("button",{name:/^Specialisation/}).click();
   await spec.getByRole("radio",{name:/Computational/}).check();
-  await page.getByRole("button",{name:"Customize Plan",exact:true}).click();
+  await page.getByRole("button",{name:"Customise Plan",exact:true}).click();
   const progress=page.getByRole("region",{name:"Computational formal progress"});
   await expect(progress).toContainText("manual verification required");
   await expect(progress).not.toContainText("Structured requirement CP met");
   const stream=captured.streams.find(s=>s.component.name==="Mechanical Engineering")!;
   const reference=usydEngineeringSpecialisations(stream).find(o=>o.component.name==="Computational")!.component;
   const component=formal.components.find(c=>c.component.id===reference.id)!;
-  await page.evaluate(subjects=>{
+  const prepared=await page.evaluate(subjects=>{
     const key=Object.keys(localStorage).find(k=>k.startsWith("planner:USYD"))!;
     const stored=JSON.parse(localStorage.getItem(key)!);
     stored.unassignedItems=subjects.map((subject,i)=>({plannerItemId:`manual-${i}`,officialItemId:`manual-${i}`,originalPeriodId:stored.years[0].periods[0].officialPeriodId,itemType:"SUBJECT",subject:{...subject,officialSubjectId:subject.id},title:subject.name,rawCode:subject.code,creditPoints:subject.creditPoints,numberOfPeriods:null,choiceOrigin:null,officialSortOrder:i}));
     localStorage.setItem(key,JSON.stringify(stored));
+    return Object.fromEntries(Object.entries(localStorage));
   },[...new Map(component.requirements.flatMap(g=>g.items.flatMap(i=>i.subject?[i.subject]:[])).map(s=>[s.code,s])).values()]);
-  await open(page);
+  // Reloading resets the page, so put the prepared plan back before the app starts, as if it was planned in this visit.
+  await page.addInitScript(entries=>{ for (const [key,value] of Object.entries(entries)) localStorage.setItem(key,value); },prepared);
+  await page.reload();
   await expect(progress).toContainText("manual verification required");
   await expect(progress).not.toContainText("Structured requirement CP met");
 });

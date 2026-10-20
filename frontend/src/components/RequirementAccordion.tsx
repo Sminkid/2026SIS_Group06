@@ -193,8 +193,8 @@ export const RequirementAccordion = ({ group, depth = 0, universityCode, handboo
   const soleComponentChoice = isComponentChoiceGroup && componentChoices.length === 1
     ? componentChoices[0]
     : undefined;
-  const hasChoiceSelection = isComponentChoiceGroup || Boolean(choiceSelection);
-  const [isOpen, setIsOpen] = useState((depth === 0 && hasChoiceSelection) || Boolean(soleComponentChoice));
+  // Choice sections (majors, streams) start closed like the rest; a section with only one option opens so it loads.
+  const [isOpen, setIsOpen] = useState(Boolean(soleComponentChoice));
   const contentId = useId();
   const selectedCode = selections[group.id];
   const selectedChoice = componentChoices.find((item) => item.component?.code === selectedCode)

@@ -1,4 +1,4 @@
-import { appUi } from "../components/ui";
+import { appUi, cn } from "../components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchDegreeDetail } from "../api/degrees";
 import { AsyncState } from "../components/AsyncState";
@@ -80,7 +80,7 @@ export const DegreePage = ({ university, degree, breadcrumbs, onStartQuiz }: Pro
 
   const hasSemanticOverview = detail?.completionSummary.some((summary) => summary.obligation === "OPTIONAL" || summary.obligation === "CONDITIONAL" || summary.obligation === "INFORMATIONAL") ?? false;
 
-  return <main className={appUi.page} id="main-content">
+  return <main className={cn(appUi.page, "[&_h2]:text-[#0a0a0a]")} id="main-content">
     <Breadcrumbs items={[...breadcrumbs, { label: "Study Plan" }]} />
     {status === "loading" && <AsyncState kind="loading" label="Loading degree requirements" />}
     {status === "error" && <AsyncState kind="error" label="We couldn't load this degree's requirements." onRetry={retry} />}
@@ -93,10 +93,10 @@ export const DegreePage = ({ university, degree, breadcrumbs, onStartQuiz }: Pro
           <span><strong>{detail.degree.university.code}</strong> {detail.degree.university.name}</span>
         </div>
         {detail.degree.description && !hasSemanticOverview && <p className={appUi.degreeDescription}>{readableText(detail.degree.description)}</p>}
-        <button className={appUi.primaryButton} type="button" onClick={onStartQuiz}>
-          Not sure this is right for you? Take the interest quiz
-        </button>
       </header>
+      <button className={appUi.primaryButton} type="button" onClick={onStartQuiz}>
+        Not sure this is right for you? Take the interest quiz
+      </button>
       <DegreeStructureRenderer detail={detail} universityCode={university.code} handbookYear={degree.handbookYear}
         selections={selections} selectionNotice={selectionNotice} onSelectComponent={selectComponent} onOpenSubject={setSubjectCode} />
       <StudyPlanRenderer

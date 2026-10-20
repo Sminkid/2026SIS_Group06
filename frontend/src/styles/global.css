@@ -21,7 +21,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 h1 { margin-top: 0}
 h2 { margin-top: 0; color: #0c65f5}
 p { margin-top: 0 }
-h1 { margin-bottom: 1.5rem; font-size: clamp(2.5rem, 6vw, 5.25rem); line-height: 1.02; letter-spacing: -.045em }
+h1 { margin-bottom: 1.5rem; font-size: clamp(2.5rem, 4vw, 5.25rem); line-height: 1.02; letter-spacing: -.045em }
 h2 { margin-bottom: 0; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.025em }
 h3 { margin: 0; padding: 5px }
 }
@@ -31,3 +31,18 @@ h3 { margin: 0; padding: 5px }
   to { opacity: 1; transform: none; }
 }
 
+
+/*
+ * One dropdown arrow everywhere, set in from the right edge by about the same space as the text from the left.
+ * Outside the layers on purpose, so no field's own padding can let its text run under the arrow.
+ */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .85rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+select:disabled { opacity: .6; }
+select[multiple], select[size]:not([size="1"]) { background-image: none; padding-right: revert-layer; }

@@ -3,6 +3,7 @@ import { fetchRequirementCandidateSubjects } from "../../api/requirementCandidat
 import { mergeCandidateSubjectPages } from "../../domain/candidateSubjects";
 import type { RequirementCandidateSourceSummary, RequirementCandidateSubjectsResponse } from "../../types/handbook";
 import { AsyncState } from "../AsyncState";
+import { appUi } from "../ui";
 
 export interface CandidateSubjectBrowserProps {
   candidateSources: RequirementCandidateSourceSummary[];
@@ -113,40 +114,39 @@ export const RequirementCandidateSubjectBrowser = ({ candidateSources, onOpenSub
     });
   };
 
-  return <section className="mt-5 grid gap-4 border-t border-solid border-slate-200 pt-5" aria-labelledby={headingId}>
-    <div><h4 className="m-0 text-base" id={headingId}>{heading}</h4>
-      <p className="mb-0 mt-1 text-sm text-slate-600">{description}</p></div>
-    <ul className="m-0 grid list-none gap-2 p-0" aria-label={sourcesLabel}>
-      {candidateSources.map((source) => <li className="flex flex-wrap justify-between gap-2 rounded bg-slate-100 px-3 py-2 text-sm" key={source.id}>
+  return <section className={appUi.candidateBrowser} aria-labelledby={headingId}>
+    <div><h4 id={headingId}>{heading}</h4><p>{description}</p></div>
+    <ul className={appUi.candidateSources} aria-label={sourcesLabel}>
+      {candidateSources.map((source) => <li className={appUi.candidateSource} key={source.id}>
         <span>{source.title}</span><strong>{source.candidateCount.toLocaleString()} subjects</strong>
       </li>)}
     </ul>
-    <form className="grid gap-2" onSubmit={submit}><label className="text-sm font-bold" htmlFor={queryId}>{searchLabel}</label>
-      <div className="flex flex-wrap gap-2"><input className="min-w-0 flex-1" id={queryId} type="search" value={query}
+    <form className={appUi.candidateSearch} onSubmit={submit}><label htmlFor={queryId}>{searchLabel}</label>
+      <div><input id={queryId} type="search" value={query}
         onChange={(event) => setQuery(event.target.value)} placeholder={searchPlaceholder} />
-        <button className="rounded bg-slate-900 px-4 py-2 text-sm font-bold text-white" type="submit">{searchButtonLabel}</button></div>
-      {message && <p className="m-0 text-sm text-red-700" role="alert">{message}</p>}
+        <button className={appUi.primaryButton} type="submit">{searchButtonLabel}</button></div>
+      {message && <p className={appUi.fieldError} role="alert">{message}</p>}
     </form>
     <div aria-live="polite">
       {status === "loading" && <AsyncState kind="loading" label={loadingLabel} />}
       {status === "error" && <AsyncState kind="error" label={errorLabel} onRetry={() => search(activeQuery)} />}
       {status === "ready" && results.length === 0 && <AsyncState kind="empty" label="No eligible subjects match this search." />}
-      {status === "ready" && results.length > 0 && <div className="grid gap-2">
-        <p className="m-0 text-sm text-slate-600">Showing {results.length} unique eligible subjects from the pages loaded below.</p>
-        {results.map((subject) => <button className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border border-solid border-slate-200 bg-white p-3 text-left" type="button"
+      {status === "ready" && results.length > 0 && <div className={appUi.candidateResults}>
+        <p>Showing {results.length} unique eligible subjects from the pages loaded below.</p>
+        <div className={appUi.candidateList} tabIndex={0} role="region" aria-label={`${heading} list`}>{results.map((subject) => <button className={appUi.requirementRowInteractive} type="button"
           onClick={() => onOpenSubject(subject.code)} aria-label={`View eligible subject ${subject.code} ${subject.name}`} key={subject.id}>
-          <strong className="text-blue-800">{subject.code}</strong><span>{subject.name}<small className="mt-1 flex flex-wrap gap-1 text-slate-600">
-            {subject.eligibilitySources.map((source) => <span className="rounded bg-slate-100 px-2 py-0.5" key={source.id}>{source.title}</span>)}</small></span>
-          <span className="text-sm text-slate-600">{subject.creditPoints === null ? "CP not listed" : `${subject.creditPoints} CP`}</span>
-        </button>)}
+          <span className={appUi.requirementRowCode}>{subject.code}</span>
+          <span className={appUi.requirementRowName}>{subject.name}<small className={appUi.candidateSourceTags}>
+            {subject.eligibilitySources.map((source) => <span className={appUi.candidateSourceTag} key={source.id}>{source.title}</span>)}</small></span>
+          <span className={appUi.requirementRowCp}>{subject.creditPoints === null ? "CP not listed" : `${subject.creditPoints} CP`}</span>
+        </button>)}</div>
       </div>}
     </div>
-    {status === "ready" && <div className="flex flex-wrap gap-2">{candidateSources.map((source) => {
+    {status === "ready" && <div className={appUi.candidateLoadMore}>{candidateSources.map((source) => {
       const current = loaded[source.id];
       if (!current || current.pagination.page >= current.pagination.totalPages) return null;
-      return <button className="rounded border border-solid border-slate-400 bg-white px-3 py-2 text-sm font-bold" type="button" disabled={current.loadingMore}
+      return <button className={appUi.secondaryButton} type="button" disabled={current.loadingMore}
         onClick={() => loadMore(source)} key={source.id}>Load more from {source.title} ({current.pagination.page} of {current.pagination.totalPages})</button>;
     })}</div>}
   </section>;
 };
-

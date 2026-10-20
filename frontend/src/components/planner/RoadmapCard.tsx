@@ -57,7 +57,9 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, r
       : item.choiceOrigin?.componentRequirementKind === "COMPONENT" ? "Choose a required Core or eligible Option" : "Choose an eligible subject"}</p>}
     {prerequisite && <PrerequisiteSummary state={prerequisite} />}
     {secondaryIssue && <p className="m-0 text-xs text-amber-900">Plan requirement needs review</p>}
-    {!editable && showReadOnlyDetails && item.subject && <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>}
+    {!editable && showReadOnlyDetails && item.subject && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
+      <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>
+    </div>}
     {editable && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
       {interactive && <button className={ui.action} type="button" onClick={() => onChoose(item)}>{filled ? "Change" : "Choose"}</button>}
       {filled && !placement && onSwap && <button className={ui.action} type="button" aria-label="Swap position" onClick={() => onSwap(item.id)}>Swap</button>}

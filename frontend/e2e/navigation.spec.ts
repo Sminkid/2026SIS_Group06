@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { acceptLeavingDegreePages, confirmLeavingDegree } from "./degreeReset";
 import { readFileSync } from "node:fs";
 import type { ComponentDetailResponse, DegreeDetailResponse, DegreeSummary, StudyPlan } from "../src/types/handbook";
 
@@ -90,6 +91,7 @@ const answerScreening = async (page: Page) => {
 };
 
 test.beforeEach(async ({ page }) => {
+  acceptLeavingDegreePages(page);
   await mockApi(page);
   await page.goto("/");
   await expect(heading(page, LANDING)).toBeVisible();
@@ -100,6 +102,7 @@ test("nav links and the logo work from a page deep in the app", async ({ page })
   await openStudyPlanFromComparison(page);
 
   await nav(page).getByRole("button", { name: "Interest Quiz", exact: true }).click();
+  await confirmLeavingDegree(page);
   await expect(heading(page, "Interest quiz")).toBeVisible();
   await nav(page).getByRole("button", { name: "View All Courses", exact: true }).click();
   await expect(heading(page, "Courses")).toBeVisible();
@@ -120,6 +123,7 @@ test("handbook route: every breadcrumb goes back to its page", async ({ page }) 
   await expectTrail(page, ["Home", "University Handbooks", "UTS", "Study Plan"]);
 
   await breadcrumb(page).getByRole("button", { name: "UTS" }).click();
+  await confirmLeavingDegree(page);
   await expect(heading(page, "Choose a degree")).toBeVisible();
   await breadcrumb(page).getByRole("button", { name: "University Handbooks" }).click();
   await expect(heading(page, "Choose a university")).toBeVisible();
@@ -134,6 +138,7 @@ test("browsing route: All Courses → Comparison → Study Plan breadcrumbs go b
   await expectTrail(page, ["Home", "All Courses", "Comparison", "Study Plan"]);
 
   await breadcrumb(page).getByRole("button", { name: "Comparison" }).click();
+  await confirmLeavingDegree(page);
   await expect(page.getByRole("heading", { name: `Compare universities for ${ENGINEERING}` })).toBeVisible();
   await breadcrumb(page).getByRole("button", { name: "All Courses" }).click();
   await expect(heading(page, "Courses")).toBeVisible();
@@ -157,6 +162,7 @@ test("quiz route: the result, recommendations, comparison and study plan keep th
   await expectTrail(page, ["Home", "Quiz Result", "Recommendations", "Comparison", "Study Plan"]);
 
   await breadcrumb(page).getByRole("button", { name: "Recommendations" }).click();
+  await confirmLeavingDegree(page);
   await expect(page.getByRole("heading", { name: "Recommended courses" })).toBeVisible();
   await breadcrumb(page).getByRole("button", { name: "Quiz Result" }).click();
   await expect(page.getByRole("heading", { name: "Your Holland Code Profile is" })).toBeVisible();
@@ -166,6 +172,7 @@ test("a quiz started from a study plan links back to that study plan", async ({ 
   await openEngineeringComparison(page);
   await openStudyPlanFromComparison(page);
   await page.getByRole("button", { name: "Not sure this is right for you? Take the interest quiz" }).click();
+  await confirmLeavingDegree(page);
   await expect(heading(page, "Interest quiz")).toBeVisible();
   await expectTrail(page, ["Home", "Study Plan", "Quiz"]);
   await breadcrumb(page).getByRole("button", { name: "Study Plan" }).click();
@@ -178,6 +185,7 @@ test("Back and Forward step through a deep route, and a reload keeps the compari
   await openStudyPlanFromComparison(page);
 
   await page.goBack();
+  await confirmLeavingDegree(page);
   await expect(page.getByRole("heading", { name: `Compare universities for ${ENGINEERING}` })).toBeVisible();
   await page.goBack();
   await expect(heading(page, "Courses")).toBeVisible();
@@ -235,4 +243,63 @@ test("the skip link moves keyboard focus past the nav bar to the page content", 
   await page.keyboard.press("Tab");
   // The next stop is inside the page, not one of the nav links.
   expect(await page.evaluate(() => Boolean(document.activeElement?.closest("#main-content")))).toBeTruthy();
+});
+
+const leaveDialog = (page: Page) => page.getByRole("dialog", { name: "Leaving resets this page" });
+const majorSelect = (page: Page) => page.getByRole("combobox", { name: "Major", exact: true });
+
+test("leaving a study plan asks first: Stay keeps the plan, Leave leaves and resets it", async ({ page }) => {
+  await openEngineeringComparison(page);
+  await openStudyPlanFromComparison(page);
+  const major = await majorSelect(page).locator("option").nth(1).getAttribute("value");
+  await majorSelect(page).selectOption(major!);
+
+  await nav(page).getByRole("button", { name: "View All Courses", exact: true }).click();
+  await expect(leaveDialog(page)).toContainText("If you leave or refresh, this degree page starts again from the official handbook.");
+  await leaveDialog(page).getByRole("button", { name: "Stay on this page" }).click();
+  await expect(leaveDialog(page)).toBeHidden();
+  await expect(heading(page, ENGINEERING)).toBeVisible();
+  await expect(majorSelect(page)).toHaveValue(major!);
+
+  // Escape is the same as Stay.
+  await breadcrumb(page).getByRole("button", { name: "Comparison" }).click();
+  await page.keyboard.press("Escape");
+  await expect(heading(page, ENGINEERING)).toBeVisible();
+
+  await nav(page).getByRole("button", { name: "View All Courses", exact: true }).click();
+  await confirmLeavingDegree(page);
+  await expect(heading(page, "Courses")).toBeVisible();
+  await page.getByRole("heading", { name: ENGINEERING }).locator("..").getByRole("button", { name: "2 universities offer this" }).click();
+  await openStudyPlanFromComparison(page);
+  await expect(majorSelect(page)).toHaveValue("");
+});
+
+test("Back from a study plan asks first: Stay keeps the page, Leave goes back without an extra history entry", async ({ page }) => {
+  await openEngineeringComparison(page);
+  await openStudyPlanFromComparison(page);
+
+  await page.goBack();
+  await expect(leaveDialog(page)).toBeVisible();
+  await leaveDialog(page).getByRole("button", { name: "Stay on this page" }).click();
+  await expect(heading(page, ENGINEERING)).toBeVisible();
+
+  await page.goBack();
+  await confirmLeavingDegree(page);
+  await expect(page.getByRole("heading", { name: `Compare universities for ${ENGINEERING}` })).toBeVisible();
+  await page.goBack();
+  await expect(heading(page, "Courses")).toBeVisible();
+});
+
+test("refreshing a study plan shows the browser's leave warning and reloads it reset", async ({ page }) => {
+  const warnings: string[] = [];
+  page.on("dialog", (dialog) => warnings.push(dialog.type()));
+  await openEngineeringComparison(page);
+  await openStudyPlanFromComparison(page);
+  const major = await majorSelect(page).locator("option").nth(1).getAttribute("value");
+  await majorSelect(page).selectOption(major!);
+
+  await page.reload();
+  expect(warnings).toContain("beforeunload");
+  await expect(heading(page, ENGINEERING)).toBeVisible();
+  await expect(majorSelect(page)).toHaveValue("");
 });

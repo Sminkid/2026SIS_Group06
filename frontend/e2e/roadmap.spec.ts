@@ -1,4 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
+import { openSection } from "./sections";
+import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import type { SubjectAccessConditions } from "../src/types/subject";
 import { readFileSync } from "node:fs";
 import type { ComponentDetailResponse, DegreeDetailResponse, StudyPlan } from "../src/types/handbook";
@@ -50,6 +52,7 @@ const usydSpecialisationDetails: ComponentDetailResponse[] = [
 ];
 const failures = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
+  acceptLeavingDegreePages(page);
   const errors: string[] = [];
   failures.set(page, errors);
   page.on("pageerror", (error) => errors.push(error.message));
@@ -91,13 +94,13 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => { expect(failures.get(page)).toEqual([]); });
 const openDegree = async (page: Page, code: string, university = "UTS") => {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
   await page.locator(".university-card").filter({ hasText: university }).click();
   await page.locator(".degree-row").filter({ hasText: code }).click();
   await expect(page.locator(".degree-hero")).toContainText(code);
 };
 
-test("Accounting empty state, sub-major options, replacement/removal and persisted reload", async ({ page }) => {
+test("Accounting empty state, sub-major options, replacement/removal, and a reset after leaving", async ({ page }) => {
   await openDegree(page, "C10235");
   const path = page.locator(".study-path");
   await expect(path.locator("select").first()).toHaveValue("");
@@ -109,7 +112,7 @@ test("Accounting empty state, sub-major options, replacement/removal and persist
   await path.locator(".pathway-selection select").nth(1).selectOption("SMJ08138");
   await expect(path.locator(".selected-path-preview")).toHaveCount(2);
   await expect(path.locator(".pathway-selection select").nth(1).locator('option[value="SMJ08109"]')).toHaveCount(0);
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   const slot = page.locator(".plan-item--choice").filter({ hasText: "Counts toward: Marketing" }).first();
   await slot.locator(".plan-item__main-action").click();
   const dialog = page.getByRole("dialog");
@@ -122,14 +125,6 @@ test("Accounting empty state, sub-major options, replacement/removal and persist
   await slot.locator(".plan-item__main-action").click();
   await dialog.getByRole("button", { name: "Replace current option", exact: true }).last().click();
   await expect(slot).toContainText("Selected subject");
-  let releaseDetails!: () => void;
-  const detailsPending = new Promise<void>(resolve => { releaseDetails = resolve; });
-  await page.route("**/api/components/*", async route => { await detailsPending; await route.fallback(); });
-  try {
-    await openDegree(page, "C10235");
-    // Restored allocations must survive even when roadmap templates arrive before component details.
-    await expect(page.locator(".plan-item--filled")).toHaveCount(1);
-  } finally { releaseDetails(); }
   await expect(path.locator(".selected-path-preview")).toHaveCount(2);
   await expect(page.locator(".plan-item--filled")).toHaveCount(1);
   await page.getByRole("button", { name: "Remove subject & restore choice" }).click();
@@ -138,6 +133,25 @@ test("Accounting empty state, sub-major options, replacement/removal and persist
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
   await expect(slot.locator(".plan-item__main-action")).toBeFocused();
+  // Leaving and coming back starts the degree page again: no pathway, no custom plan.
+  await openDegree(page, "C10235");
+  await expect(path.locator("select").first()).toHaveValue("");
+  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Customise plan", exact: true })).toBeVisible();
+});
+
+test("Reset and Clear custom changes confirm briefly, as they do for USYD", async ({ page }) => {
+  await openDegree(page, "C10235");
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
+  await page.getByRole("button", { name: "Reset to official plan", exact: true }).click();
+  const reset = page.getByText("Personal plan reset to the official template.", { exact: true });
+  await expect(reset).toBeVisible();
+  await page.getByRole("button", { name: "Clear custom changes", exact: true }).click();
+  const cleared = page.getByText("Custom changes cleared.", { exact: true });
+  await expect(cleared).toBeVisible();
+  await expect(reset).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Customise plan", exact: true })).toBeVisible();
+  await expect(cleared).toHaveCount(0, { timeout: 7000 });
 });
 
 test("Accounting broad electives and confirmed pathway change preserve compulsory subjects", async ({ page }) => {
@@ -145,7 +159,7 @@ test("Accounting broad electives and confirmed pathway change preserve compulsor
   const path = page.locator(".study-path");
   await path.locator("select").first().selectOption({ label: "Sub-major + electives" });
   await path.locator(".pathway-selection select").selectOption("SMJ08138");
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   const electives = page.locator(".plan-item--choice").filter({ has: page.getByRole("heading", { name: "Electives · 6 CP choice" }) });
   await expect(electives).toHaveCount(4);
   await electives.first().locator(".plan-item__main-action").click();
@@ -169,7 +183,7 @@ test("Engineering Data Science major/variant synchronization and exact candidate
   const major = page.locator(".study-path").getByRole("combobox", { name: "Major", exact: true });
   await major.selectOption("MAJ03518");
   await expect(page.locator(".plan-intro h3")).toHaveText("Data Science Engineering major, Autumn commencing, full time");
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   await expect(page.locator(".plan-item--choice").filter({ hasText: "CBK92152" })).toHaveCount(3);
   await page.locator(".plan-item--choice").filter({ hasText: "CBK92152" }).first().locator(".plan-item__main-action").click();
   await expect(page.getByRole("dialog").locator(".subject-result")).toHaveCount(11);
@@ -179,9 +193,9 @@ test("Engineering Data Science major/variant synchronization and exact candidate
   await expect(major).toHaveValue("MAJ03537");
   await major.selectOption("MAJ03518");
   await expect(page.locator(".plan-intro h3")).toContainText("Data Science");
+  // Leaving resets the chosen major.
   await openDegree(page, "C09066");
-  await expect(major).toHaveValue("MAJ03518");
-  await expect(page.locator(".plan-intro h3")).toContainText("Data Science");
+  await expect(major).toHaveValue("");
 });
 
 test("UTS Course Structure still selects a major and renders its nested subject requirements", async ({ page }) => {
@@ -189,6 +203,7 @@ test("UTS Course Structure still selects a major and renders its nested subject 
   const majorsButton = page.getByRole("button", { name: /Majors - Engineering.*120 credit points.*Choose one/i });
   await expect(majorsButton).toBeVisible();
   const majorsSection = majorsButton.locator("..");
+  await openSection(majorsButton);
   await majorsSection.getByRole("searchbox", { name: "Filter choices" }).fill("Data Science Engineering");
   await majorsSection.getByRole("radio", { name: /Data Science Engineering/ }).check();
   await expect(majorsSection.getByText("Selected major", { exact: true })).toBeVisible();
@@ -215,6 +230,7 @@ test("USYD Study Plan can be explored independently without mutating Course Stru
 
   const streamButton = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i });
   const streamSection = streamButton.locator("..");
+  await openSection(streamButton);
   await expect(streamSection.getByRole("radio", { name: /Civil Engineering/ })).not.toBeChecked();
   await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
   await expect(previewStream).toHaveValue("Civil Engineering");
@@ -280,7 +296,9 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
   await subjectDialog.getByRole("button", { name: "Close subject details" }).click();
 
   const streamSection = streamButton.locator("..");
-  await expect(streamButton).toHaveAttribute("aria-expanded", "true");
+  // Choice sections start closed until the student opens them.
+  await expect(streamButton).toHaveAttribute("aria-expanded", "false");
+  await openSection(streamButton);
   await expect(streamSection.getByRole("searchbox", { name: "Filter choices" })).toBeVisible();
   await expect(streamSection.getByRole("radio")).toHaveCount(2);
   await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
@@ -299,7 +317,7 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
   await expect(electivesSection).toContainText("a maximum of 24 credit points from Table S");
   await expect(electivesSection).not.toContainText("eligible-subject list");
   await expect(page.locator(".plan-year")).toHaveCount(4);
-  await expect(page.getByRole("button", { name: "Customize Plan", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Customise Plan", exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Engineering Stream" })).toHaveValue("Software Engineering");
   await expect(page.getByText("Suggested from Course Structure")).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Study plan focus" })).toHaveValue("BASE");
@@ -310,7 +328,7 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
   await expect(page.locator(".plan-period").first()).toContainText("Semester 1");
   await expect(page.locator(".plan-item").filter({ hasText: "INFO1110" })).toBeVisible();
   await expect(page.locator(".plan-item--choice")).toContainText("Software Stream 1000/2000 Level Electives");
-  await expect(page.locator(".plan-item--choice")).toContainText("Customize to choose from eligible subjects");
+  await expect(page.locator(".plan-item--choice")).toContainText("Customise to choose from eligible subjects");
   await expect(page.getByText("Year 0", { exact: true })).toHaveCount(0);
 
   await streamSection.getByRole("button", { name: /Software Engineering Specialisations.*Choose one/i }).click();
@@ -332,7 +350,7 @@ test("USYD Engineering suggests canonical Course Structure choices in the indepe
 test("Narrow layout and compact empty dialog retain a visible close control", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openDegree(page, "C10235");
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   await page.locator(".plan-item--choice .plan-item__main-action").first().click();
   await expect(page.getByRole("button", { name: "Close subject selector" })).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
@@ -371,7 +389,7 @@ test("Accounting Core starts outstanding; equivalent positions expose the same p
   await path.locator(".pathway-selection select").selectOption("SMJ08109");
   await expect(path).toContainText("Required Core remaining: 3");
   await expect(path.locator(".missing-subject")).toContainText("21228");
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   await expect(page.locator(".plan-item--filled")).toHaveCount(0);
   const slots = page.locator(".plan-item--choice").filter({ hasText: "Counts toward: Management Consulting" });
   await expect(slots).toHaveCount(4);
@@ -399,12 +417,12 @@ test("Accounting Core starts outstanding; equivalent positions expose the same p
   await expect(path).toContainText("Required Core remaining: 2");
 });
 
-test("Accounting cross-requirement swap, cancellation, empty move and reload retain Core allocation", async ({ page }) => {
+test("Accounting cross-requirement swap, cancellation and empty move retain Core allocation, and leaving resets it", async ({ page }) => {
   await openDegree(page, "C10235");
   const path = page.locator(".study-path");
   await path.locator("select").first().selectOption({ label: "Sub-major + electives" });
   await path.locator(".pathway-selection select").selectOption("SMJ08138");
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   await page.locator(".plan-item--choice").filter({ hasText: "Counts toward: Marketing" }).first().locator(".plan-item__main-action").click();
   const core = page.getByRole("dialog").locator(".subject-result").filter({ hasText: "Required Core" }).first();
   const code = await core.locator(".subject-result__code").innerText();
@@ -429,8 +447,6 @@ test("Accounting cross-requirement swap, cancellation, empty move and reload ret
   await expect(source).toContainText(beforeTarget);
   await expect(source).toContainText("Counts toward: Marketing Core");
   await expect(target).toContainText(beforeSource);
-  await openDegree(page, "C10235");
-  await expect(source).toContainText(beforeTarget);
   await expect(path).toContainText("Required Core remaining: 2");
   await source.getByRole("button", { name: "Swap position" }).click();
   await page.locator(".swap-target").filter({ hasText: "Electives · 6 CP choice" }).first().click();
@@ -439,12 +455,14 @@ test("Accounting cross-requirement swap, cancellation, empty move and reload ret
   await source.getByRole("button", { name: "Remove subject & restore choice" }).click();
   await expect(path).toContainText("Required Core remaining: 3");
   await expect(page.locator(".plan-item--filled")).toHaveCount(1);
+  await openDegree(page, "C10235");
+  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
 test("Engineering option swaps with a Free Elective and preserves its formal group", async ({ page }) => {
   await openDegree(page, "C09066");
   await page.locator(".study-path").getByRole("combobox", { name: "Major", exact: true }).selectOption("MAJ03518");
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   await page.locator(".plan-item--choice").filter({ hasText: "CBK92152" }).first().locator(".plan-item__main-action").click();
   await page.getByRole("dialog").getByRole("button", { name: "Select", exact: true }).first().click();
   const option = page.locator(".plan-item--filled").first();
@@ -453,9 +471,9 @@ test("Engineering option swaps with a Free Elective and preserves its formal gro
   await page.locator(".swap-target").filter({ hasText: "Free Elective" }).first().click();
   await page.getByRole("button", { name: "Confirm swap" }).click();
   await expect(option).toContainText(ownership);
+  // Leaving resets the custom plan, so nothing chosen is restored.
   await openDegree(page, "C09066");
-  await expect(page.locator(".plan-item--filled")).toHaveCount(1);
-  await expect(page.locator(".plan-item--filled")).toContainText(ownership);
+  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
 test("Known offering restriction excludes incompatible swap targets", async ({ page }) => {
@@ -466,7 +484,7 @@ test("Known offering restriction excludes incompatible swap targets", async ({ p
   const path = page.locator(".study-path");
   await path.locator("select").first().selectOption({ label: "Sub-major + electives" });
   await path.locator(".pathway-selection select").selectOption("SMJ08109");
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   await page.locator(".plan-item--choice").filter({ hasText: "Counts toward: Management Consulting" }).first().locator(".plan-item__main-action").click();
   await page.getByRole("dialog").locator(".subject-result").filter({ hasText: "21510" }).getByRole("button", { name: "Select", exact: true }).click();
   await page.getByRole("button", { name: "Swap position", exact: true }).click();
@@ -485,11 +503,13 @@ test("USYD degree requirements remain available", async ({ page }) => {
   const requiredMajor = page.getByRole("button", { name: /Required major/ });
   await expect(requiredMajor).toBeVisible();
   const requiredMajorSection = requiredMajor.locator("..");
+  await openSection(requiredMajor);
   await expect(requiredMajorSection.getByRole("radio")).toHaveCount(4);
   await expect(requiredMajorSection.getByRole("searchbox", { name: "Filter choices" })).toBeVisible();
   await expect(page.getByText("Choose one 48 CP major", { exact: true })).toHaveCount(0);
   const component = fixture.usydComponent.component;
   await page.getByRole("combobox", { name: "Would you like an additional component?" }).selectOption("MINOR");
+  await openSection(page.getByRole("button", { name: /Choose one minor from Table S/ }));
   await page.locator(`input[type="radio"][value="${component.code}"]`).first().check();
   await expect(page.locator(".selected-component").first()).toContainText(component.name);
   await expect(page.locator(".selected-component").first()).toContainText("CP");
@@ -518,7 +538,7 @@ const selectSoftwareOption = async (page: Page) => {
   await openDegree(page, "C09066");
   await page.locator(".study-path").getByRole("combobox", { name: "Major", exact: true }).selectOption("MAJ03523");
   await page.getByRole("combobox", { name: "Major options", exact: true }).selectOption({ label: "Technical Subjects" });
-  await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
   await page.locator(".plan-item--choice").filter({ hasText: "Software Engineering Option" }).first().locator(".plan-item__main-action").click();
   await page.getByRole("dialog").locator(".subject-result").filter({ hasText: "41052" }).getByRole("button", { name: "Select", exact: true }).click();
   return page.locator(".plan-item--filled").filter({ hasText: "41052" });
@@ -622,10 +642,8 @@ test("Repeated Software Engineering swaps and cancellation preserve compact card
   await page.keyboard.press("Escape");
   expect(await cardSize(card)).toEqual(original);
   await expect(card.getByRole("button", { name: "Swap position" })).toBeFocused();
-  const scheduled = await card.locator(".plan-item__note").filter({ hasText: "Scheduled:" }).innerText();
   await openDegree(page, "C09066");
-  await expect(card).toContainText(scheduled);
-  await expect(card).toContainText(ownership);
+  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
 for (const width of [1440, 1280, 768, 390]) {
@@ -634,7 +652,7 @@ for (const width of [1440, 1280, 768, 390]) {
     await openDegree(page, "C10235");
     await page.locator(".study-path select").first().selectOption({ label: "Sub-major + electives" });
     await page.locator(".pathway-selection select").selectOption("SMJ08138");
-    await page.getByRole("button", { name: "Customize plan", exact: true }).click();
+    await page.getByRole("button", { name: "Customise plan", exact: true }).click();
     await page.locator(".plan-item--choice").filter({ hasText: "Counts toward: Marketing" }).first().locator(".plan-item__main-action").click();
     await page.getByRole("dialog").locator(".subject-result").filter({ hasText: "Required Core" }).first().getByRole("button", { name: "Select", exact: true }).click();
     const card = page.locator(".plan-item--filled");

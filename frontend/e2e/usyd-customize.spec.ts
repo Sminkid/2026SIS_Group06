@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import { readFileSync } from "node:fs";
 import type { DegreeDetailResponse } from "../src/types/handbook";
 import type { ComponentDetailResponse, RequirementGroup, RequirementSubject, StudyPlan } from "../src/types/handbook";
@@ -43,6 +44,7 @@ const access = (code: string): SubjectAccessConditions => ({ subject: { id: code
       referencedSubject: subject(ref), referencedComponent: null, referencedDegree: null, rawReferencedCodes: [ref], sortOrder: index })) }] : [] });
 const errors = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
+  acceptLeavingDegreePages(page);
   const failures: string[] = []; errors.set(page, failures);
   page.on("pageerror", e => failures.push(e.message));
   page.on("console", msg => { if (["warning", "error"].includes(msg.type())) failures.push(msg.text()); });
@@ -74,12 +76,12 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => { expect(errors.get(page)).toEqual([]); });
 async function open(page: Page) {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
   await page.locator(".university-card").filter({ hasText: "USYD" }).click();
   await page.locator(".degree-row").filter({ hasText: "BHENGINE-04" }).click();
 }
 const stream = (page: Page) => page.getByRole("combobox", { name: "Engineering Stream", exact: true });
-async function customize(page: Page) { await stream(page).selectOption("Software Engineering"); await page.getByRole("button", { name: "Customize Plan", exact: true }).click(); }
+async function customize(page: Page) { await stream(page).selectOption("Software Engineering"); await page.getByRole("button", { name: "Customise Plan", exact: true }).click(); }
 const choice = (page: Page) => page.getByRole("dialog", { name: "Choose a subject", exact: true });
 async function fill(page: Page, index = 0, code = "INFO1111") {
   await page.locator(".plan-item--choice").nth(index).getByRole("button", { name: "Choose", exact: true }).click();
@@ -99,20 +101,20 @@ test("selector identity, official immutability and deterministic 12 CP children"
   await expect(page.locator(".roadmap-aggregate .plan-item")).toHaveCount(2); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
-test("drafts survive reload and remain isolated by base, commencement and specialisation", async ({ page }) => {
+test("drafts stay isolated by base, commencement and specialisation, and reset when the page is left", async ({ page }) => {
   await open(page); await customize(page); await fill(page);
   await page.getByRole("combobox", { name: "Commencement", exact: true }).selectOption("MID_YEAR");
-  await page.getByRole("button", { name: "Customize Plan", exact: true }).click(); await fill(page, 0, "COMP2022");
-  await open(page); await expect(page.locator("[data-usyd-plan-id]")).toHaveAttribute("data-usyd-plan-id", "software-midyear");
+  await page.getByRole("button", { name: "Customise Plan", exact: true }).click(); await fill(page, 0, "COMP2022");
+  await expect(page.locator("[data-usyd-plan-id]")).toHaveAttribute("data-usyd-plan-id", "software-midyear");
   await expect(page.locator(".plan-item--filled")).toContainText("COMP2022");
   await page.getByRole("combobox", { name: "Commencement", exact: true }).selectOption("STANDARD");
   await expect(page.locator(".plan-item--filled")).toContainText("INFO1111");
   await page.getByRole("combobox", { name: "Study plan focus", exact: true }).selectOption({ label: "Computer · 30 CP" });
-  await page.getByRole("button", { name: "Customize Plan", exact: true }).click(); await fill(page, 0, "COMP2022");
+  await page.getByRole("button", { name: "Customise Plan", exact: true }).click(); await fill(page, 0, "COMP2022");
   await page.getByRole("combobox", { name: "Study plan focus", exact: true }).selectOption("BASE");
   await expect(page.locator(".plan-item--filled")).toContainText("INFO1111");
-  await page.getByRole("button", { name: "Remove personal draft" }).click(); await expect(page.getByRole("button", { name: "Customize Plan", exact: true })).toBeVisible();
-  await open(page); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
+  await page.getByRole("button", { name: "Clear custom changes" }).click(); await expect(page.getByRole("button", { name: "Customise Plan", exact: true })).toBeVisible();
+  await open(page); await expect(stream(page)).toHaveValue(""); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
 test("mixed embedded/source union is deduplicated and persists explicit requirement ownership", async ({ page }) => {
@@ -171,7 +173,6 @@ test("contextual low-level pool groups results once; filters reconcile overlappi
   expect(await filter.evaluate(element => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(48);
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await dialog.locator('[data-candidate-code="COMP2022"]').getByRole("button", { name: "Select", exact: true }).click();
-  await open(page);
   const saved = await page.evaluate(() => Object.entries(localStorage).filter(([key]) => key.startsWith("planner:USYD")).map(([, value]) => JSON.parse(value)));
   const allocation = saved[0].years[0].periods[0].items.find((item: { subject?: { code: string } }) => item.subject?.code === "COMP2022");
   expect(allocation.choiceOrigin.formalRequirementGroupId).toBe("free");
@@ -198,7 +199,7 @@ test("high-level primary defaults correctly and an ambiguous primary keeps All e
   await expect(choice(page).getByRole("heading", { name: high.title!, exact: true })).toHaveCount(1);
   await expect(choice(page).locator('[data-candidate-code="COMP3608"]')).toHaveCount(1);
   await page.keyboard.press("Escape");
-  ambiguous = true; await open(page);
+  ambiguous = true; await open(page); await customize(page);
   await page.locator(".plan-item--choice").first().getByRole("button", { name: "Choose", exact: true }).click();
   await expect(choice(page).getByLabel("Eligible pool", { exact: true })).toHaveValue("");
   await expect(choice(page)).toContainText("Some CUSP alternatives could not be mapped.");
@@ -230,21 +231,32 @@ test("Free Electives page/search, capacity checks and explicit Table D applicabi
   await expect(choice(page)).not.toContainText("Table D units");
 });
 
-test("move validation blocks a late INFO1110 prerequisite; clear and restore preserve locked PEP", async ({ page }) => {
+test("standard roadmap subjects can't be moved or cleared; only subjects chosen in a choice slot can", async ({ page }) => {
   await open(page); await customize(page);
-  const programming = page.locator('.plan-item').filter({ hasText: "INFO1110" });
-  await programming.getByRole("button", { name: "Move subject" }).click();
-  await page.getByLabel("Destination period").selectOption("official:y3s1");
-  await expect(page.getByRole("dialog", { name: "Move subject" })).toContainText("Prerequisite scheduled after this subject");
-  await expect(page.getByRole("button", { name: "Confirm move" })).toBeDisabled(); await page.getByRole("button", { name: "Cancel move" }).click();
-  await expect(page.locator('.plan-item').filter({ hasText: "ENGP1001" }).getByRole("button", { name: "Move subject" })).toHaveCount(0);
-  await page.getByRole("button", { name: "Clear movable subjects from period" }).first().click();
+  const card = (code: string) => page.locator(".plan-item").filter({ hasText: code });
+  // The roadmap's standard subjects keep their positions, so they offer no Move, Swap or Clear.
+  for (const code of ["INFO1110", "ENGP1001", "MATH1061"]) {
+    await expect(card(code).getByRole("button", { name: "Move subject", exact: true })).toHaveCount(0);
+    await expect(card(code).getByRole("button", { name: "Swap position", exact: true })).toHaveCount(0);
+  }
+  await expect(page.getByRole("button", { name: "Clear chosen subjects from period" })).toHaveCount(0);
+
+  await fill(page);
+  const chosen = page.locator(".plan-item--filled").filter({ hasText: "INFO1111" });
+  await expect(chosen.getByRole("button", { name: "Move subject", exact: true })).toBeVisible();
+  // Moving a chosen subject can't push it into a standard subject's place.
+  await chosen.getByRole("button", { name: "Move subject", exact: true }).click();
+  await page.getByLabel("Destination period").selectOption("HOLDING"); await page.getByRole("button", { name: "Confirm move" }).click();
   await expect(page.getByRole("heading", { name: "Unscheduled subjects" })).toBeVisible();
-  await page.getByText("Review plan warnings", { exact: false }).click();
-  await expect(page.locator("[data-usyd-plan-id]")).toContainText("INFO1113: Prerequisite scheduled too late");
+  await expect(card("INFO1110").getByRole("button", { name: "Move subject", exact: true })).toHaveCount(0);
+
   await page.getByRole("button", { name: "Reset to official plan" }).click();
   await expect(page.getByRole("heading", { name: "Unscheduled subjects" })).toHaveCount(0);
-  await expect(page.locator('.plan-item').filter({ hasText: "INFO1113" })).not.toContainText("Prerequisite needs review");
+  await fill(page);
+  await page.getByRole("button", { name: "Clear chosen subjects from period" }).first().click();
+  await expect(page.locator('section[aria-labelledby="usyd-unscheduled-heading"]')).toContainText("INFO1111");
+  await expect(page.locator('section[aria-labelledby="usyd-unscheduled-heading"]')).not.toContainText("INFO1110");
+  await expect(card("INFO1110")).toBeVisible();
 });
 
 test("source failure retries, empty search, rapid queries and narrow accessible dialog", async ({ page }) => {
@@ -269,7 +281,7 @@ test("source failure retries, empty search, rapid queries and narrow accessible 
   errors.set(page, (errors.get(page) ?? []).filter(message => /503/.test(message) === false));
 });
 
-test("swap, holding-area restore and reload preserve the allocation rather than recreating official positions", async ({ page }) => {
+test("swap and holding-area restore preserve the allocation rather than recreating official positions", async ({ page }) => {
   await open(page); await customize(page); await fill(page);
   await page.locator('.plan-item--filled').getByRole('button', { name: 'Swap position', exact: true }).click();
   const swap = page.getByRole('dialog', { name: 'Swap position', exact: true });
@@ -281,11 +293,10 @@ test("swap, holding-area restore and reload preserve the allocation rather than 
   await page.locator('.plan-item--filled').getByRole('button', { name: 'Move subject', exact: true }).click();
   await page.getByLabel('Destination period').selectOption('HOLDING'); await page.getByRole('button', { name: 'Confirm move', exact: true }).click();
   const holding = page.locator('section[aria-labelledby="usyd-unscheduled-heading"]');
-  await expect(holding).toContainText('INFO1111'); await open(page); await expect(holding).toContainText('INFO1111');
+  await expect(holding).toContainText('INFO1111');
   await holding.getByRole('button', { name: 'Move subject', exact: true }).click();
   await page.getByLabel('Destination period').selectOption('official:y3s1'); await page.getByRole('button', { name: 'Confirm move', exact: true }).click();
   await expect(page.locator('[data-period-id="official:y3s1"]')).toContainText('INFO1111');
-  await open(page); await expect(page.locator('[data-period-id="official:y3s1"]')).toContainText('INFO1111');
   await page.getByRole('button', { name: 'Remove subject & restore choice', exact: true }).click();
   await expect(page.locator('.plan-item--filled')).toHaveCount(0);
 });

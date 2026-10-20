@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { appUi } from "./ui";
 import type { ComponentSelections } from "../hooks/useComponentSelections";
 import type {
@@ -164,7 +165,7 @@ const ComponentSelect = ({
         )
       }
     >
-      <option value="" disabled>
+      <option value="">
         Select an option
       </option>
 
@@ -325,6 +326,42 @@ const ComponentMultiSelect = ({
   );
 };
 
+const isElectivesGroup = (group: RequirementGroup) => /elective/i.test(group.title ?? "");
+
+/** Scrolls to the study plan, where elective slots are filled. */
+const goToStudyPlan = () =>
+  document.getElementById("study-plan-heading")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+/**
+ * One electives requirement: how many credit points to choose, progress when it's known, and where to choose them.
+ * Electives aren't picked here but in the study plan, so the card says so and links there.
+ */
+const ElectivesCard = ({ title: heading, creditPoints, chosenPoints }: {
+  title: string; creditPoints: number | null; chosenPoints?: number;
+}) => {
+  const target = creditPoints ?? 0;
+  const chosen = chosenPoints === undefined ? null : Math.min(chosenPoints, target);
+  return (
+    <section className={appUi.electiveAllocation} aria-label={`${heading} electives`}>
+      <div className={appUi.electiveHeader}>
+        <strong>{heading}</strong>
+        {creditPoints !== null && <span className={appUi.electiveBadge}>{creditPoints} CP</span>}
+      </div>
+      {chosen !== null && target > 0 && <>
+        <span className={appUi.electiveTrack} aria-hidden="true">
+          <span className={appUi.electiveBar} style={{ width: `${(chosen / target) * 100}%` }} />
+        </span>
+        <span className={appUi.electiveProgress}>{chosen} of {target} CP chosen · {target - chosen} CP left</span>
+      </>}
+      <p>
+        Choose any eligible subjects for {creditPoints === null ? "these credit points" : `these ${creditPoints} CP`}.
+        In the study plan below, select <strong>Customise plan</strong>, then <strong>Choose</strong> on an elective slot.
+        Subjects the handbook can&apos;t confirm are marked &ldquo;eligibility not verified&rdquo;.
+      </p>
+    </section>
+  );
+};
+
 /** Shows required and optional subjects while retaining the selected component context. */
 const GroupPreview = ({
   group,
@@ -349,17 +386,26 @@ const GroupPreview = ({
     group.items.length === 0 &&
     componentItems.length === 0 &&
     group.children.length === 0;
+  const electives = isElectivesGroup(group);
+  // Electives start open so their choices are visible; the row can still be closed from its header.
+  const [open, setOpen] = useState(group.children.length <= 2 || electives);
+  // A broad electives requirement has nothing to preview, so the card stands in for the whole row.
+  if (broad && electives) return <ElectivesCard title={title(group)} creditPoints={group.requiredCreditPoints} />;
 
   return (
     <details
       className={appUi.pathPreview}
-      open={group.children.length <= 2}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary>
         <span>{title(group)}</span>
 
+        <span className="flex shrink-0 items-center gap-2">
         <strong>
-          {group.logic === "ALL"
+          {electives
+            ? `ELECTIVES${group.requiredCreditPoints !== null ? ` · ${group.requiredCreditPoints} CP` : ""}`
+            : group.logic === "ALL"
             ? `CORE · Complete all${
                 group.requiredCreditPoints !== null
                   ? ` · ${group.requiredCreditPoints} CP`
@@ -369,6 +415,8 @@ const GroupPreview = ({
               ? `OPTIONS · Choose ${group.requiredCreditPoints} CP`
               : group.logic.replace("_", " ")}
         </strong>
+        <svg className="path-chevron h-4 w-4 text-[var(--muted)] transition-transform motion-reduce:transition-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+        </span>
       </summary>
 
       <div className={appUi.pathPreviewBody}>
@@ -907,40 +955,13 @@ const ExplicitPathwaySelector = ({
                 selection.selectionType ===
                 "ELECTIVE_ALLOCATION"
               ) {
-                const remaining =
-                  Math.max(
-                    0,
-                    selection.requiredCreditPoints -
-                      chosenElectivePoints,
-                  );
-
                 return (
-                  <section
-                    className={
-                      appUi.electiveAllocation
-                    }
-                    key={
-                      selection.requirementGroupId
-                    }
-                  >
-                    <strong>
-                      {
-                        selection.requiredCreditPoints
-                      }{" "}
-                      CP electives
-                    </strong>
-
-                    <p>
-                      {remaining} CP remaining.
-                      Use the personalised
-                      roadmap subject search to
-                      add eligible subjects.
-                      Search results are marked
-                      as eligibility not verified
-                      when the database cannot
-                      confirm they count.
-                    </p>
-                  </section>
+                  <ElectivesCard
+                    key={selection.requirementGroupId}
+                    title="Electives"
+                    creditPoints={selection.requiredCreditPoints}
+                    chosenPoints={chosenElectivePoints}
+                  />
                 );
               }
 

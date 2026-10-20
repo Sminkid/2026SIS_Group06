@@ -8,6 +8,8 @@ interface SubjectSearchOptions {
   componentCode?: string;
   requirementGroupId?: string;
   limit?: number;
+  /** Skips this many results, for "Show more" when browsing. */
+  offset?: number;
   signal?: AbortSignal;
 }
 
@@ -18,6 +20,7 @@ export const searchSubjects = ({
   componentCode,
   requirementGroupId,
   limit = 20,
+  offset = 0,
   signal,
 }: SubjectSearchOptions): Promise<SubjectSearchResult[]> => {
   const params = new URLSearchParams({
@@ -26,6 +29,7 @@ export const searchSubjects = ({
     limit: String(limit),
   });
   if (query) params.set("q", query);
+  if (offset > 0) params.set("offset", String(offset));
   if (componentCode) params.set("component", componentCode);
   if (requirementGroupId) params.set("requirementGroup", requirementGroupId);
   return apiGet(`/api/subjects/search?${params}`, signal);

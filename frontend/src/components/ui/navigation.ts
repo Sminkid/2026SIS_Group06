@@ -36,7 +36,7 @@ export const navigationUi = {
     "[&_button]:text-[var(--blue)] [&_button]:bg-transparent [&_button]:cursor-pointer [&_button:hover]:underline",
   ),
   page: "[width:min(100%_-_2.5rem,_74rem)] [margin:0_auto] [padding:2rem_0] [@media(max-width:720px)]:[width:min(100%_-_2rem,_74rem)]",
-  degreeHero: "degree-hero [margin:3rem_0_clamp(4rem,_8vw,_7rem)] mb-5 [&_h1]:[max-width:18ch]",
+  degreeHero: "degree-hero [margin:3rem_0_clamp(4rem,_8vw,_7rem)] mb-5",
   degreeHeroCode: "[margin-bottom:.8rem] text-[var(--blue)] text-[length:.9rem] [font-weight:850] [letter-spacing:.1em]",
   degreeFacts: cn(
     "flex flex-wrap mt-8 text-[var(--muted)] [&_span]:[padding:.4rem_1.5rem]",

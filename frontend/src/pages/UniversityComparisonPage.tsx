@@ -140,7 +140,7 @@ function AddUniversityDialog({ courseKey, excludedCodes, pending, onPick, onBack
             <label className={appUi.uniPickerSearch}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                 strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-              <input type="search" placeholder="Find a university" aria-label="Find a university"
+              <input type="search" className="outline-none" placeholder="Find a university" aria-label="Find a university"
                 value={query} onChange={(event) => setQuery(event.target.value)} />
             </label>
             {universities === null && <p className="m-0 text-sm">Loading universities…</p>}
@@ -372,7 +372,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
                             aria-label={`${university.name} degree option`} value={degree.id}
                             onChange={(event) => setVariantChoice((prev) => ({ ...prev, [university.id]: event.target.value }))}>
                             {variants.map((offering) => (
-                              <option key={offering.degree.id} value={offering.degree.id}>{offering.degree.name}</option>
+                              <option key={offering.degree.id} value={offering.degree.id}>{offering.degree.name} · {offering.degree.code}</option>
                             ))}
                           </select>
                         )}

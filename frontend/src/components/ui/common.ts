@@ -36,6 +36,11 @@ export const commonUi = {
   sectionRow: "flex flex-row gap-2 items-center [&_p]:m-0",
   checkMark: "w-5 h-5",
   sectionNote: "[margin:-.75rem_0_2rem] text-[var(--muted)]",
+  // Information banner on degree and course lists, e.g. which study plans are complete.
+  coverageNotice: cn(
+    "coverage-notice [margin:1.25rem_0_0] [padding:.75rem_1rem] [border-left:3px_solid_var(--blue)] bg-[#eef4fd]",
+    "text-[#0a0a0a] text-[length:.9rem] [line-height:1.55] [&_strong]:font-bold",
+  ),
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
   primaryButton: cn(

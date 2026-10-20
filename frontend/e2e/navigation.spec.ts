@@ -131,6 +131,22 @@ test("handbook route: every breadcrumb goes back to its page", async ({ page }) 
   await expect(heading(page, LANDING)).toBeVisible();
 });
 
+test("degree and course lists remind users that only Engineering study plans are complete", async ({ page }) => {
+  await nav(page).getByRole("button", { name: "View All Courses", exact: true }).click();
+  await expect(heading(page, "Courses")).toBeVisible();
+  await expect(page.getByRole("note")).toContainText("Study plans for others are still under development.");
+});
+
+test("the degree list offers the interest quiz, like All Courses", async ({ page }) => {
+  await nav(page).getByRole("button", { name: "University Handbooks", exact: true }).click();
+  await page.locator(".university-card").filter({ hasText: "UTS" }).click();
+  await expect(heading(page, "Choose a degree")).toBeVisible();
+  await expect(page.getByText("Not sure what to study?", { exact: true })).toBeVisible();
+  await expect(page.getByRole("note")).toContainText("only the study plans for Engineering degrees are complete");
+  await page.getByRole("button", { name: "Take the interest quiz", exact: true }).click();
+  await expect(heading(page, "Interest quiz")).toBeVisible();
+});
+
 test("browsing route: All Courses → Comparison → Study Plan breadcrumbs go back to each page", async ({ page }) => {
   await openEngineeringComparison(page);
   await expectTrail(page, ["Home", "All Courses", "Comparison"]);

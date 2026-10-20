@@ -307,6 +307,7 @@ export const App = () => {
             onHome={goHome}
             onBack={() => setScreen({ name: "universities" })}
             onSelectDegree={(degree) => setScreen({ name: "handbookDegree", university: screen.university, degree })}
+            onStartQuiz={() => startNewQuiz()}
           />
         )}
 

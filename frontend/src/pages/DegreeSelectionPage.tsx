@@ -2,6 +2,7 @@ import { appUi, cn } from "../components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchDegrees, fetchLatestHandbook } from "../api/universities";
 import { AsyncState } from "../components/AsyncState";
+import { StudyPlanCoverageNotice } from "../components/StudyPlanCoverageNotice";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import type { DegreeSummary, HandbookSummary, University } from "../types/handbook";
 
@@ -9,10 +10,11 @@ interface Props {
   university: University; 
   onHome: () => void; 
   onBack: () => void; 
-  onSelectDegree: (degree: DegreeSummary) => void; }
+  onSelectDegree: (degree: DegreeSummary) => void;
+  onStartQuiz: () => void; }
 
 /** Filters the selected university handbook without changing the saved planner. */
-export const DegreeSelectionPage = ({ university, onHome, onBack, onSelectDegree }: Props) => {
+export const DegreeSelectionPage = ({ university, onHome, onBack, onSelectDegree, onStartQuiz }: Props) => {
   const [degrees, setDegrees] = useState<DegreeSummary[]>([]);
   const [handbook, setHandbook] = useState<HandbookSummary | null>(null);
   const [query, setQuery] = useState("");
@@ -46,6 +48,16 @@ export const DegreeSelectionPage = ({ university, onHome, onBack, onSelectDegree
       <section className={appUi.pageIntroCompact}>
         <p className={appUi.eyebrow}>{university.name}</p><h1>Choose a degree</h1>
         <p className={appUi.lead}>Search the latest handbook and open a degree to explore its formal requirements.</p>
+        <StudyPlanCoverageNotice />
+        <div className={appUi.quizRecommendationCard}>
+          <p className={appUi.eyebrow}>Not sure what to study?</p>
+          <p>Take the interest quiz to see which of these degrees best match you.</p>
+          <div>
+            <button className={appUi.backButton} type="button" onClick={onStartQuiz}>
+              Take the interest quiz
+            </button>
+          </div>
+        </div>
       </section>
       <section aria-labelledby="degrees-heading">
         <div className={appUi.degreeTools}>

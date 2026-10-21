@@ -231,32 +231,18 @@ test("Free Electives page/search, capacity checks and explicit Table D applicabi
   await expect(choice(page)).not.toContainText("Table D units");
 });
 
-test("standard roadmap subjects can't be moved or cleared; only subjects chosen in a choice slot can", async ({ page }) => {
+test("the custom plan offers no Move, Swap or Clear-period actions, before or after choosing a subject", async ({ page }) => {
   await open(page); await customize(page);
-  const card = (code: string) => page.locator(".plan-item").filter({ hasText: code });
-  // The roadmap's standard subjects keep their positions, so they offer no Move, Swap or Clear.
-  for (const code of ["INFO1110", "ENGP1001", "MATH1061"]) {
-    await expect(card(code).getByRole("button", { name: "Move subject", exact: true })).toHaveCount(0);
-    await expect(card(code).getByRole("button", { name: "Swap position", exact: true })).toHaveCount(0);
-  }
-  await expect(page.getByRole("button", { name: "Clear chosen subjects from period" })).toHaveCount(0);
-
+  const noRescheduling = async () => {
+    await expect(page.getByRole("button", { name: "Move subject", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Swap position", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Clear chosen subjects from period" })).toHaveCount(0);
+  };
+  await noRescheduling();
   await fill(page);
-  const chosen = page.locator(".plan-item--filled").filter({ hasText: "INFO1111" });
-  await expect(chosen.getByRole("button", { name: "Move subject", exact: true })).toBeVisible();
-  // Moving a chosen subject can't push it into a standard subject's place.
-  await chosen.getByRole("button", { name: "Move subject", exact: true }).click();
-  await page.getByLabel("Destination period").selectOption("HOLDING"); await page.getByRole("button", { name: "Confirm move" }).click();
-  await expect(page.getByRole("heading", { name: "Unscheduled subjects" })).toBeVisible();
-  await expect(card("INFO1110").getByRole("button", { name: "Move subject", exact: true })).toHaveCount(0);
-
-  await page.getByRole("button", { name: "Reset to official plan" }).click();
+  await expect(page.locator(".plan-item--filled").filter({ hasText: "INFO1111" })).toBeVisible();
+  await noRescheduling();
   await expect(page.getByRole("heading", { name: "Unscheduled subjects" })).toHaveCount(0);
-  await fill(page);
-  await page.getByRole("button", { name: "Clear chosen subjects from period" }).first().click();
-  await expect(page.locator('section[aria-labelledby="usyd-unscheduled-heading"]')).toContainText("INFO1111");
-  await expect(page.locator('section[aria-labelledby="usyd-unscheduled-heading"]')).not.toContainText("INFO1110");
-  await expect(card("INFO1110")).toBeVisible();
 });
 
 test("source failure retries, empty search, rapid queries and narrow accessible dialog", async ({ page }) => {
@@ -281,22 +267,11 @@ test("source failure retries, empty search, rapid queries and narrow accessible 
   errors.set(page, (errors.get(page) ?? []).filter(message => /503/.test(message) === false));
 });
 
-test("swap and holding-area restore preserve the allocation rather than recreating official positions", async ({ page }) => {
+test("a chosen subject keeps its requirement allocation, and Remove restores the choice slot", async ({ page }) => {
   await open(page); await customize(page); await fill(page);
-  await page.locator('.plan-item--filled').getByRole('button', { name: 'Swap position', exact: true }).click();
-  const swap = page.getByRole('dialog', { name: 'Swap position', exact: true });
-  await expect(swap.locator('.swap-target')).toHaveCount(2);
-  await swap.locator('.swap-target').last().click(); await swap.getByRole('button', { name: 'Confirm swap', exact: true }).click();
   const savedOrigin = await page.evaluate(() => Object.entries(localStorage).filter(([key]) => key.startsWith('planner:USYD')).map(([, value]) => JSON.parse(value))[0]
     .years[0].periods[0].items.find((item: { subject?: { code: string } }) => item.subject?.code === 'INFO1111').choiceOrigin.formalRequirementGroupId);
   expect(savedOrigin).toBe('software-stream:options');
-  await page.locator('.plan-item--filled').getByRole('button', { name: 'Move subject', exact: true }).click();
-  await page.getByLabel('Destination period').selectOption('HOLDING'); await page.getByRole('button', { name: 'Confirm move', exact: true }).click();
-  const holding = page.locator('section[aria-labelledby="usyd-unscheduled-heading"]');
-  await expect(holding).toContainText('INFO1111');
-  await holding.getByRole('button', { name: 'Move subject', exact: true }).click();
-  await page.getByLabel('Destination period').selectOption('official:y3s1'); await page.getByRole('button', { name: 'Confirm move', exact: true }).click();
-  await expect(page.locator('[data-period-id="official:y3s1"]')).toContainText('INFO1111');
   await page.getByRole('button', { name: 'Remove subject & restore choice', exact: true }).click();
   await expect(page.locator('.plan-item--filled')).toHaveCount(0);
 });

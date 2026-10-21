@@ -417,7 +417,7 @@ test("Accounting Core starts outstanding; equivalent positions expose the same p
   await expect(path).toContainText("Required Core remaining: 2");
 });
 
-test("Accounting cross-requirement swap, cancellation and empty move retain Core allocation, and leaving resets it", async ({ page }) => {
+test("Accounting Core and elective choices offer no Swap or Move, keep their allocation, and leaving resets them", async ({ page }) => {
   await openDegree(page, "C10235");
   const path = page.locator(".study-path");
   await path.locator("select").first().selectOption({ label: "Sub-major + electives" });
@@ -432,67 +432,17 @@ test("Accounting cross-requirement swap, cancellation and empty move retain Core
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Select", exact: true }).click();
   const source = page.locator(".plan-item--filled").filter({ hasText: code });
-  const target = page.locator(".plan-item--filled").filter({ hasText: "TEST100" });
-  const beforeSource = await source.locator(".plan-item__note").filter({ hasText: "Scheduled:" }).innerText();
-  const beforeTarget = await target.locator(".plan-item__note").filter({ hasText: "Scheduled:" }).innerText();
-  await source.getByRole("button", { name: "Swap position" }).click();
-  await expect(page.locator(".swap-target").first()).toBeVisible();
-  await expect(page.locator(".swap-target:disabled")).toHaveCount(0);
-  await expect(page.locator(".swap-targets")).not.toContainText("Locked official position");
-  await page.getByRole("button", { name: "Cancel swap" }).click();
-  await expect(source).toContainText(beforeSource);
-  await source.getByRole("button", { name: "Swap position" }).click();
-  await page.locator(".swap-target").filter({ hasText: "Test elective" }).click();
-  await page.getByRole("button", { name: "Confirm swap" }).click();
-  await expect(source).toContainText(beforeTarget);
+  await expect(page.locator(".plan-item--filled")).toHaveCount(2);
+  // Swap and Move were removed from the custom plan.
+  await expect(page.getByRole("button", { name: "Swap position", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Move subject", exact: true })).toHaveCount(0);
   await expect(source).toContainText("Counts toward: Marketing Core");
-  await expect(target).toContainText(beforeSource);
   await expect(path).toContainText("Required Core remaining: 2");
-  await source.getByRole("button", { name: "Swap position" }).click();
-  await page.locator(".swap-target").filter({ hasText: "Electives · 6 CP choice" }).first().click();
-  await page.getByRole("button", { name: "Confirm swap" }).click();
-  await expect(source).toContainText("Counts toward: Marketing Core");
   await source.getByRole("button", { name: "Remove subject & restore choice" }).click();
   await expect(path).toContainText("Required Core remaining: 3");
   await expect(page.locator(".plan-item--filled")).toHaveCount(1);
   await openDegree(page, "C10235");
   await expect(page.locator(".plan-item--filled")).toHaveCount(0);
-});
-
-test("Engineering option swaps with a Free Elective and preserves its formal group", async ({ page }) => {
-  await openDegree(page, "C09066");
-  await page.locator(".study-path").getByRole("combobox", { name: "Major", exact: true }).selectOption("MAJ03518");
-  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
-  await page.locator(".plan-item--choice").filter({ hasText: "CBK92152" }).first().locator(".plan-item__main-action").click();
-  await page.getByRole("dialog").getByRole("button", { name: "Select", exact: true }).first().click();
-  const option = page.locator(".plan-item--filled").first();
-  const ownership = await option.locator(".plan-item__note").filter({ hasText: "Counts toward:" }).innerText();
-  await option.getByRole("button", { name: "Swap position" }).click();
-  await page.locator(".swap-target").filter({ hasText: "Free Elective" }).first().click();
-  await page.getByRole("button", { name: "Confirm swap" }).click();
-  await expect(option).toContainText(ownership);
-  // Leaving resets the custom plan, so nothing chosen is restored.
-  await openDegree(page, "C09066");
-  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
-});
-
-test("Known offering restriction excludes incompatible swap targets", async ({ page }) => {
-  await page.route("**/api/subjects/21510?*", route => route.fulfill({ json: {
-    offerings: [{ teaching_period: "Autumn Session", offered: "true", publish: "true", year: "2026" }],
-  } }));
-  await openDegree(page, "C10235");
-  const path = page.locator(".study-path");
-  await path.locator("select").first().selectOption({ label: "Sub-major + electives" });
-  await path.locator(".pathway-selection select").selectOption("SMJ08109");
-  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
-  await page.locator(".plan-item--choice").filter({ hasText: "Counts toward: Management Consulting" }).first().locator(".plan-item__main-action").click();
-  await page.getByRole("dialog").locator(".subject-result").filter({ hasText: "21510" }).getByRole("button", { name: "Select", exact: true }).click();
-  await page.getByRole("button", { name: "Swap position", exact: true }).click();
-  await expect(page.getByText("Checking compatible positions…")).toHaveCount(0);
-  await expect(page.locator(".swap-target").filter({ hasText: "Spring" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Confirm swap" })).toBeDisabled();
-  await page.getByRole("button", { name: "Cancel swap" }).click();
-  await expect(page.locator(".plan-item--filled")).toHaveCount(1);
 });
 
 test("USYD degree requirements remain available", async ({ page }) => {
@@ -620,34 +570,8 @@ test("A known prerequisite scheduled later stays amber, while an unparsed expres
   await expect(reopenedDetail.locator(".bg-red-50")).toHaveCount(0);
 });
 
-test("Repeated Software Engineering swaps and cancellation preserve compact card dimensions and allocation", async ({ page }) => {
-  const card = await selectSoftwareOption(page);
-  await expect(card.locator(".prerequisite-summary")).toHaveText("Prerequisite information unavailable");
-  const original = await cardSize(card);
-  const ownership = await card.locator(".plan-item__note").filter({ hasText: "Counts toward:" }).innerText();
-  for (let index = 0; index < 3; index++) {
-    await card.getByRole("button", { name: "Swap position" }).click();
-    await expect(page.locator(".swap-target").first()).toBeVisible();
-    await expect(page.locator(".swap-target:disabled")).toHaveCount(0);
-    await expect(page.locator(".swap-target").filter({ hasText: "41052" })).toHaveCount(0);
-    const groups = await page.locator(".swap-target-session").evaluateAll(groups => groups.map(group => group.querySelectorAll(".swap-target").length));
-    expect(groups.every(count => count > 0)).toBeTruthy();
-    await page.locator(".swap-target").filter({ hasText: "Free Elective or Sub-major" }).first().click();
-    await page.getByRole("button", { name: "Confirm swap" }).click();
-    expect(await cardSize(card)).toEqual(original);
-    await expect(card.getByRole("button", { name: "Swap position" })).toBeFocused();
-    await expect(card).toContainText(ownership);
-  }
-  await card.getByRole("button", { name: "Swap position" }).click();
-  await page.keyboard.press("Escape");
-  expect(await cardSize(card)).toEqual(original);
-  await expect(card.getByRole("button", { name: "Swap position" })).toBeFocused();
-  await openDegree(page, "C09066");
-  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
-});
-
 for (const width of [1440, 1280, 768, 390]) {
-  test(`Accounting cards and swap dialog stay within a ${width}px viewport`, async ({ page }) => {
+  test(`Accounting cards stay within a ${width}px viewport`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await openDegree(page, "C10235");
     await page.locator(".study-path select").first().selectOption({ label: "Sub-major + electives" });
@@ -661,20 +585,6 @@ for (const width of [1440, 1280, 768, 390]) {
     expect(Math.max(...sizes.map(size => size.width)) - Math.min(...sizes.map(size => size.width))).toBeLessThan(2);
     expect(Math.max(...sizes.map(size => size.height))).toBeLessThan(390);
     expect(sizes.some(size => size.overflow)).toBeFalsy();
-    const size = await cardSize(card);
-    await card.getByRole("button", { name: "Swap position" }).click();
-    const dialog = page.locator(".swap-dialog[open]");
-    await expect(dialog.locator(".swap-target").first()).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "Cancel swap" })).toBeInViewport();
-    const box = await dialog.boundingBox(); expect(box!.width).toBeLessThan(width); expect(box!.height).toBeLessThan(850);
-    if (width === 1440 || width === 390) await dialog.screenshot({ path: test.info().outputPath("swap-dialog.png") });
-    await dialog.locator(".swap-target").filter({ hasText: "Electives · 6 CP choice" }).first().click();
-    await dialog.getByRole("button", { name: "Confirm swap" }).click();
-    expect(await cardSize(card)).toEqual(size);
-    await card.getByRole("button", { name: "Swap position" }).click();
-    await dialog.locator(".swap-target").filter({ hasText: "Electives · 6 CP choice" }).first().click();
-    await dialog.getByRole("button", { name: "Confirm swap" }).click();
-    expect(await cardSize(card)).toEqual(size);
     if (width === 1440 || width === 390) await page.locator(".plan-year").filter({ has: card }).screenshot({ path: test.info().outputPath("roadmap-cards.png"), style: ".site-header, .skip-link, .glossary-chat__toggle { visibility: hidden; }" });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
     await expect(page.locator("body")).not.toContainText("undefined");

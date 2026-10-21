@@ -11,8 +11,7 @@ interface Props {
   prerequisite?: PrerequisiteDisplayState;
   onChoose: (item: StudyPlanItem) => void;
   onOpenSubject: (code: string, issues: ValidationResult[]) => void;
-  onRestoreChoice: (id: string) => void; onSwap?: (id: string) => void;
-  onMove?: (id: string) => void;
+  onRestoreChoice: (id: string) => void;
   showReadOnlyDetails?: boolean;
 }
 
@@ -29,7 +28,7 @@ function PrerequisiteSummary({ state }: { state: PrerequisiteDisplayState }) {
  * by fixed, empty and selected states; only compact actions and status change.
  */
 export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, readOnlyChoiceNote,
-  onChoose, onOpenSubject, onRestoreChoice, onSwap, onMove, showReadOnlyDetails }: Props) {
+  onChoose, onOpenSubject, onRestoreChoice, showReadOnlyDetails }: Props) {
   const placement = /\b(internship|placement|practicum|professional experience)\b/i.test(`${item.title} ${item.choiceOrigin?.title ?? ""}`);
   const fixedCore = item.choiceOrigin?.componentRequirementKind === "FIXED";
   const filled = Boolean(item.choiceOrigin && item.subject && !fixedCore);
@@ -62,8 +61,6 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, r
     </div>}
     {editable && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
       {interactive && <button className={ui.action} type="button" onClick={() => onChoose(item)}>{filled ? "Change" : "Choose"}</button>}
-      {filled && !placement && onSwap && <button className={ui.action} type="button" aria-label="Swap position" onClick={() => onSwap(item.id)}>Swap</button>}
-      {item.subject && onMove && <button className={ui.action} type="button" aria-label="Move subject" onClick={() => onMove(item.id)}>Move</button>}
       {filled && !placement && <button className={cn(ui.action, "text-red-800")} type="button" aria-label="Remove subject & restore choice" onClick={() => onRestoreChoice(item.id)}>Remove</button>}
       {item.subject && <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>}
     </div>}

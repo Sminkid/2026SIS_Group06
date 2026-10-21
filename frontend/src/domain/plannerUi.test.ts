@@ -129,7 +129,7 @@ test("roadmap prerequisite summary stays compact and full detail is available th
   const { source } = setup();
   const issues = issue("Missing prerequisite: 31250 " + "Long handbook explanation. ".repeat(30));
   const markup = renderToStaticMarkup(createElement(RoadmapCard, { item: plannerItemToStudyPlanItem(source, 0), editable: true, issues,
-    prerequisite: getPrerequisiteDisplayState(known(), issues), onChoose() {}, onOpenSubject() {}, onRestoreChoice() {}, onSwap() {},
+    prerequisite: getPrerequisiteDisplayState(known(), issues), onChoose() {}, onOpenSubject() {}, onRestoreChoice() {},
   }));
   assert.match(markup, /Prerequisite not completed/);
   assert.match(markup, /View requirements/);

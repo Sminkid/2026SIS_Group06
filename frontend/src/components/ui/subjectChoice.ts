@@ -93,35 +93,5 @@ export const subjectChoiceUi = {
     // A rounded input with a gap before its button, like the other search fields.
     "[&_input]:border-[color:#bfc6d1] [&_input]:[border-radius:.5rem] [&_>_div]:gap-2",
   ),
-  // "Move subject": a compact version of the Choose-a-subject dialog.
-  moveDialog: cn(
-    "[width:min(100%_-_2rem,_34rem)] max-w-none h-fit [max-height:90vh] m-auto p-0 border-0 overflow-hidden",
-    "bg-[var(--surface)] [box-shadow:0_1rem_2.5rem_rgba(20,33,61,.18)] [&::backdrop]:bg-[rgba(14,24,43,.55)]",
-  ),
-  moveDialogPanel: "[max-height:90vh] flex flex-col",
-  moveDialogBody: "grid gap-4 min-h-0 overflow-y-auto overscroll-contain [padding:1.25rem_1.5rem]",
-  moveSubject: cn(
-    "grid [gap:.2rem] [padding:.85rem_1rem] border-[1px] border-solid border-[color:var(--line)] bg-[var(--soft)]",
-    "[&_span]:text-[var(--blue)] [&_span]:text-[length:.72rem] [&_span]:font-extrabold",
-    "[&_strong]:text-[#0a0a0a] [&_strong]:text-[length:.95rem] [&_strong]:[line-height:1.4]",
-    "[&_small]:text-[var(--muted)] [&_small]:text-[length:.78rem]",
-  ),
-  moveField: cn(
-    "grid [gap:.45rem] text-[#0a0a0a] text-[length:.85rem] font-bold [&_select]:w-full [&_select]:min-w-0",
-    "[&_select]:min-h-12 [&_select]:[padding:.8rem_2.5rem_.8rem_.85rem] [&_select]:border-[1px] [&_select]:border-solid",
-    "[&_select]:border-[color:#bfc6d1] [&_select]:bg-[var(--surface)] [&_select]:text-[#0a0a0a] [&_select]:text-base",
-    "[&_select]:font-normal",
-  ),
-  moveChecking: "m-0 text-[var(--muted)] text-[length:.82rem]",
-  moveResults: "grid gap-2 empty:hidden",
-  moveError: cn(
-    "m-0 [padding:.65rem_.8rem] [border-left:3px_solid_#9b2c35] bg-[#fdf2f3] text-[#842c34]",
-    "text-[length:.82rem] [line-height:1.5]",
-  ),
-  moveWarning: cn(
-    "m-0 [padding:.65rem_.8rem] [border-left:3px_solid_#b86b00] bg-[#fff8e8] text-[#674a18]",
-    "text-[length:.82rem] [line-height:1.5]",
-  ),
-  moveDialogFooter: "flex flex-wrap justify-end gap-3 [padding:1rem_1.5rem] [border-top:1px_solid_var(--line)]",
   fieldError: "m-0 text-[#9b2c35] text-[length:.75rem]",
 } as const;

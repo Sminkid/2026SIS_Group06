@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchComponentDetail } from "../../../api/components";
-import { adaptUsydEngineeringPlan, isUsydMovable, resolveUsydEngineeringChoice, usydGroups, usydPlannerContext,
+import { adaptUsydEngineeringPlan, resolveUsydEngineeringChoice, usydGroups, usydPlannerContext,
   usydPreviewStream } from "../../../domain/usydEngineeringPlanner";
 import { normalizeUsydEngineeringAccess } from "../../../domain/usydEngineeringAccessConditions";
 import { getPrerequisiteDisplayState } from "../../../domain/prerequisiteDisplay";
-import { isCustomPosition, plannerItems } from "../../../domain/plannerSwap";
+import { plannerItems } from "../../../domain/plannerSwap";
 import { usePlannerState } from "../../../hooks/usePlannerState";
 import type { ComponentDetailResponse, RequirementComponent, RequirementGroup, StudyPlan, StudyPlanItem } from "../../../types/handbook";
 import { usydEngineeringSpecialisations } from "../../../domain/usydEngineeringSpecialisations";
 import { plannerItemToStudyPlanItem, plannerToStudyPlan } from "../../../types/planner";
 import { SubjectChoiceDialog } from "../../SubjectChoiceDialog";
 import { SubjectDetailsDialog } from "../../SubjectDetailsDialog";
-import { MoveSubjectDialog } from "../../MoveSubjectDialog";
-import { SwapPositionDialog } from "../../SwapPositionDialog";
 import { AsyncState } from "../../AsyncState";
 import { RoadmapCard } from "../../planner/RoadmapCard";
 import { plannerUi } from "../../planner/ui";
@@ -23,13 +21,6 @@ import { UsydEngineeringProgressCard, type UsydAcademicComponent } from "./UsydE
 import { UsydEngineeringReadOnlyCard } from "./UsydEngineeringReadOnlyCard";
 import { useUsydChoiceFocus } from "./useUsydChoiceFocus";
 import { useUsydEngineeringValidation } from "./useUsydEngineeringValidation";
-/**
- * Only subjects placed in a choice slot can be moved; the roadmap's standard subjects stay where the university put them.
- * A choice slot fixed to one core subject counts as standard too.
- */
-const isUsydChoiceMovable = (item: Parameters<typeof isUsydMovable>[0]) =>
-  Boolean(item.choiceOrigin) && item.choiceOrigin?.componentRequirementKind !== "FIXED" && isUsydMovable(item);
-const canUsydSwap = (item: Parameters<typeof isUsydMovable>[0]) => !item.subject || isUsydChoiceMovable(item);
 
 interface Props { plan: StudyPlan; requirements: RequirementGroup[]; handbookYear: number; degreeCode: string;
   degreeCreditPoints: number | null; focusComponent?: RequirementComponent; academicComponents: UsydAcademicComponent[]; academicStreamMismatch?: string;
@@ -76,8 +67,6 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
   const [official, setOfficial] = useState(false);
   const [dalyell, setDalyell] = useState(() => { try { return localStorage.getItem(`usyd:dalyell:${handbookYear}:${context.degreeCode}`) === "true"; } catch { return false; } });
   const [activeChoiceId, setActiveChoiceId] = useState<string | null>(null);
-  const [moving, setMoving] = useState<string | null>(null);
-  const [swapping, setSwapping] = useState<string | null>(null);
   const [detailsCode, setDetailsCode] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   useEffect(() => { if (!notice) return; const timeout = window.setTimeout(() => setNotice(""), 5000); return () => window.clearTimeout(timeout); }, [notice]);
@@ -100,12 +89,9 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
   const issuesFor = (code: string) => validation?.results.filter(issue => issue.subjectCode === code) ?? [];
   const renderCard = (item: StudyPlanItem, scheduled: string) => {
     if (!editable) return <UsydEngineeringReadOnlyCard key={item.id} item={item} scheduled={scheduled} onOpenSubject={setDetailsCode} />;
-    const allocation = items.find(old => old.plannerItemId === item.id);
-    const movable = allocation && isUsydChoiceMovable(allocation);
     return <RoadmapCard key={item.id} item={item} editable={editable} scheduled={scheduled} showReadOnlyDetails issues={editable && item.subject ? issuesFor(item.subject.code) : []}
       prerequisite={editable && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], issuesFor(item.subject.code), { hasPlan: true, loading: status === "loading" }) : undefined}
       onChoose={item => setActiveChoiceId(item.id)} onOpenSubject={setDetailsCode} onRestoreChoice={state.restoreChoiceSlot}
-      onMove={movable ? setMoving : undefined} onSwap={allocation && movable && isCustomPosition(allocation) ? setSwapping : undefined}
       readOnlyChoiceNote="Customise to choose from eligible subjects" />;
   };
   const tableD = usydGroups(requirements).find(group => group.candidateSources.some(source => source.tableName === "Table D"));
@@ -155,12 +141,9 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
         hasConflict={Boolean(validation?.results.some(issue => issue.code === "ANTI_REQUISITE_CONFLICT" && selection.detail?.requirements.some(group => group.items.some(item => item.subject?.code === issue.subjectCode))))} />)}</div>
         : specialisation && !academicStreamMismatch && <p className={appUi.planPanelNotice}>This specialisation is your roadmap focus. Select it in Course Structure to track formal progress.</p>}
     </>}
-    <OfficialPlanRoadmap plan={displayed} renderItem={renderCard} renderPeriodActions={editable ? period => {
-      const canClear = items.filter(item => period.items.some(position => position.id === item.plannerItemId) && isUsydChoiceMovable(item));
-      return canClear.length ? <button className={`${plannerUi.action} mb-3`} type="button" onClick={() => { state.clearPeriod(period.id, canClear.map(item => item.plannerItemId)); setNotice("Chosen subjects were moved to Unscheduled subjects. Standard subjects stay in place."); }}>Clear chosen subjects from period</button> : null;
-    } : undefined} />
+    <OfficialPlanRoadmap plan={displayed} renderItem={renderCard} />
     {editable && state.planner && state.planner.unassignedItems.length > 0 && <section aria-labelledby="usyd-unscheduled-heading" className="mt-6"><h3 id="usyd-unscheduled-heading">Unscheduled subjects</h3>
-      <p>Use Move to restore a subject to a period. Clearing a period preserves each subject's allocation.</p>
+      <p>These subjects aren't in a study period yet. Use Remove to restore their choice slot.</p>
       <div className={plannerUi.grid}>{state.planner.unassignedItems.map(item => renderCard(plannerItemToStudyPlanItem(item), "Unscheduled"))}</div>
     </section>}
     {editable && tableD && dalyell && <details className="mt-5"><summary>Conditional Dalyell requirement · 12 CP from Table D</summary>
@@ -176,9 +159,5 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
       }} />
     <SubjectDetailsDialog subjectCode={detailsCode} universityCode="USYD" handbookYear={handbookYear} onClose={() => setDetailsCode(null)}
       planIssues={detailsCode ? issuesFor(detailsCode) : []} hasPlan={editable} adaptAccess={normalizeUsydEngineeringAccess} />
-    {state.planner && moving && <MoveSubjectDialog key={moving} planner={state.planner} sourceId={moving} universityCode="USYD" handbookYear={handbookYear}
-      canMove={isUsydChoiceMovable} adaptAccess={normalizeUsydEngineeringAccess} onClose={() => setMoving(null)} onConfirm={(id, target, facts) => state.moveItem(id, target, facts, isUsydChoiceMovable)} />}
-    {state.planner && swapping && <SwapPositionDialog key={swapping} planner={state.planner} sourceId={swapping} universityCode="USYD" handbookYear={handbookYear}
-      adaptAccess={normalizeUsydEngineeringAccess} canSwap={canUsydSwap} onClose={() => setSwapping(null)} onConfirm={(source, target, facts) => state.swapPositions(source, target, facts, canUsydSwap)} />}
   </>;
 }

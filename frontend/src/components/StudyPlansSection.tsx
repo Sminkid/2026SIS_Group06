@@ -24,7 +24,6 @@ import { getPrerequisiteDisplayState } from "../domain/prerequisiteDisplay";
 import { readableText } from "../domain/readableText";
 import { reconcileStudyPlan } from "../domain/studyPlanSelection";
 import { expandRoadmapSlots } from "../domain/roadmapSlots";
-import { SwapPositionDialog } from "./SwapPositionDialog";
 import { OfficialPlanRoadmap } from "./study-plan/OfficialPlanRoadmap";
 
 export interface StudyPlansSectionProps {
@@ -68,7 +67,6 @@ export const StudyPlansSection = ({
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
   const [activeChoice, setActiveChoice] = useState<StudyPlanItem | null>(null);
-  const [swapSourceId, setSwapSourceId] = useState<string | null>(null);
   const [planNotice, setPlanNotice] = useState("");
   // Confirms Reset/Clear for a few seconds, as the USYD planner does.
   const [actionNotice, setActionNotice] = useState("");
@@ -122,7 +120,7 @@ export const StudyPlansSection = ({
     setSelectedPlanId(id);
     setPlanNotice("");
   };
-  useEffect(() => { setActiveChoice(null); setSwapSourceId(null); }, [selectedComponents, selectedPlan?.id]);
+  useEffect(() => { setActiveChoice(null); }, [selectedComponents, selectedPlan?.id]);
   useEffect(() => {
     if (!selectedPlan || (majorCode && selectedPlan.major?.code !== majorCode)) return;
     setSelectedPlanId(selectedPlan.id);
@@ -156,7 +154,6 @@ export const StudyPlansSection = ({
     clear,
     selectSubject,
     restoreChoiceSlot,
-    swapPositions,
   } = usePlannerState(selectedPlan, plannerContext, selectedComponentCodes.length === 0
     || (componentDetailsStatus === "ready" && selectedComponentCodes.every(code => Boolean(componentDetails[code]))));
   const displayedPlan = useMemo(
@@ -339,13 +336,12 @@ export const StudyPlansSection = ({
                     issues={item.subject ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
                     prerequisite={planner && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], combinedIssuesBySubject.get(item.subject.code), { loading: validationStatus === "loading", hasPlan: true }) : undefined}
                     onRestoreChoice={restoreChoiceSlot}
-                    onSwap={setSwapSourceId}
                     scheduled={scheduled}
                     key={item.id}
                   />} />
       {planner && unassignedItems.length > 0 && <section className={appUi.unassignedSection} aria-labelledby="unassigned-heading">
         <div><p className={appUi.stepLabel}>Custom plan holding area</p><h3 id="unassigned-heading">Unscheduled subjects</h3>
-          <p>Move these subjects into a study period when you are ready.</p></div>
+          <p>These subjects aren't in a study period yet. Use Remove to restore their choice slot.</p></div>
         <div className={plannerUi.grid}>
           {unassignedItems.map((item) => <RoadmapCard
             item={item}
@@ -373,8 +369,6 @@ export const StudyPlansSection = ({
         onClose={() => setActiveChoice(null)}
         onSelect={chooseSubject}
       />
-      {planner && swapSourceId && <SwapPositionDialog key={swapSourceId} planner={planner} sourceId={swapSourceId}
-        universityCode={universityCode} handbookYear={handbookYear} onClose={() => setSwapSourceId(null)} onConfirm={swapPositions} />}
     </>}
   </section>;
 };

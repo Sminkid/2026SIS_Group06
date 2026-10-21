@@ -111,7 +111,7 @@ for(const stream of captured.streams) test(`${stream.component.name}: all focus/
   expect(requests.get(page)!.filter(url=>url.pathname.includes("requirement-candidate-sources")).every(url=>url.searchParams.get("limit")==="20")).toBe(true);
 });
 
-test("formal Breadth progress persists under Base and a different manual focus; selected subjects survive holding, reload, remove and reset",async({page})=>{
+test("formal Breadth progress persists under Base and a different manual focus; selected subjects survive reload, remove and reset",async({page})=>{
   await open(page);
   const stream=captured.streams.find(s=>s.component.name==="Software Engineering")!;
   const option=usydEngineeringSpecialisations(stream).find(o=>o.component.name==="Humanitarian Engineering (Breadth)")!;
@@ -142,11 +142,6 @@ test("formal Breadth progress persists under Base and a different manual focus; 
     await expect(summaryCard.locator("summary")).toContainText(`verification notes (${noteCount})`);
   }
   const summary=await summaryCard.textContent();
-  const selected=page.locator(".plan-item--filled").filter({hasText:"CIVL3310"});
-  const period=selected.locator("xpath=ancestor::*[contains(@class,'study-plan-period')]");
-  if(await period.count()) await period.getByRole("button",{name:"Clear chosen subjects from period"}).click();
-  else { const parent=selected.locator("xpath=ancestor::section[1]"); await parent.getByRole("button",{name:"Clear chosen subjects from period"}).click(); }
-  await expect(progress).toContainText("6 / 24 CP");
   await page.locator(".plan-item--filled").filter({hasText:"CIVL3310"}).getByRole("button",{name:"Remove subject & restore choice"}).click();
   await expect(progress).toContainText("0 / 24 CP");
   const before=await academicStorage(page);

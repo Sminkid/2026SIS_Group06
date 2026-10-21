@@ -4,8 +4,10 @@ import { cn } from "../../ui";
 import { plannerUi as ui } from "../../planner/ui";
 
 /** Compact official USYD cards keep the details action immediately below schedule metadata. */
-export function UsydEngineeringReadOnlyCard({ item, scheduled, onOpenSubject }: {
+export function UsydEngineeringReadOnlyCard({ item, scheduled, onOpenSubject, onCustomise }: {
   item: StudyPlanItem; scheduled: string; onOpenSubject: (code: string) => void;
+  /** Takes the user to the button that switches the plan to editing, so they can fill this choice. */
+  onCustomise?: () => void;
 }) {
   const code = item.subject?.code ?? item.rawCode;
   const points = item.subject?.creditPoints ?? item.creditPoints;
@@ -19,5 +21,8 @@ export function UsydEngineeringReadOnlyCard({ item, scheduled, onOpenSubject }: 
       <button type="button" className={ui.action} onClick={() => onOpenSubject(item.subject!.code)}>View requirements</button>
     </div>}
     {!item.subject && <p className={cn("plan-item__note", ui.note)}>Customise to choose from eligible subjects</p>}
+    {!item.subject && onCustomise && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
+      <button className={ui.action} type="button" onClick={onCustomise}>Customise to add a subject <span aria-hidden="true">↑</span></button>
+    </div>}
   </article>;
 }

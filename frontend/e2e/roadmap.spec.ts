@@ -141,13 +141,46 @@ test("Accounting empty state, sub-major options, replacement/removal and persist
   await expect(slot.locator(".plan-item__main-action")).toBeFocused();
 });
 
-test("Reset and Clear custom changes confirm briefly, as they do for USYD", async ({ page }) => {
+test("a read-only choice card takes the user to Customise plan", async ({ page }) => {
+  await openDegree(page, "C10235");
+  const customise = page.getByRole("button", { name: "Customise plan", exact: true });
+  const add = page.locator(".plan-item--choice").first().getByRole("button", { name: /Customise to add a subject/ });
+  await add.click();
+  await expect(customise).toBeFocused();
+  await expect(customise).toBeInViewport();
+  // Once customising, choice cards offer Choose instead.
+  await customise.click();
+  await expect(page.getByRole("button", { name: /Customise to add a subject/ })).toHaveCount(0);
+  await expect(page.locator(".plan-item--choice").first().getByRole("button", { name: "Choose", exact: true })).toBeVisible();
+});
+
+test("Reset and Exit custom mode ask first, then confirm briefly", async ({ page }) => {
   await openDegree(page, "C10235");
   await page.getByRole("button", { name: "Customise plan", exact: true }).click();
-  await page.getByRole("button", { name: "Reset to official plan", exact: true }).click();
+  const resetButton = page.getByRole("button", { name: "Reset to official plan", exact: true });
+  const resetDialog = page.getByRole("dialog", { name: "Reset to the official plan?" });
   const reset = page.getByText("Personal plan reset to the official template.", { exact: true });
+  // Cancel and Escape leave the plan as it was, and focus returns to the button.
+  await resetButton.click();
+  await expect(resetDialog).toContainText("Your chosen subjects will be replaced by the official roadmap.");
+  await resetDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(resetDialog).toHaveCount(0);
+  await expect(resetButton).toBeFocused();
+  await resetButton.click();
+  await page.keyboard.press("Escape");
+  await expect(resetDialog).toHaveCount(0);
+  await expect(reset).toHaveCount(0);
+  await resetButton.click();
+  await resetDialog.getByRole("button", { name: "Reset plan", exact: true }).click();
   await expect(reset).toBeVisible();
-  await page.getByRole("button", { name: "Clear custom changes", exact: true }).click();
+  await expect(resetButton).toBeVisible();
+
+  const clearDialog = page.getByRole("dialog", { name: "Exit custom mode?" });
+  await page.getByRole("button", { name: "Exit custom mode", exact: true }).click();
+  await clearDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(resetButton).toBeVisible();
+  await page.getByRole("button", { name: "Exit custom mode", exact: true }).click();
+  await clearDialog.getByRole("button", { name: "Exit custom mode", exact: true }).click();
   const cleared = page.getByText("Custom changes cleared.", { exact: true });
   await expect(cleared).toBeVisible();
   await expect(reset).toHaveCount(0);

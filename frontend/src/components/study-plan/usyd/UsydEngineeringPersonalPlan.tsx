@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchComponentDetail } from "../../../api/components";
 import { adaptUsydEngineeringPlan, resolveUsydEngineeringChoice, usydGroups, usydPlannerContext,
   usydPreviewStream } from "../../../domain/usydEngineeringPlanner";
@@ -15,6 +15,9 @@ import { AsyncState } from "../../AsyncState";
 import { RoadmapCard } from "../../planner/RoadmapCard";
 import { plannerUi } from "../../planner/ui";
 import { appUi } from "../../ui";
+import { PlanModeBadge } from "../PlanModeBadge";
+import { focusPlanAction } from "../focusPlanAction";
+import { ConfirmDialog } from "../../ConfirmDialog";
 import { OfficialPlanRoadmap } from "../OfficialPlanRoadmap";
 import { UsydEngineeringFocusSummary } from "./UsydEngineeringFocusSummary";
 import { UsydEngineeringProgressCard, type UsydAcademicComponent } from "./UsydEngineeringProgressCard";
@@ -64,13 +67,16 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
 }) {
   const template = useMemo(() => adaptUsydEngineeringPlan(plan), [plan]);
   const state = usePlannerState(template, context, false, true);
-  const [official, setOfficial] = useState(false);
   const [dalyell, setDalyell] = useState(() => { try { return localStorage.getItem(`usyd:dalyell:${handbookYear}:${context.degreeCode}`) === "true"; } catch { return false; } });
   const [activeChoiceId, setActiveChoiceId] = useState<string | null>(null);
   const [detailsCode, setDetailsCode] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  // Reset and Clear ask first, since both discard the subjects the user chose.
+  const [confirming, setConfirming] = useState<"reset" | "clear" | null>(null);
+  // Read-only choice cards send the user to Customise Plan.
+  const editButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (!notice) return; const timeout = window.setTimeout(() => setNotice(""), 5000); return () => window.clearTimeout(timeout); }, [notice]);
-  const editable = Boolean(state.planner && !official);
+  const editable = Boolean(state.planner);
   useEffect(() => { onEditableChange?.(editable); return () => onEditableChange?.(false); }, [editable, onEditableChange]);
   const displayed = useMemo(() => editable && state.planner ? plannerToStudyPlan(state.planner, template) : plan, [editable, state.planner, template, plan]);
   const items = useMemo(() => state.planner ? [...plannerItems(state.planner), ...state.planner.unassignedItems] : [], [state.planner]);
@@ -88,7 +94,8 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
     selectedComponents: selected, handbookYear, degreeCreditPoints });
   const issuesFor = (code: string) => validation?.results.filter(issue => issue.subjectCode === code) ?? [];
   const renderCard = (item: StudyPlanItem, scheduled: string) => {
-    if (!editable) return <UsydEngineeringReadOnlyCard key={item.id} item={item} scheduled={scheduled} onOpenSubject={setDetailsCode} />;
+    if (!editable) return <UsydEngineeringReadOnlyCard key={item.id} item={item} scheduled={scheduled} onOpenSubject={setDetailsCode}
+      onCustomise={() => focusPlanAction(editButtonRef.current)} />;
     return <RoadmapCard key={item.id} item={item} editable={editable} scheduled={scheduled} showReadOnlyDetails issues={editable && item.subject ? issuesFor(item.subject.code) : []}
       prerequisite={editable && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], issuesFor(item.subject.code), { hasPlan: true, loading: status === "loading" }) : undefined}
       onChoose={item => setActiveChoiceId(item.id)} onOpenSubject={setDetailsCode} onRestoreChoice={state.restoreChoiceSlot}
@@ -106,18 +113,16 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
   return <>
     <UsydEngineeringFocusSummary focus={specialisation} breadth={usydEngineeringSpecialisations(stream).find(option => option.component.code === specialisation?.component.code)?.kind === "BREADTH_SPECIALISATION"}
       handbookYear={handbookYear} onOpenSubject={setDetailsCode} />
-    <div className={editable ? appUi.plannerToolbarActive : appUi.plannerToolbar}>
-      <div><strong>{editable ? "My personal plan" : "Official CUSP roadmap"}</strong><p>{state.planner ? "Your draft is saved automatically on this device." : "Create an editable copy of this official roadmap."}</p></div>
+    <div className={editable ? appUi.plannerToolbarActive : appUi.plannerToolbar} data-plan-toolbar>
+      <div><PlanModeBadge editable={editable} /><strong>{editable ? "My personal plan" : "Official CUSP roadmap"}</strong><p>{state.planner ? "Your draft is saved automatically on this device." : "Create an editable copy of this official roadmap."}</p></div>
       <div className={appUi.plannerToolbarActions}>
-        {!state.planner ? <button className={appUi.primaryButton} type="button" onClick={() => { state.customize(); setOfficial(false); }}>Customise Plan</button> : <>
-          <button className={appUi.secondaryButton} type="button" onClick={() => { setOfficial(value => !value); setActiveChoiceId(null); }}>{official ? "View personal plan" : "View official roadmap"}</button>
-          <button className={appUi.secondaryButton} type="button" onClick={() => { state.reset(); setOfficial(false); setNotice("Personal plan reset to the official template."); }}>Reset to official plan</button>
-          <button className={appUi.textButtonDanger} type="button" onClick={() => { state.clear(); setOfficial(false); setNotice("Custom changes cleared."); }}>Clear custom changes</button>
+        {!state.planner ? <button ref={editButtonRef} className={appUi.primaryButton} type="button" onClick={state.customize}>Customise Plan</button> : <>
+          <button className={appUi.secondaryButton} type="button" onClick={() => setConfirming("reset")}>Reset to official plan</button>
+          <button className={appUi.textButtonDanger} type="button" onClick={() => setConfirming("clear")}>Exit custom mode</button>
         </>}
       </div>
     </div>
-    <p role="status" className="[margin:0_0_.75rem] text-[var(--muted)] text-[length:.8rem] font-bold">{editable ? "Editable personal plan" : "Read-only official roadmap"}</p>
-    {notice && <p role="status">{notice}</p>}
+    {notice && <p role="status" className={appUi.actionNotice}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0"><path d="M20 6 9 17l-5-5" /></svg>{notice}</p>}
     {editable && <>
       <section aria-label="Personal plan summary" className={appUi.planPanel}>
       <div className={appUi.planPanelHeader}><h3>Personal plan summary</h3>
@@ -141,11 +146,13 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
         hasConflict={Boolean(validation?.results.some(issue => issue.code === "ANTI_REQUISITE_CONFLICT" && selection.detail?.requirements.some(group => group.items.some(item => item.subject?.code === issue.subjectCode))))} />)}</div>
         : specialisation && !academicStreamMismatch && <p className={appUi.planPanelNotice}>This specialisation is your roadmap focus. Select it in Course Structure to track formal progress.</p>}
     </>}
+    <div className={editable ? appUi.planAreaEditable : undefined}>
     <OfficialPlanRoadmap plan={displayed} renderItem={renderCard} />
     {editable && state.planner && state.planner.unassignedItems.length > 0 && <section aria-labelledby="usyd-unscheduled-heading" className="mt-6"><h3 id="usyd-unscheduled-heading">Unscheduled subjects</h3>
       <p>These subjects aren't in a study period yet. Use Remove to restore their choice slot.</p>
       <div className={plannerUi.grid}>{state.planner.unassignedItems.map(item => renderCard(plannerItemToStudyPlanItem(item), "Unscheduled"))}</div>
     </section>}
+    </div>
     {editable && tableD && dalyell && <details className="mt-5"><summary>Conditional Dalyell requirement · 12 CP from Table D</summary>
       <p>Table D membership is shown in Course Structure. Allocate eligible Table D units to an available Free Elective position; this does not add credit capacity.</p>
     </details>}
@@ -157,6 +164,14 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
         const owner = component === stream?.component.code ? stream : component === specialisation?.component.code ? specialisation : undefined;
         state.selectSubject(activeChoice.plannerItemId, subject, component, groupId, owner?.component.id, group?.title ?? undefined, true); setActiveChoiceId(null);
       }} />
+    {confirming === "reset" && <ConfirmDialog title="Reset to the official plan?"
+      message="Your chosen subjects will be replaced by the official CUSP roadmap. You can keep customising afterwards."
+      confirmLabel="Reset plan" onCancel={() => setConfirming(null)}
+      onConfirm={() => { state.reset(); setConfirming(null); setNotice("Personal plan reset to the official template."); }} />}
+    {confirming === "clear" && <ConfirmDialog title="Exit custom mode?" danger
+      message="This removes your personal plan and shows the official CUSP roadmap again. This can't be undone."
+      confirmLabel="Exit custom mode" onCancel={() => setConfirming(null)}
+      onConfirm={() => { state.clear(); setConfirming(null); setNotice("Custom changes cleared."); }} />}
     <SubjectDetailsDialog subjectCode={detailsCode} universityCode="USYD" handbookYear={handbookYear} onClose={() => setDetailsCode(null)}
       planIssues={detailsCode ? issuesFor(detailsCode) : []} hasPlan={editable} adaptAccess={normalizeUsydEngineeringAccess} />
   </>;

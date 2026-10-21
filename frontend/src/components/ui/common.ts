@@ -41,6 +41,11 @@ export const commonUi = {
     "coverage-notice [margin:1.25rem_0_0] [padding:.75rem_1rem] [border-left:3px_solid_var(--blue)] bg-[#eef4fd]",
     "text-[#0a0a0a] text-[length:.9rem] [line-height:1.55] [&_strong]:font-bold",
   ),
+  // Confirms a study plan action such as Reset or Exit custom mode; same shape as the pathway condition note, in green.
+  actionNotice: cn(
+    "action-notice flex items-center gap-2 [margin:0_0_1.25rem] [padding:.85rem_1rem] [border-left:3px_solid_#36805e]",
+    "bg-[#f2faf6] text-[#225a42] text-[length:.92rem] font-semibold [line-height:1.5]",
+  ),
   selectionNotice: "selection-notice [border-left:3px_solid_var(--warning,_#b86b00)] [margin:0_0_1rem] [padding:0.65rem_0.8rem] bg-[#fff8e8]",
   textButtonDanger: cn(textButtonBase, "text-[#9b2c35]"),
   primaryButton: cn(
@@ -48,6 +53,21 @@ export const commonUi = {
     "font-bold cursor-pointer [&:hover:not(:disabled)]:bg-[var(--green)]",
     "[&:disabled]:opacity-50 [&:disabled]:cursor-not-allowed",
   ),
+  // Filled red button for confirming destructive actions, e.g. "Exit custom mode".
+  dangerButton: cn(
+    "min-w-30 [padding:.7rem_1rem] [border-radius:var(--radius)] border-none bg-[#9b2c35] text-white",
+    "font-bold cursor-pointer [&:hover:not(:disabled)]:bg-[#7f222a] [&:disabled]:opacity-50 [&:disabled]:cursor-not-allowed",
+  ),
+  // Small confirmation pop-up, e.g. before resetting or clearing a custom study plan.
+  confirmDialog: cn(
+    "[width:min(100%_-_2rem,_28rem)] max-w-none h-fit m-auto p-0 border-0 bg-[var(--surface)] text-[#0a0a0a]",
+    "[box-shadow:0_1rem_2.5rem_rgba(20,33,61,.18)] [&::backdrop]:bg-[rgba(14,24,43,.55)]",
+  ),
+  confirmDialogBody: cn(
+    "[padding:1.5rem_1.5rem_1.25rem] [&_h2]:[margin:0_0_.6rem] [&_h2]:text-[#0a0a0a] [&_h2]:text-[length:1.25rem]",
+    "[&_p]:m-0 [&_p]:text-[var(--muted)] [&_p]:text-[length:.92rem] [&_p]:[line-height:1.6]",
+  ),
+  confirmDialogFooter: "flex flex-wrap justify-end gap-3 [padding:1rem_1.5rem] [border-top:1px_solid_var(--line)]",
   viewPlanButton: cn(
     "w-full [padding:.7rem] [border-radius:var(--radius)] border-none bg-[var(--mint)]",
     "font-bold cursor-pointer [&:hover]:bg-[var(--green)]",

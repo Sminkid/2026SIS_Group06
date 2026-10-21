@@ -1,5 +1,8 @@
-import { appUi } from "./ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { appUi, cn } from "./ui";
+import { PlanModeBadge } from "./study-plan/PlanModeBadge";
+import { focusPlanAction } from "./study-plan/focusPlanAction";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchDegreeStudyPlans } from "../api/degrees";
 import { usePlannerState } from "../hooks/usePlannerState";
 import type { ComponentDetailResponse, StudyPlan, StudyPlanItem } from "../types/handbook";
@@ -70,6 +73,10 @@ export const StudyPlansSection = ({
   const [planNotice, setPlanNotice] = useState("");
   // Confirms Reset/Clear for a few seconds, as the USYD planner does.
   const [actionNotice, setActionNotice] = useState("");
+  // Reset and Clear ask first, since both discard the subjects the user chose.
+  const [confirming, setConfirming] = useState<"reset" | "clear" | null>(null);
+  // Read-only choice cards send the user here to start customising.
+  const customiseRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!actionNotice) return;
     const timeout = window.setTimeout(() => setActionNotice(""), 5000);
@@ -301,8 +308,9 @@ export const StudyPlansSection = ({
         </details>}
         {selectedPlan.description && <p>{readableText(selectedPlan.description)}</p>}
       </div>
-      <div className={planner ? appUi.plannerToolbarActive : appUi.plannerToolbar}>
+      <div className={planner ? appUi.plannerToolbarActive : appUi.plannerToolbar} data-plan-toolbar>
         <div>
+          <PlanModeBadge editable={planner !== null} />
           <strong>{planner ? "Custom planner active" : "Want to experiment?"}</strong>
           <p>{planner
             ? "Your draft is separate from the official handbook and saved automatically on this device."
@@ -310,18 +318,18 @@ export const StudyPlansSection = ({
         </div>
         <div className={appUi.plannerToolbarActions}>
           {planner ? <>
-            <button className={appUi.secondaryButton} type="button" onClick={() => { reset(); setActionNotice("Personal plan reset to the official template."); }}>Reset to official plan</button>
-            <button className={appUi.textButtonDanger} type="button" onClick={() => { clear(); setActionNotice("Custom changes cleared."); }}>Clear custom changes</button>
-          </> : <button className={appUi.primaryButton} type="button" onClick={customize}>Customise plan</button>}
+            <button className={appUi.secondaryButton} type="button" onClick={() => setConfirming("reset")}>Reset to official plan</button>
+            <button className={appUi.textButtonDanger} type="button" onClick={() => setConfirming("clear")}>Exit custom mode</button>
+          </> : <button ref={customiseRef} className={appUi.primaryButton} type="button" onClick={customize}>Customise plan</button>}
         </div>
       </div>
-      {actionNotice && <p role="status">{actionNotice}</p>}
+      {actionNotice && <p role="status" className={appUi.actionNotice}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0"><path d="M20 6 9 17l-5-5" /></svg>{actionNotice}</p>}
       {planner && <div className={appUi.roadmapBasis} role="status">
         <strong>Roadmap based on: {selectedPlan.title}</strong>
         {Object.values(componentDetails).length > 0 && <span>Personalised with: {Object.values(componentDetails).map((detail) => detail.component.name).join(" · ")}</span>}
       </div>}
       <div>
-      <div className={appUi.plannerPlanColumn}>
+      <div className={cn(appUi.plannerPlanColumn, planner ? appUi.planAreaEditable : "")}>
       {displayedSessionNames.some((name) => /session 1|autumn|spring/i.test(name)) && <details className={appUi.sessionHelp}><summary>Understanding teaching sessions</summary><dl>
         {displayedSessionNames.filter((name) => /autumn/i.test(name)).length > 0 && <div><dt>Autumn</dt><dd>Main first-half teaching session.</dd></div>}
         {displayedSessionNames.filter((name) => /spring/i.test(name)).length > 0 && <div><dt>Spring</dt><dd>Main second-half teaching session.</dd></div>}
@@ -331,6 +339,7 @@ export const StudyPlansSection = ({
                     item={item}
                     editable={planner !== null}
                     showReadOnlyDetails
+                    onCustomise={planner ? undefined : () => focusPlanAction(customiseRef.current)}
                     onChoose={setActiveChoice}
                     onOpenSubject={(code, issues) => setRequirementDetail({ code, issues })}
                     issues={item.subject ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
@@ -369,6 +378,14 @@ export const StudyPlansSection = ({
         onClose={() => setActiveChoice(null)}
         onSelect={chooseSubject}
       />
+      {confirming === "reset" && <ConfirmDialog title="Reset to the official plan?"
+        message="Your chosen subjects will be replaced by the official roadmap. You can keep customising afterwards."
+        confirmLabel="Reset plan" onCancel={() => setConfirming(null)}
+        onConfirm={() => { reset(); setConfirming(null); setActionNotice("Personal plan reset to the official template."); }} />}
+      {confirming === "clear" && <ConfirmDialog title="Exit custom mode?" danger
+        message="This removes your custom plan and shows the official roadmap again. This can't be undone."
+        confirmLabel="Exit custom mode" onCancel={() => setConfirming(null)}
+        onConfirm={() => { clear(); setConfirming(null); setActionNotice("Custom changes cleared."); }} />}
     </>}
   </section>;
 };

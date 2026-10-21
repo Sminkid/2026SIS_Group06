@@ -6,6 +6,10 @@ const plannerToolbarBase = cn(
     "[&_p]:text-[length:.82rem] [&_p]:[line-height:1.5] [@media(max-width:720px)]:items-stretch",
     "[@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-4",
   );
+const planModeBase = cn(
+    "inline-flex items-center gap-[.4rem] w-fit [margin:0_0_.6rem] [padding:.25rem_.6rem] border-[1px] border-solid",
+    "[border-radius:999px] text-[length:.72rem] font-extrabold [letter-spacing:.06em] uppercase",
+  );
 const readOnlyLabelBase = cn(
     "[padding:.35rem_.65rem] border-[1px] border-solid border-[color:var(--line)] text-[length:.7rem]",
     "font-extrabold [letter-spacing:.08em] uppercase",
@@ -32,8 +36,13 @@ export const studyPlanUi = {
     "[&_p]:[border-left:2px_solid_#aebbd0] [&_p]:bg-[var(--soft)] [&_p]:text-[length:.78rem]",
     "[&_p]:[overflow-wrap:anywhere]",
   ),
-  plannerToolbarActive: cn(plannerToolbarBase, "bg-[#f5fbf8] [border-color:#9bc8b4]"),
-  plannerToolbar: cn(plannerToolbarBase, "bg-[var(--surface)]"),
+  // Editable vs read-only: a green or grey bar on the left, matching the mode badge inside.
+  plannerToolbarActive: cn(plannerToolbarBase, "bg-[#f5fbf8] [border-color:#9bc8b4] [border-left:4px_solid_#36805e]"),
+  plannerToolbar: cn(plannerToolbarBase, "bg-[var(--surface)] [border-left:4px_solid_#aebbd0]"),
+  planModeEditing: cn(planModeBase, "text-[#216e4e] bg-[#e3f3eb] [border-color:#9bc8b4]"),
+  planModeReadOnly: cn(planModeBase, "text-[#4b5563] bg-[var(--soft)] [border-color:var(--line)]"),
+  // While editing, a green rule down the left of the roadmap marks it as the user's own copy.
+  planAreaEditable: "[border-left:3px_solid_#36805e] [padding-left:1rem] [@media(max-width:720px)]:[padding-left:.65rem]",
   plannerToolbarActions: "flex flex-wrap justify-end [gap:.65rem] shrink-0 [@media(max-width:720px)]:justify-start",
   roadmapBasis: cn(
     "grid gap-1 [margin:1rem_0] [padding:0.85rem_1rem] border-[1px] border-solid border-[color:var(--line)]",

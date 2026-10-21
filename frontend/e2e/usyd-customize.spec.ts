@@ -86,16 +86,31 @@ async function fill(page: Page, index = 0, code = "INFO1111") {
   await choice(page).locator(`[data-candidate-code="${code}"]`).getByRole("button", { name: "Select", exact: true }).click();
 }
 
+test("read-only choice cards take the user to Customise Plan, and the plan has no separate official view", async ({ page }) => {
+  await open(page); await stream(page).selectOption("Software Engineering");
+  const add = () => page.locator(".plan-item--choice").first().getByRole("button", { name: /Customise to add a subject/ });
+  await add().click();
+  const customise = page.getByRole("button", { name: "Customise Plan", exact: true });
+  await expect(customise).toBeFocused(); await expect(customise).toBeInViewport();
+  await customise.click();
+  await expect(page.getByRole("button", { name: /Customise to add a subject/ })).toHaveCount(0);
+  // Like UTS and UNSW, the only way back to the official roadmap is Exit custom mode.
+  await expect(page.getByRole("button", { name: "View official roadmap", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Exit custom mode", exact: true }).click();
+  await page.getByRole("dialog", { name: "Exit custom mode?" }).getByRole("button", { name: "Exit custom mode" }).click();
+  await add().click();
+  await expect(customise).toBeFocused();
+});
+
 test("selector identity, official immutability and deterministic 12 CP children", async ({ page }) => {
   await open(page); await expect(stream(page)).toHaveValue(""); await expect(page.locator(".plan-years")).toHaveCount(0);
   await customize(page); await expect(page.locator("[data-usyd-plan-id]")).toHaveAttribute("data-usyd-plan-id", "software-base");
   await expect(page.locator(".roadmap-aggregate .plan-item")).toHaveCount(2); await fill(page); await fill(page, 1, "COMP2022");
   await expect(page.locator(".roadmap-aggregate .plan-item--filled")).toHaveCount(2);
   await expect(page.locator(".roadmap-aggregate")).toContainText("12 CP scheduled here");
-  await page.getByRole("button", { name: "View official roadmap" }).click();
-  await expect(page.locator(".plan-item--filled")).toHaveCount(0); await expect(page.getByRole("button", { name: "Choose", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "View personal plan" }).click(); await expect(page.locator(".plan-item--filled").first()).toContainText("INFO1111");
+  await expect(page.locator(".plan-item--filled").first()).toContainText("INFO1111");
   await page.getByRole("button", { name: "Reset to official plan" }).click();
+  await page.getByRole("dialog", { name: "Reset to the official plan?" }).getByRole("button", { name: "Reset plan" }).click();
   await expect(page.locator(".roadmap-aggregate .plan-item")).toHaveCount(2); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
@@ -111,7 +126,8 @@ test("drafts survive reload and remain isolated by base, commencement and specia
   await page.getByRole("button", { name: "Customise Plan", exact: true }).click(); await fill(page, 0, "COMP2022");
   await page.getByRole("combobox", { name: "Study plan focus", exact: true }).selectOption("BASE");
   await expect(page.locator(".plan-item--filled")).toContainText("INFO1111");
-  await page.getByRole("button", { name: "Clear custom changes" }).click(); await expect(page.getByRole("button", { name: "Customise Plan", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Exit custom mode" }).click();
+  await page.getByRole("dialog", { name: "Exit custom mode?" }).getByRole("button", { name: "Exit custom mode" }).click(); await expect(page.getByRole("button", { name: "Customise Plan", exact: true })).toBeVisible();
   await open(page); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 

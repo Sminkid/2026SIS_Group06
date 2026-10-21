@@ -13,6 +13,8 @@ interface Props {
   onOpenSubject: (code: string, issues: ValidationResult[]) => void;
   onRestoreChoice: (id: string) => void;
   showReadOnlyDetails?: boolean;
+  /** Read-only only: takes the user to the button that switches the plan to editing, so they can fill this choice. */
+  onCustomise?: () => void;
 }
 
 /** Renders a bounded summary; full enrolment explanations live in subject details. */
@@ -28,7 +30,7 @@ function PrerequisiteSummary({ state }: { state: PrerequisiteDisplayState }) {
  * by fixed, empty and selected states; only compact actions and status change.
  */
 export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, readOnlyChoiceNote,
-  onChoose, onOpenSubject, onRestoreChoice, showReadOnlyDetails }: Props) {
+  onChoose, onOpenSubject, onRestoreChoice, showReadOnlyDetails, onCustomise }: Props) {
   const placement = /\b(internship|placement|practicum|professional experience)\b/i.test(`${item.title} ${item.choiceOrigin?.title ?? ""}`);
   const fixedCore = item.choiceOrigin?.componentRequirementKind === "FIXED";
   const filled = Boolean(item.choiceOrigin && item.subject && !fixedCore);
@@ -58,6 +60,9 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, r
     {secondaryIssue && <p className="m-0 text-xs text-amber-900">Plan requirement needs review</p>}
     {!editable && showReadOnlyDetails && item.subject && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
       <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>
+    </div>}
+    {!editable && onCustomise && interactive && !item.subject && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
+      <button className={ui.action} type="button" onClick={onCustomise}>Customise to add a subject <span aria-hidden="true">↑</span></button>
     </div>}
     {editable && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
       {interactive && <button className={ui.action} type="button" onClick={() => onChoose(item)}>{filled ? "Change" : "Choose"}</button>}

@@ -305,7 +305,7 @@ export const StudyPlansSection = ({
         <div>
           <strong>{planner ? "Custom planner active" : "Want to experiment?"}</strong>
           <p>{planner
-            ? "Your draft is separate from the official handbook. It's kept until you leave or refresh this page."
+            ? "Your draft is separate from the official handbook and saved automatically on this device."
             : "Create a private editable copy of this official plan. The handbook data will stay unchanged."}</p>
         </div>
         <div className={appUi.plannerToolbarActions}>

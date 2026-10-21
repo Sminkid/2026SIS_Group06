@@ -1,6 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openSection } from "./sections";
-import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import { readFileSync } from "node:fs";
 import type { ComponentDetailResponse, DegreeDetailResponse, RequirementCandidateSourceSummary, RequirementCandidateSubjectsResponse, StudyPlan } from "../src/types/handbook";
 import { adaptUsydEngineeringPlan, resolveUsydEngineeringChoice, usydGroups } from "../src/domain/usydEngineeringPlanner";
@@ -20,7 +19,6 @@ const proofs = captured.memberships.map(m=>({sourceId:m.source.id,subjects:allSu
 const failures = new WeakMap<Page,string[]>();
 const requests = new WeakMap<Page,URL[]>();
 test.beforeEach(async ({page})=>{
-  acceptLeavingDegreePages(page);
   failures.set(page,[]); requests.set(page,[]); page.on("pageerror",error=>failures.get(page)!.push(error.message));
   await page.route("**/api/**",async route=>{
     const url=new URL(route.request().url()); const path=url.pathname; let body:unknown;
@@ -44,7 +42,7 @@ test.beforeEach(async ({page})=>{
   });
 });
 test.afterEach(async ({page})=>{ expect(failures.get(page)).toEqual([]); });
-async function open(page:Page) { await page.goto("/"); await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
+async function open(page:Page) { await page.goto("/"); await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
  await page.locator(".university-card").filter({hasText:"USYD"}).click(); await page.locator(".degree-row").filter({hasText:"BHENGINE-04"}).click(); }
 const focusControl=(page:Page)=>page.getByRole("combobox",{name:"Study plan focus",exact:true});
 const academicStorage=(page:Page)=>page.evaluate(()=>localStorage.getItem("degree-planner:components:USYD:2026:BHENGINE-04"));
@@ -142,6 +140,11 @@ test("formal Breadth progress persists under Base and a different manual focus; 
     await expect(summaryCard.locator("summary")).toContainText(`verification notes (${noteCount})`);
   }
   const summary=await summaryCard.textContent();
+  await page.reload();
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
+  await page.locator(".university-card").filter({hasText:"USYD"}).click();
+  await page.locator(".degree-row").filter({hasText:"BHENGINE-04"}).click();
+  await expect(progress).toContainText("6 / 24 CP");
   await page.locator(".plan-item--filled").filter({hasText:"CIVL3310"}).getByRole("button",{name:"Remove subject & restore choice"}).click();
   await expect(progress).toContainText("0 / 24 CP");
   const before=await academicStorage(page);
@@ -157,6 +160,7 @@ test("formal Breadth progress persists under Base and a different manual focus; 
   await expect(progress).toBeVisible();
   await expect(page.getByRole("region",{name:"Innovation and Entrepreneurship (Breadth) formal progress"})).toHaveCount(0);
   expect(await academicStorage(page)).toBe(before);
+  await openSection(page.getByRole("button",{name:/Engineering Stream.*120 credit points.*Choose one/i}));
   await course.getByRole("radio",{name:/Civil Engineering/}).check();
   await page.getByRole("combobox",{name:"Engineering Stream",exact:true}).selectOption("Civil Engineering");
   await expect(focusControl(page)).toHaveValue("BASE");
@@ -205,16 +209,13 @@ test("UNKNOWN Computational requirements show manual progress even when every li
   const stream=captured.streams.find(s=>s.component.name==="Mechanical Engineering")!;
   const reference=usydEngineeringSpecialisations(stream).find(o=>o.component.name==="Computational")!.component;
   const component=formal.components.find(c=>c.component.id===reference.id)!;
-  const prepared=await page.evaluate(subjects=>{
+  await page.evaluate(subjects=>{
     const key=Object.keys(localStorage).find(k=>k.startsWith("planner:USYD"))!;
     const stored=JSON.parse(localStorage.getItem(key)!);
     stored.unassignedItems=subjects.map((subject,i)=>({plannerItemId:`manual-${i}`,officialItemId:`manual-${i}`,originalPeriodId:stored.years[0].periods[0].officialPeriodId,itemType:"SUBJECT",subject:{...subject,officialSubjectId:subject.id},title:subject.name,rawCode:subject.code,creditPoints:subject.creditPoints,numberOfPeriods:null,choiceOrigin:null,officialSortOrder:i}));
     localStorage.setItem(key,JSON.stringify(stored));
-    return Object.fromEntries(Object.entries(localStorage));
   },[...new Map(component.requirements.flatMap(g=>g.items.flatMap(i=>i.subject?[i.subject]:[])).map(s=>[s.code,s])).values()]);
-  // Reloading resets the page, so put the prepared plan back before the app starts, as if it was planned in this visit.
-  await page.addInitScript(entries=>{ for (const [key,value] of Object.entries(entries)) localStorage.setItem(key,value); },prepared);
-  await page.reload();
+  await open(page);
   await expect(progress).toContainText("manual verification required");
   await expect(progress).not.toContainText("Structured requirement CP met");
 });

@@ -1,5 +1,4 @@
 import { expect, test, type Page } from "@playwright/test";
-import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import { readFileSync } from "node:fs";
 import type { DegreeDetailResponse } from "../src/types/handbook";
 import type { ComponentDetailResponse, RequirementGroup, RequirementSubject, StudyPlan } from "../src/types/handbook";
@@ -44,7 +43,6 @@ const access = (code: string): SubjectAccessConditions => ({ subject: { id: code
       referencedSubject: subject(ref), referencedComponent: null, referencedDegree: null, rawReferencedCodes: [ref], sortOrder: index })) }] : [] });
 const errors = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
-  acceptLeavingDegreePages(page);
   const failures: string[] = []; errors.set(page, failures);
   page.on("pageerror", e => failures.push(e.message));
   page.on("console", msg => { if (["warning", "error"].includes(msg.type())) failures.push(msg.text()); });
@@ -76,7 +74,7 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => { expect(errors.get(page)).toEqual([]); });
 async function open(page: Page) {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
   await page.locator(".university-card").filter({ hasText: "USYD" }).click();
   await page.locator(".degree-row").filter({ hasText: "BHENGINE-04" }).click();
 }
@@ -101,11 +99,11 @@ test("selector identity, official immutability and deterministic 12 CP children"
   await expect(page.locator(".roadmap-aggregate .plan-item")).toHaveCount(2); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
-test("drafts stay isolated by base, commencement and specialisation, and reset when the page is left", async ({ page }) => {
+test("drafts survive reload and remain isolated by base, commencement and specialisation", async ({ page }) => {
   await open(page); await customize(page); await fill(page);
   await page.getByRole("combobox", { name: "Commencement", exact: true }).selectOption("MID_YEAR");
   await page.getByRole("button", { name: "Customise Plan", exact: true }).click(); await fill(page, 0, "COMP2022");
-  await expect(page.locator("[data-usyd-plan-id]")).toHaveAttribute("data-usyd-plan-id", "software-midyear");
+  await open(page); await expect(page.locator("[data-usyd-plan-id]")).toHaveAttribute("data-usyd-plan-id", "software-midyear");
   await expect(page.locator(".plan-item--filled")).toContainText("COMP2022");
   await page.getByRole("combobox", { name: "Commencement", exact: true }).selectOption("STANDARD");
   await expect(page.locator(".plan-item--filled")).toContainText("INFO1111");
@@ -114,7 +112,7 @@ test("drafts stay isolated by base, commencement and specialisation, and reset w
   await page.getByRole("combobox", { name: "Study plan focus", exact: true }).selectOption("BASE");
   await expect(page.locator(".plan-item--filled")).toContainText("INFO1111");
   await page.getByRole("button", { name: "Clear custom changes" }).click(); await expect(page.getByRole("button", { name: "Customise Plan", exact: true })).toBeVisible();
-  await open(page); await expect(stream(page)).toHaveValue(""); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
+  await open(page); await expect(page.locator(".plan-item--filled")).toHaveCount(0);
 });
 
 test("mixed embedded/source union is deduplicated and persists explicit requirement ownership", async ({ page }) => {
@@ -199,7 +197,7 @@ test("high-level primary defaults correctly and an ambiguous primary keeps All e
   await expect(choice(page).getByRole("heading", { name: high.title!, exact: true })).toHaveCount(1);
   await expect(choice(page).locator('[data-candidate-code="COMP3608"]')).toHaveCount(1);
   await page.keyboard.press("Escape");
-  ambiguous = true; await open(page); await customize(page);
+  ambiguous = true; await open(page);
   await page.locator(".plan-item--choice").first().getByRole("button", { name: "Choose", exact: true }).click();
   await expect(choice(page).getByLabel("Eligible pool", { exact: true })).toHaveValue("");
   await expect(choice(page)).toContainText("Some CUSP alternatives could not be mapped.");

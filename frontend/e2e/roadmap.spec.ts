@@ -1,6 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { openSection } from "./sections";
-import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import type { SubjectAccessConditions } from "../src/types/subject";
 import { readFileSync } from "node:fs";
 import type { ComponentDetailResponse, DegreeDetailResponse, StudyPlan } from "../src/types/handbook";
@@ -52,7 +51,6 @@ const usydSpecialisationDetails: ComponentDetailResponse[] = [
 ];
 const failures = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
-  acceptLeavingDegreePages(page);
   const errors: string[] = [];
   failures.set(page, errors);
   page.on("pageerror", (error) => errors.push(error.message));
@@ -94,13 +92,13 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ page }) => { expect(failures.get(page)).toEqual([]); });
 const openDegree = async (page: Page, code: string, university = "UTS") => {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
   await page.locator(".university-card").filter({ hasText: university }).click();
   await page.locator(".degree-row").filter({ hasText: code }).click();
   await expect(page.locator(".degree-hero")).toContainText(code);
 };
 
-test("Accounting empty state, sub-major options, replacement/removal, and a reset after leaving", async ({ page }) => {
+test("Accounting empty state, sub-major options, replacement/removal and persisted reload", async ({ page }) => {
   await openDegree(page, "C10235");
   const path = page.locator(".study-path");
   await expect(path.locator("select").first()).toHaveValue("");
@@ -125,6 +123,14 @@ test("Accounting empty state, sub-major options, replacement/removal, and a rese
   await slot.locator(".plan-item__main-action").click();
   await dialog.getByRole("button", { name: "Replace current option", exact: true }).last().click();
   await expect(slot).toContainText("Selected subject");
+  let releaseDetails!: () => void;
+  const detailsPending = new Promise<void>(resolve => { releaseDetails = resolve; });
+  await page.route("**/api/components/*", async route => { await detailsPending; await route.fallback(); });
+  try {
+    await openDegree(page, "C10235");
+    // Restored allocations must survive even when roadmap templates arrive before component details.
+    await expect(page.locator(".plan-item--filled")).toHaveCount(1);
+  } finally { releaseDetails(); }
   await expect(path.locator(".selected-path-preview")).toHaveCount(2);
   await expect(page.locator(".plan-item--filled")).toHaveCount(1);
   await page.getByRole("button", { name: "Remove subject & restore choice" }).click();
@@ -133,11 +139,6 @@ test("Accounting empty state, sub-major options, replacement/removal, and a rese
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
   await expect(slot.locator(".plan-item__main-action")).toBeFocused();
-  // Leaving and coming back starts the degree page again: no pathway, no custom plan.
-  await openDegree(page, "C10235");
-  await expect(path.locator("select").first()).toHaveValue("");
-  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Customise plan", exact: true })).toBeVisible();
 });
 
 test("Reset and Clear custom changes confirm briefly, as they do for USYD", async ({ page }) => {
@@ -193,9 +194,9 @@ test("Engineering Data Science major/variant synchronization and exact candidate
   await expect(major).toHaveValue("MAJ03537");
   await major.selectOption("MAJ03518");
   await expect(page.locator(".plan-intro h3")).toContainText("Data Science");
-  // Leaving resets the chosen major.
   await openDegree(page, "C09066");
-  await expect(major).toHaveValue("");
+  await expect(major).toHaveValue("MAJ03518");
+  await expect(page.locator(".plan-intro h3")).toContainText("Data Science");
 });
 
 test("UTS Course Structure still selects a major and renders its nested subject requirements", async ({ page }) => {
@@ -417,7 +418,7 @@ test("Accounting Core starts outstanding; equivalent positions expose the same p
   await expect(path).toContainText("Required Core remaining: 2");
 });
 
-test("Accounting Core and elective choices offer no Swap or Move, keep their allocation, and leaving resets them", async ({ page }) => {
+test("Accounting Core and elective choices offer no Swap or Move, and keep their allocation after a reload", async ({ page }) => {
   await openDegree(page, "C10235");
   const path = page.locator(".study-path");
   await path.locator("select").first().selectOption({ label: "Sub-major + electives" });
@@ -442,7 +443,8 @@ test("Accounting Core and elective choices offer no Swap or Move, keep their all
   await expect(path).toContainText("Required Core remaining: 3");
   await expect(page.locator(".plan-item--filled")).toHaveCount(1);
   await openDegree(page, "C10235");
-  await expect(page.locator(".plan-item--filled")).toHaveCount(0);
+  await expect(page.locator(".plan-item--filled")).toHaveCount(1);
+  await expect(path).toContainText("Required Core remaining: 3");
 });
 
 test("USYD degree requirements remain available", async ({ page }) => {

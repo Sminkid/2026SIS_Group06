@@ -1,6 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openSection } from "./sections";
-import { acceptLeavingDegreePages, leaveDegreeIfAsked } from "./degreeReset";
 import { readFileSync } from "node:fs";
 import type { ComponentDetailResponse, DegreeDetailResponse, RequirementGroup, StudyPlan } from "../src/types/handbook";
 import { usydEngineeringSpecialisations, usydFormalFocusId } from "../src/domain/usydEngineeringSpecialisations";
@@ -28,7 +27,6 @@ const plans = formal.plans.map(p => {
 const errors = new WeakMap<Page, string[]>();
 const candidateRequests = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
-  acceptLeavingDegreePages(page);
   const failures: string[] = []; errors.set(page, failures); candidateRequests.set(page, []);
   page.on("pageerror", e => failures.push(e.message));
   await page.route("**/api/**", async route => {
@@ -57,7 +55,7 @@ test.afterEach(async ({ page }) => { expect(errors.get(page)).toEqual([]); });
 
 async function open(page: Page) {
   await page.goto("/");
-  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click(); await leaveDegreeIfAsked(page);
+  await page.getByRole("navigation", { name: "Primary" }).getByRole("button", { name: "University Handbooks" }).click();
   await page.locator(".university-card").filter({ hasText: "USYD" }).click();
   await page.locator(".degree-row").filter({ hasText: "BHENGINE-04" }).click();
 }

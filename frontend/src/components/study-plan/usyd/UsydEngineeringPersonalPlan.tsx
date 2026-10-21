@@ -107,7 +107,7 @@ function PersonalPlanSession({ plan, context, stream, specialisation, requiremen
     <UsydEngineeringFocusSummary focus={specialisation} breadth={usydEngineeringSpecialisations(stream).find(option => option.component.code === specialisation?.component.code)?.kind === "BREADTH_SPECIALISATION"}
       handbookYear={handbookYear} onOpenSubject={setDetailsCode} />
     <div className={editable ? appUi.plannerToolbarActive : appUi.plannerToolbar}>
-      <div><strong>{editable ? "My personal plan" : "Official CUSP roadmap"}</strong><p>{state.planner ? "Your draft is kept until you leave or refresh this page." : "Create an editable copy of this official roadmap."}</p></div>
+      <div><strong>{editable ? "My personal plan" : "Official CUSP roadmap"}</strong><p>{state.planner ? "Your draft is saved automatically on this device." : "Create an editable copy of this official roadmap."}</p></div>
       <div className={appUi.plannerToolbarActions}>
         {!state.planner ? <button className={appUi.primaryButton} type="button" onClick={() => { state.customize(); setOfficial(false); }}>Customise Plan</button> : <>
           <button className={appUi.secondaryButton} type="button" onClick={() => { setOfficial(value => !value); setActiveChoiceId(null); }}>{official ? "View personal plan" : "View official roadmap"}</button>

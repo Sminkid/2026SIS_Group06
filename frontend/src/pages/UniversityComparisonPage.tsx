@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { appUi } from "../components/ui";
 import { AsyncState } from "../components/AsyncState";
+import { StudyPlanCoverageNotice } from "../components/StudyPlanCoverageNotice";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { fetchCourseFees } from "../api/fees";
 import { fetchEmploymentBenchmark } from "../api/universities";
@@ -237,6 +238,7 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
         <p className={appUi.eyebrow}>Explore universities</p>
         <h1>Compare</h1>
         <h2 id="compare-heading">Compare universities for {course.courseName}</h2>
+        <StudyPlanCoverageNotice degreeName={course.courseName} comparing />
 
         <section className={appUi.contentSection}></section>
         <div className={appUi.sectionHeading}>

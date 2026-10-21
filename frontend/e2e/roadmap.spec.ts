@@ -141,6 +141,39 @@ test("Accounting empty state, sub-major options, replacement/removal and persist
   await expect(slot.locator(".plan-item__main-action")).toBeFocused();
 });
 
+test("broad elective search: Change reopens the search so the subject can be swapped", async ({ page }) => {
+  const subject = (code: string, name: string) =>
+    ({ id: code, code, name, creditPoints: 6, prerequisiteStatus: "UNKNOWN", recommendation: "UNVERIFIED" });
+  await page.route("**/api/subjects/search?*", route => route.fulfill({ json: [subject("FIRST100", "First elective"), subject("SECOND100", "Second elective")] }));
+  await openDegree(page, "C10235");
+  const path = page.locator(".study-path");
+  await path.locator("select").first().selectOption({ label: "Sub-major + electives" });
+  await path.locator(".pathway-selection select").selectOption("SMJ08138");
+  await page.getByRole("button", { name: "Customise plan", exact: true }).click();
+  const slot = page.locator(".plan-item--choice").filter({ has: page.getByRole("heading", { name: "Electives · 6 CP choice" }) }).first();
+  await slot.locator(".plan-item__main-action").click();
+  const dialog = page.getByRole("dialog", { name: "Choose a subject" });
+  const result = (code: string) => dialog.locator(".subject-result").filter({ hasText: code });
+  await result("FIRST100").getByRole("button", { name: "Select", exact: true }).click();
+  const filled = page.locator(".plan-item--filled").filter({ hasText: "FIRST100" });
+  await expect(filled).toHaveCount(1);
+  await filled.getByRole("button", { name: "Change", exact: true }).click();
+  await expect(dialog.getByLabel("Search by subject code or name")).toBeVisible();
+  await result("SECOND100").getByRole("button", { name: /Select|Replace current option/ }).click();
+  await expect(page.locator(".plan-item--filled").filter({ hasText: "SECOND100" })).toHaveCount(1);
+  await expect(page.locator(".plan-item--filled").filter({ hasText: "FIRST100" })).toHaveCount(0);
+});
+
+test("the study plan coverage notice shows on non-Engineering degree pages only", async ({ page }) => {
+  await openDegree(page, "C10235");
+  const notice = page.getByRole("note").filter({ hasText: "This study plan is still under development" });
+  await expect(notice).toBeVisible();
+  await expect(notice).toContainText("This degree's study plan may be incomplete, so check it against the official handbook before relying on it.");
+  await openDegree(page, "C09066");
+  await expect(page.getByRole("heading", { name: "Study plan" })).toBeVisible();
+  await expect(page.getByRole("note").filter({ hasText: "still under development" })).toHaveCount(0);
+});
+
 test("a read-only choice card takes the user to Customise plan", async ({ page }) => {
   await openDegree(page, "C10235");
   const customise = page.getByRole("button", { name: "Customise plan", exact: true });
@@ -470,7 +503,7 @@ test("Accounting Core and elective choices offer no Swap or Move, and keep their
   // Swap and Move were removed from the custom plan.
   await expect(page.getByRole("button", { name: "Swap position", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Move subject", exact: true })).toHaveCount(0);
-  await expect(source).toContainText("Counts toward: Marketing Core");
+  await expect(source).toContainText("Counts toward: Marketing · Core");
   await expect(path).toContainText("Required Core remaining: 2");
   await source.getByRole("button", { name: "Remove subject & restore choice" }).click();
   await expect(path).toContainText("Required Core remaining: 3");

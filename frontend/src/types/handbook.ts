@@ -143,6 +143,11 @@ export interface StudyPlanItem {
     candidateSourceType?: "FORMAL" | "BROAD" | "UNRESOLVED";
     maximumCreditPoints?: number;
     sourceLabel?: string;
+    /**
+     * The slot's own requirement, kept when a subject is chosen. Choosing overwrites the formal fields above with
+     * the chosen subject's allocation; these let Change reopen the full choice and Remove restore the slot.
+     */
+    slotScope?: { formalComponentCode?: string; formalComponentId?: string; formalRequirementGroupId?: string };
   };
 }
 export interface StudyPlanPeriod { id: string; name: string; sortOrder: number | null; items: StudyPlanItem[]; }

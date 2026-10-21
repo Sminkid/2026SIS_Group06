@@ -130,7 +130,7 @@ test("handbook route: every breadcrumb goes back to its page", async ({ page }) 
 test("degree and course lists remind users that only Engineering study plans are complete", async ({ page }) => {
   await nav(page).getByRole("button", { name: "View All Courses", exact: true }).click();
   await expect(heading(page, "Courses")).toBeVisible();
-  await expect(page.getByRole("note")).toContainText("Study plans for others are still under development.");
+  await expect(page.getByRole("note")).toContainText("Study plans for other degrees are still under development");
 });
 
 test("the degree list offers the interest quiz, like All Courses", async ({ page }) => {

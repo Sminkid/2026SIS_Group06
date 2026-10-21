@@ -39,7 +39,10 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, r
   const name = readableText(item.subject?.name ?? item.title);
   const code = item.subject?.code ?? item.rawCode;
   const points = item.subject?.creditPoints ?? item.creditPoints;
-  const source = `${item.choiceOrigin?.sourceLabel ?? item.choiceOrigin?.title ?? "Official study plan"} ${item.choiceOrigin?.allocatedGroupLabel ?? ""}`.trim();
+  // "Slot · group the subject counts toward", without repeating a name that's the same (e.g. "Electives · Electives").
+  const slotLabel = item.choiceOrigin?.sourceLabel ?? item.choiceOrigin?.title ?? "Official study plan";
+  const groupLabel = item.choiceOrigin?.allocatedGroupLabel?.trim();
+  const source = groupLabel && groupLabel.toLowerCase() !== slotLabel.trim().toLowerCase() ? `${slotLabel} · ${groupLabel}` : slotLabel;
   const showDetails = () => { if (code) onOpenSubject(code, issues); };
   const secondaryIssue = issues.some(issue => !["PREREQUISITE_TIMING", "COREQUISITE_TIMING"].includes(issue.code) && issue.severity !== "info");
   return <article data-planner-item-id={item.id} className={cn("plan-item", interactive ? "plan-item--choice" : "", filled ? "plan-item--filled" : "", ui.card, filled ? ui.selected : interactive ? ui.choice : ui.fixed)}>

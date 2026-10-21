@@ -257,14 +257,23 @@ export const StudyPlansSection = ({
     }
     return index;
   }, [combinedValidation]);
-  const activeChoiceScope = useMemo(
-    () => resolveStudyPathChoiceScope(activeChoice, requirements, componentDetails, selectedComponents, planner),
-    [activeChoice, componentDetails, planner, requirements, selectedComponents],
-  );
-  const chooseSubject = (subject: SubjectSearchResult, formalComponentCode?: string, formalRequirementGroupId?: string) => {
+  // Change reopens a filled slot with its own requirement, not just the group of the subject chosen before.
+  const activeChoiceScope = useMemo(() => {
+    const slotScope = activeChoice?.choiceOrigin?.slotScope;
+    const choice = activeChoice && slotScope ? { ...activeChoice, choiceOrigin: { ...activeChoice.choiceOrigin!, ...slotScope } } : activeChoice;
+    return resolveStudyPathChoiceScope(choice, requirements, componentDetails, selectedComponents, planner);
+  }, [activeChoice, componentDetails, planner, requirements, selectedComponents]);
+  const chooseSubject = (subject: SubjectSearchResult, formalComponentCode?: string, formalRequirementGroupId?: string, fromSearch?: boolean) => {
     if (!activeChoice) return;
-    const groupLabel = flattenRequirements(activeChoiceScope.groups ?? []).find((group) => group.id === formalRequirementGroupId)?.title ?? undefined;
-    selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId, activeChoiceScope.componentId, groupLabel);
+    const groupLabel = flattenRequirements([...(activeChoiceScope.groups ?? []), ...(activeChoiceScope.broadSearch?.group ? [activeChoiceScope.broadSearch.group] : [])])
+      .find((group) => group.id === formalRequirementGroupId)?.title ?? undefined;
+    // A search pick in a slot that also lists a component (e.g. a free elective in "Free Elective or Sub-major")
+    // belongs to the searched group only, so drop the listed component's ownership.
+    if (fromSearch && activeChoiceScope.kind !== "BROAD") {
+      selectSubject(activeChoice.id, subject, undefined, formalRequirementGroupId, undefined, groupLabel ?? activeChoiceScope.broadSearch?.label, true);
+    } else {
+      selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId, activeChoiceScope.componentId, groupLabel);
+    }
     setActiveChoice(null);
   };
   const hasLongPlanTitle = (selectedPlan?.title.length ?? 0) > 180;

@@ -37,9 +37,12 @@ export const commonUi = {
   checkMark: "w-5 h-5",
   sectionNote: "[margin:-.75rem_0_2rem] text-[var(--muted)]",
   // Information banner on degree and course lists, e.g. which study plans are complete.
+  // Amber study plan coverage warning: icon, bold heading and explanation, like the pathway condition note but stronger.
   coverageNotice: cn(
-    "coverage-notice [margin:1.25rem_0_0] [padding:.75rem_1rem] [border-left:3px_solid_var(--blue)] bg-[#eef4fd]",
-    "text-[#0a0a0a] text-[length:.9rem] [line-height:1.55] [&_strong]:font-bold",
+    "coverage-notice flex items-start gap-3 [margin:1.25rem_0_0] [padding:.9rem_1.1rem] border-[1px] border-solid",
+    "[border-color:#f0c97a] [border-left:4px_solid_#b86b00] bg-[#fff6e0] text-[#5c3d0b]",
+    "[&_svg]:shrink-0 [&_svg]:mt-[.1rem] [&_svg]:text-[#b86b00] [&_strong]:block [&_strong]:text-[#4a3108]",
+    "[&_strong]:text-[length:.95rem] [&_strong]:font-extrabold [&_p]:[margin:.2rem_0_0] [&_p]:text-[length:.88rem] [&_p]:[line-height:1.55]",
   ),
   // Confirms a study plan action such as Reset or Exit custom mode; same shape as the pathway condition note, in green.
   actionNotice: cn(

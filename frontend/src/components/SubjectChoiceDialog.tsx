@@ -15,7 +15,8 @@ import { useRequirementCandidateSubjects } from "../hooks/useRequirementCandidat
 interface Props {
   choiceItem: StudyPlanItem | null; universityCode: string; handbookYear: number; scope: ChoiceScope; planner: PlannerState | null;
   onClose: () => void; onOpenSubject: (code: string) => void;
-  onSelect: (subject: SubjectSearchResult, componentCode?: string, groupId?: string) => void;
+  /** `fromSearch` is true for a pick from the handbook-wide search, which isn't credited to a listed component. */
+  onSelect: (subject: SubjectSearchResult, componentCode?: string, groupId?: string, fromSearch?: boolean) => void;
   adaptAccess?: (access: SubjectAccessConditions) => SubjectAccessConditions;
   focusedView?: FocusedChoiceView;
 }
@@ -32,8 +33,10 @@ const requiredPoints = (group: RequirementGroup) => group.requiredCreditPoints ?
   : null);
 
 /** Lists candidate subjects with independent requirement-match, access and selection states. */
-const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner, choiceItem, accessConditions, componentCode, onOpenSubject, onSelect, recognizeOfficialSubjects, attributionFor }: {
+const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner, choiceItem, accessConditions, componentCode, onOpenSubject, onSelect, recognizeOfficialSubjects, attributionFor, fromSearch = false }: {
   results: SubjectSearchResult[]; selectable: boolean; requiredCore: boolean; planner: PlannerState | null; choiceItem: StudyPlanItem;
+  /** Results from the handbook-wide search; picks from it aren't credited to a listed component. */
+  fromSearch?: boolean;
   quotaGroup?: RequirementGroup; accessConditions: Record<string, SubjectAccessConditions>; componentCode?: string; onOpenSubject: Props["onOpenSubject"]; onSelect: Props["onSelect"];
   recognizeOfficialSubjects?: boolean;
   attributionFor?: (subject: SubjectSearchResult) => { group: RequirementGroup; componentCode?: string; controls: ReactNode };
@@ -87,7 +90,7 @@ const SubjectResults = ({ results, selectable, requiredCore, quotaGroup, planner
       {(access?.hasConditions || subject.prerequisiteStatus === "HAS_CONDITIONS") && <button className={appUi.textButton} type="button" onClick={() => onOpenSubject(subject.code)}>View requirements</button>}
       {action.visible && <button className={appUi.secondaryButton} type="button"
         disabled={action.disabled || subject.creditPoints === null || subject.creditPoints <= 0 || subject.creditPoints > (choiceItem.choiceOrigin?.maximumCreditPoints ?? choiceItem.choiceOrigin?.creditPoints ?? choiceItem.creditPoints ?? Infinity)}
-        onClick={() => onSelect(subject, candidateComponent, candidateGroup?.id)}>
+        onClick={() => onSelect(subject, candidateComponent, candidateGroup?.id, fromSearch)}>
         {action.label}
       </button>}
     </div></article>;
@@ -187,13 +190,18 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
     }).catch((error: unknown) => { if (!(error instanceof DOMException && error.name === "AbortError")) { setLoadingMore(false); setExternalStatus("error"); } });
   }, [universityCode, handbookYear]);
   // A broad choice opens with the handbook's subjects listed, so there's something to pick without searching.
-  useEffect(() => { if (choiceItem && scope.kind === "BROAD") loadSubjects("", false); }, [choiceItem?.id, scope.kind, loadSubjects]);
+  const offersSearch = scope.kind === "BROAD" || Boolean(scope.broadSearch) || (scope.kind === "FORMAL" && !scope.union && pools.length === 0);
+  useEffect(() => { if (choiceItem && offersSearch) loadSubjects("", false); }, [choiceItem?.id, offersSearch, loadSubjects]);
   const submitSearch = (event: FormEvent) => {
     event.preventDefault(); const normalized = query.trim();
     if (normalized.length === 1) { setMessage("Enter at least two characters, or clear the search to see all subjects."); return; }
     loadSubjects(normalized, false);
   };
   if (!choiceItem) return <dialog onKeyDown={trapDialogFocus} className={appUi.subjectDialog} ref={dialogRef} />;
+  // A matched requirement with no subject list falls back to the handbook search rather than a dead end.
+  const emptyFormal = scope.kind === "FORMAL" && !scope.union && pools.length === 0;
+  const broadSearch = scope.kind === "BROAD" ? { label: scope.label ?? "Electives", group: scope.groups?.[0] }
+    : scope.broadSearch ?? (emptyFormal ? { label: scope.label ?? "this requirement", group: scope.groups?.[0] } : undefined);
   const resultProps = { planner, choiceItem, accessConditions, onOpenSubject, onSelect };
   const progressText = (group: RequirementGroup) => {
     const required = requiredPoints(group); if (required === null) return group.logic.replaceAll("_", " ");
@@ -246,7 +254,7 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
       <div className="flex flex-wrap gap-2 px-6 pb-4">{Object.values(candidates.pages).filter(page => visibleSources.some(source => source.id === page.candidateSource.id)).map(page => page.pagination.page < page.pagination.totalPages && <button type="button" className={appUi.secondaryButton} disabled={page.loadingMore}
         key={page.candidateSource.id} onClick={() => candidates.loadMore(page.candidateSource.id)}>Load more from {page.candidateSource.title} ({page.pagination.page} of {page.pagination.totalPages})</button>)}</div>
     </>}
-    <div className={appUi.subjectResultsGrouped} aria-live="polite">{!scope.union && scope.kind === "FORMAL" && pools.length === 0 && <AsyncState kind="empty" label="No verified subject list is available for this requirement. This requirement cannot currently be verified." />}
+    <div className={appUi.subjectResultsGrouped} aria-live="polite">{emptyFormal && <AsyncState kind="empty" label="No verified subject list is available for this requirement. You can still search the handbook below; results aren't verified to count." />}
       {!scope.union && pools.map(({ group, quotaGroup, subjects, selectable, requiredCore }) => <section className={selectable ? appUi.subjectPoolSelectable : appUi.subjectPoolContext} key={group.id}>
         <header><div><span>{quotaGroup.title ?? group.title ?? "Requirement subjects"}</span><strong>{selectable ? "Options" : requiredCore ? "Core" : "Context"}</strong></div>
           <p>{progressText(quotaGroup)}</p></header>
@@ -254,7 +262,8 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
           Data unavailable for {requiredCore ? "required subject" : "option subject"} {group.items.filter((item) => item.itemType === "SUBJECT" && !item.subject).map((item) => item.rawCode ?? "Unknown code").join(", ")}. This requirement cannot currently be verified.
         </p>}
         <SubjectResults {...resultProps} results={subjects} selectable={selectable} requiredCore={requiredCore} quotaGroup={quotaGroup} componentCode={scope.componentCode} /></section>)}</div>
-    {scope.kind === "BROAD" && <details className={appUi.externalSubjectSearch} open><summary>Search electives</summary><p>Results outside this requirement are not verified to count.</p>
+    {broadSearch && <details className={appUi.externalSubjectSearch} open={scope.kind === "BROAD" || emptyFormal}>
+      <summary>{scope.broadSearch ? `Or search for a ${scope.broadSearch.label.replace(/s$/, "").toLowerCase()}` : "Search electives"}</summary><p>Results outside this requirement are not verified to count.</p>
       <form className={appUi.subjectSearch} onSubmit={submitSearch}><label htmlFor="subject-query">Search by subject code or name</label><div><input id="subject-query" type="search" value={query} onChange={(event) => setQuery(event.target.value)} />
         <button className={appUi.primaryButton} type="submit">Search</button></div>{message && <p className={appUi.fieldError} role="alert">{message}</p>}</form>
       <div aria-live="polite">{externalStatus === "loading" && <AsyncState kind="loading" label={shownTerm ? "Searching subjects" : "Loading subjects"} />}
@@ -262,7 +271,7 @@ export const SubjectChoiceDialog = ({ choiceItem, universityCode, handbookYear, 
         {externalStatus === "ready" && externalResults.length === 0 && <AsyncState kind="empty" label={shownTerm ? `No subjects match “${shownTerm}”.` : "No subjects are listed in this handbook."} />}
         {externalStatus === "ready" && externalResults.length > 0 && <>
           <p className={appUi.subjectListSummary}>{shownTerm ? `Subjects matching “${shownTerm}”` : "All subjects"} · showing {externalResults.length}</p>
-          <SubjectResults {...resultProps} results={externalResults} selectable={scope.kind === "BROAD"} requiredCore={false} quotaGroup={scope.kind === "BROAD" ? scope.groups?.[0] : undefined} />
+          <SubjectResults {...resultProps} results={externalResults} selectable requiredCore={false} quotaGroup={broadSearch.group} fromSearch />
           {hasMore && <button className={appUi.textButton} type="button" disabled={loadingMore} aria-busy={loadingMore}
             onClick={() => loadSubjects(shownTerm, true, externalResults.length)}>{loadingMore ? "Loading…" : "Show more subjects"}</button>}
         </>}</div></details>

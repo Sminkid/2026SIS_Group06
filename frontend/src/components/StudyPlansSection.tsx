@@ -1,5 +1,8 @@
-import { appUi } from "./ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { appUi, cn } from "./ui";
+import { PlanModeBadge } from "./study-plan/PlanModeBadge";
+import { focusPlanAction } from "./study-plan/focusPlanAction";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchDegreeStudyPlans } from "../api/degrees";
 import { usePlannerState } from "../hooks/usePlannerState";
 import type { ComponentDetailResponse, StudyPlan, StudyPlanItem } from "../types/handbook";
@@ -24,7 +27,6 @@ import { getPrerequisiteDisplayState } from "../domain/prerequisiteDisplay";
 import { readableText } from "../domain/readableText";
 import { reconcileStudyPlan } from "../domain/studyPlanSelection";
 import { expandRoadmapSlots } from "../domain/roadmapSlots";
-import { SwapPositionDialog } from "./SwapPositionDialog";
 import { OfficialPlanRoadmap } from "./study-plan/OfficialPlanRoadmap";
 
 export interface StudyPlansSectionProps {
@@ -68,8 +70,18 @@ export const StudyPlansSection = ({
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [reloadKey, setReloadKey] = useState(0);
   const [activeChoice, setActiveChoice] = useState<StudyPlanItem | null>(null);
-  const [swapSourceId, setSwapSourceId] = useState<string | null>(null);
   const [planNotice, setPlanNotice] = useState("");
+  // Confirms Reset/Clear for a few seconds, as the USYD planner does.
+  const [actionNotice, setActionNotice] = useState("");
+  // Reset and Clear ask first, since both discard the subjects the user chose.
+  const [confirming, setConfirming] = useState<"reset" | "clear" | null>(null);
+  // Read-only choice cards send the user here to start customising.
+  const customiseRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!actionNotice) return;
+    const timeout = window.setTimeout(() => setActionNotice(""), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [actionNotice]);
   const retry = useCallback(() => setReloadKey((key) => key + 1), []);
 
   useEffect(() => {
@@ -115,7 +127,7 @@ export const StudyPlansSection = ({
     setSelectedPlanId(id);
     setPlanNotice("");
   };
-  useEffect(() => { setActiveChoice(null); setSwapSourceId(null); }, [selectedComponents, selectedPlan?.id]);
+  useEffect(() => { setActiveChoice(null); }, [selectedComponents, selectedPlan?.id]);
   useEffect(() => {
     if (!selectedPlan || (majorCode && selectedPlan.major?.code !== majorCode)) return;
     setSelectedPlanId(selectedPlan.id);
@@ -149,7 +161,6 @@ export const StudyPlansSection = ({
     clear,
     selectSubject,
     restoreChoiceSlot,
-    swapPositions,
   } = usePlannerState(selectedPlan, plannerContext, selectedComponentCodes.length === 0
     || (componentDetailsStatus === "ready" && selectedComponentCodes.every(code => Boolean(componentDetails[code]))));
   const displayedPlan = useMemo(
@@ -246,14 +257,23 @@ export const StudyPlansSection = ({
     }
     return index;
   }, [combinedValidation]);
-  const activeChoiceScope = useMemo(
-    () => resolveStudyPathChoiceScope(activeChoice, requirements, componentDetails, selectedComponents, planner),
-    [activeChoice, componentDetails, planner, requirements, selectedComponents],
-  );
-  const chooseSubject = (subject: SubjectSearchResult, formalComponentCode?: string, formalRequirementGroupId?: string) => {
+  // Change reopens a filled slot with its own requirement, not just the group of the subject chosen before.
+  const activeChoiceScope = useMemo(() => {
+    const slotScope = activeChoice?.choiceOrigin?.slotScope;
+    const choice = activeChoice && slotScope ? { ...activeChoice, choiceOrigin: { ...activeChoice.choiceOrigin!, ...slotScope } } : activeChoice;
+    return resolveStudyPathChoiceScope(choice, requirements, componentDetails, selectedComponents, planner);
+  }, [activeChoice, componentDetails, planner, requirements, selectedComponents]);
+  const chooseSubject = (subject: SubjectSearchResult, formalComponentCode?: string, formalRequirementGroupId?: string, fromSearch?: boolean) => {
     if (!activeChoice) return;
-    const groupLabel = flattenRequirements(activeChoiceScope.groups ?? []).find((group) => group.id === formalRequirementGroupId)?.title ?? undefined;
-    selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId, activeChoiceScope.componentId, groupLabel);
+    const groupLabel = flattenRequirements([...(activeChoiceScope.groups ?? []), ...(activeChoiceScope.broadSearch?.group ? [activeChoiceScope.broadSearch.group] : [])])
+      .find((group) => group.id === formalRequirementGroupId)?.title ?? undefined;
+    // A search pick in a slot that also lists a component (e.g. a free elective in "Free Elective or Sub-major")
+    // belongs to the searched group only, so drop the listed component's ownership.
+    if (fromSearch && activeChoiceScope.kind !== "BROAD") {
+      selectSubject(activeChoice.id, subject, undefined, formalRequirementGroupId, undefined, groupLabel ?? activeChoiceScope.broadSearch?.label, true);
+    } else {
+      selectSubject(activeChoice.id, subject, formalComponentCode, formalRequirementGroupId, activeChoiceScope.componentId, groupLabel);
+    }
     setActiveChoice(null);
   };
   const hasLongPlanTitle = (selectedPlan?.title.length ?? 0) > 180;
@@ -297,8 +317,9 @@ export const StudyPlansSection = ({
         </details>}
         {selectedPlan.description && <p>{readableText(selectedPlan.description)}</p>}
       </div>
-      <div className={planner ? appUi.plannerToolbarActive : appUi.plannerToolbar}>
+      <div className={planner ? appUi.plannerToolbarActive : appUi.plannerToolbar} data-plan-toolbar>
         <div>
+          <PlanModeBadge editable={planner !== null} />
           <strong>{planner ? "Custom planner active" : "Want to experiment?"}</strong>
           <p>{planner
             ? "Your draft is separate from the official handbook and saved automatically on this device."
@@ -306,17 +327,18 @@ export const StudyPlansSection = ({
         </div>
         <div className={appUi.plannerToolbarActions}>
           {planner ? <>
-            <button className={appUi.secondaryButton} type="button" onClick={reset}>Reset to official plan</button>
-            <button className={appUi.textButtonDanger} type="button" onClick={clear}>Clear custom changes</button>
-          </> : <button className={appUi.primaryButton} type="button" onClick={customize}>Customize plan</button>}
+            <button className={appUi.secondaryButton} type="button" onClick={() => setConfirming("reset")}>Reset to official plan</button>
+            <button className={appUi.textButtonDanger} type="button" onClick={() => setConfirming("clear")}>Exit custom mode</button>
+          </> : <button ref={customiseRef} className={appUi.primaryButton} type="button" onClick={customize}>Customise plan</button>}
         </div>
       </div>
+      {actionNotice && <p role="status" className={appUi.actionNotice}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="shrink-0"><path d="M20 6 9 17l-5-5" /></svg>{actionNotice}</p>}
       {planner && <div className={appUi.roadmapBasis} role="status">
         <strong>Roadmap based on: {selectedPlan.title}</strong>
         {Object.values(componentDetails).length > 0 && <span>Personalised with: {Object.values(componentDetails).map((detail) => detail.component.name).join(" · ")}</span>}
       </div>}
       <div>
-      <div className={appUi.plannerPlanColumn}>
+      <div className={cn(appUi.plannerPlanColumn, planner ? appUi.planAreaEditable : "")}>
       {displayedSessionNames.some((name) => /session 1|autumn|spring/i.test(name)) && <details className={appUi.sessionHelp}><summary>Understanding teaching sessions</summary><dl>
         {displayedSessionNames.filter((name) => /autumn/i.test(name)).length > 0 && <div><dt>Autumn</dt><dd>Main first-half teaching session.</dd></div>}
         {displayedSessionNames.filter((name) => /spring/i.test(name)).length > 0 && <div><dt>Spring</dt><dd>Main second-half teaching session.</dd></div>}
@@ -325,18 +347,19 @@ export const StudyPlansSection = ({
       <OfficialPlanRoadmap plan={displayedPlan} renderItem={(item, scheduled) => <RoadmapCard
                     item={item}
                     editable={planner !== null}
+                    showReadOnlyDetails
+                    onCustomise={planner ? undefined : () => focusPlanAction(customiseRef.current)}
                     onChoose={setActiveChoice}
                     onOpenSubject={(code, issues) => setRequirementDetail({ code, issues })}
                     issues={item.subject ? (combinedIssuesBySubject.get(item.subject.code) ?? []) : []}
                     prerequisite={planner && item.subject ? getPrerequisiteDisplayState(accessConditions[item.subject.code], combinedIssuesBySubject.get(item.subject.code), { loading: validationStatus === "loading", hasPlan: true }) : undefined}
                     onRestoreChoice={restoreChoiceSlot}
-                    onSwap={setSwapSourceId}
                     scheduled={scheduled}
                     key={item.id}
                   />} />
       {planner && unassignedItems.length > 0 && <section className={appUi.unassignedSection} aria-labelledby="unassigned-heading">
         <div><p className={appUi.stepLabel}>Custom plan holding area</p><h3 id="unassigned-heading">Unscheduled subjects</h3>
-          <p>Move these subjects into a study period when you are ready.</p></div>
+          <p>These subjects aren't in a study period yet. Use Remove to restore their choice slot.</p></div>
         <div className={plannerUi.grid}>
           {unassignedItems.map((item) => <RoadmapCard
             item={item}
@@ -364,8 +387,14 @@ export const StudyPlansSection = ({
         onClose={() => setActiveChoice(null)}
         onSelect={chooseSubject}
       />
-      {planner && swapSourceId && <SwapPositionDialog key={swapSourceId} planner={planner} sourceId={swapSourceId}
-        universityCode={universityCode} handbookYear={handbookYear} onClose={() => setSwapSourceId(null)} onConfirm={swapPositions} />}
+      {confirming === "reset" && <ConfirmDialog title="Reset to the official plan?"
+        message="Your chosen subjects will be replaced by the official roadmap. You can keep customising afterwards."
+        confirmLabel="Reset plan" onCancel={() => setConfirming(null)}
+        onConfirm={() => { reset(); setConfirming(null); setActionNotice("Personal plan reset to the official template."); }} />}
+      {confirming === "clear" && <ConfirmDialog title="Exit custom mode?" danger
+        message="This removes your custom plan and shows the official roadmap again. This can't be undone."
+        confirmLabel="Exit custom mode" onCancel={() => setConfirming(null)}
+        onConfirm={() => { clear(); setConfirming(null); setActionNotice("Custom changes cleared."); }} />}
     </>}
   </section>;
 };

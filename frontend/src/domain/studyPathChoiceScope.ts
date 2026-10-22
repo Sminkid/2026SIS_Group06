@@ -24,6 +24,11 @@ export interface ChoiceScope {
   defaultPoolGroupId?: string;
   componentCodesByGroup?: Record<string, string>;
   limitation?: string;
+  /**
+   * Also offer a handbook-wide search alongside the listed subjects, e.g. the free elective half of a
+   * "Free Elective or Sub-major" slot. Picks from it count toward `group`, not the listed component.
+   */
+  broadSearch?: { label: string; group?: RequirementGroup };
 }
 
 const flatten = (
@@ -610,9 +615,12 @@ export const resolveStudyPathChoiceScope = (
             choiceIndex,
           )
           .reduce(
+            // Count each slot's own size, not the chosen subject's, so a smaller or larger pick in an
+            // earlier slot can't shift which requirement the later slots belong to.
             (total, item) =>
               total +
-              (item.creditPoints ??
+              (item.choiceOrigin?.creditPoints ??
+                item.creditPoints ??
                 0),
             0,
           );
@@ -901,18 +909,6 @@ export const resolveStudyPathChoiceScope = (
       slotName,
     )
   ) {
-    if (
-      /sub major|submajor/.test(
-        slotName,
-      ) &&
-      separateNested.length >
-        0
-    ) {
-      return componentScope(
-        separateNested.at(-1)!,
-      );
-    }
-
     const freeGroup =
       separateSelection &&
       flatten([
@@ -925,6 +921,26 @@ export const resolveStudyPathChoiceScope = (
           ),
         ),
       );
+
+    // "Free Elective or Sub-major": list the chosen sub-major's subjects, and still let the student
+    // search for a free elective instead.
+    if (
+      /sub major|submajor/.test(
+        slotName,
+      ) &&
+      separateNested.length >
+        0
+    ) {
+      return {
+        ...componentScope(
+          separateNested.at(-1)!,
+        ),
+        broadSearch: {
+          label: freeGroup?.title ?? "Free Elective",
+          group: freeGroup,
+        },
+      };
+    }
 
     return {
       kind: "BROAD",
@@ -965,6 +981,15 @@ export const resolveStudyPathChoiceScope = (
           ),
         ),
       );
+
+    // The requirement usually points to the Transdisciplinary Electives stream rather than listing subjects.
+    const linked = group
+      ? components(group).map((component) => details[component.code]).find(Boolean)
+      : undefined;
+
+    if (linked) {
+      return componentScope(linked);
+    }
 
     if (group) {
       return {

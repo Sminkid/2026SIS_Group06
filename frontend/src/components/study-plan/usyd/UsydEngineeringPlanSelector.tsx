@@ -61,7 +61,7 @@ export const UsydEngineeringPlanSelector = ({
             })}
           </select>
         </label>
-        <p id="usyd-focus-help" className={appUi.studyPathContext}>{usydStudyPlanFocusHelper(
+        <p id="usyd-focus-help" className="[margin:.5rem_0_0] text-[var(--muted)] text-[length:.82rem]">{usydStudyPlanFocusHelper(
           preview.specialisations.find(choice => choice.id === preview.selectedSpecialisation)?.kind)}</p>
       </section>
       <p id="usyd-preview-help" className={appUi.studyPathContext}>These controls choose a roadmap preview. Changing the preview does not change your Course Structure selections.</p>

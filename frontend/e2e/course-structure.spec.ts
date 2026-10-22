@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openSection } from "./sections";
 import type {
   ComponentDetailResponse,
   DegreeDetailResponse,
@@ -438,6 +439,7 @@ test("selecting a Software Engineering STREAM loads and renders all component su
 
   const streamButton = page.getByRole("button", { name: /Engineering Stream.*120 credit points.*Choose one/i });
   const streamSection = streamButton.locator("..");
+  await openSection(streamButton);
   await expect(streamSection.getByRole("radio")).toHaveCount(12);
   await streamSection.getByRole("radio", { name: /Software Engineering/ }).check();
 
@@ -527,6 +529,7 @@ test("USYD Advanced Computing selected majors keep the shared component renderer
   await routeDegree(page, contract.detail, [contract.component]);
   await openDegree(page, contract.detail);
   const section = page.getByRole("button", { name: /Required major.*Choose one/i }).locator("..");
+  await openSection(page.getByRole("button", { name: /Required major.*Choose one/i }));
   await section.getByRole("radio", { name: /Cybersecurity/ }).check();
   await expect(section.getByText("Selected major", { exact: true })).toBeVisible();
   const core = section.getByRole("button", { name: /Core units.*ALL/i });
@@ -540,6 +543,7 @@ test("UTS selected majors keep the shared component renderer", async ({ page }) 
   await routeDegree(page, contract.detail, [contract.component]);
   await openDegree(page, contract.detail);
   const section = page.getByRole("button", { name: /Required major.*Choose one/i }).locator("..");
+  await openSection(page.getByRole("button", { name: /Required major.*Choose one/i }));
   await section.getByRole("radio", { name: /Biomedical Engineering/ }).check();
   await expect(section.getByText("Selected major", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Eligible Table D units" })).toHaveCount(0);
@@ -560,6 +564,7 @@ test("a one-option ONE_OF component group selects and loads its sole component a
   await openDegree(page, contract.detail);
 
   const section = page.getByRole("button", { name: /Required major.*Choose one/i }).locator("..");
+  await openSection(page.getByRole("button", { name: /Required major.*Choose one/i }));
   await expect(section.getByRole("radio")).toHaveCount(0);
   await expect.poll(() => requests).toContain("USYD:SPECIALISATION:SOLE-id");
   await expect(section.getByText("Selected specialisation", { exact: true })).toBeVisible();

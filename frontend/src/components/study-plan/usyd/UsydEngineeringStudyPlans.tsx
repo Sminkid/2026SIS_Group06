@@ -24,6 +24,8 @@ interface Props {
   onPlanChange: (planId: string) => void;
   onOpenSubject: (subjectCode: string) => void;
   personalPlan?: ReactNode;
+  /** True while the editable personal plan is shown, so the badge reads "My plan" as it does for other universities. */
+  personalMode?: boolean;
 }
 
 /** Presents independent USYD Engineering CUSP preview controls and a read-only roadmap. */
@@ -41,6 +43,7 @@ export const UsydEngineeringStudyPlans = ({
   onPlanChange,
   onOpenSubject,
   personalPlan,
+  personalMode = false,
 }: Props) => (
   <section className={appUi.studyPlansSection} aria-labelledby="study-plan-heading">
     <div className={appUi.sectionHeading}>
@@ -48,7 +51,9 @@ export const UsydEngineeringStudyPlans = ({
         <p className={appUi.stepLabel}>Official roadmap and personal planner</p>
         <h2 id="study-plan-heading">Study plan</h2>
       </div>
-      <span className={appUi.readOnlyLabel}>USYD Engineering</span>
+      <span className={personalMode ? appUi.readOnlyLabelCustom : appUi.readOnlyLabel}>
+        USYD Engineering · {personalMode ? "My plan" : "Official roadmap"}
+      </span>
     </div>
     <p className={appUi.sectionNote}>
       This is the university&apos;s recommended sequence, not the formal degree requirement definition.
@@ -77,7 +82,9 @@ export const UsydEngineeringStudyPlans = ({
           <h3>{visiblePlan.title}</h3>
           {visiblePlan.description && <p>{visiblePlan.description}</p>}
           {visiblePlan.sourceUrl && (
-            <p><a href={visiblePlan.sourceUrl} target="_blank" rel="noreferrer">View official CUSP source</a></p>
+            <p><a className="text-[var(--blue)] font-bold no-underline [&:hover]:underline" href={visiblePlan.sourceUrl} target="_blank" rel="noreferrer">
+              View official CUSP source <span aria-hidden="true">↗</span>
+            </a></p>
           )}
         </div>
         {personalPlan ?? <OfficialPlanRoadmap
@@ -86,6 +93,7 @@ export const UsydEngineeringStudyPlans = ({
             <RoadmapCard
               item={item}
               editable={false}
+              showReadOnlyDetails
               scheduled={scheduled}
               issues={[]}
               readOnlyChoiceNote="Eligible subject options are not yet mapped"

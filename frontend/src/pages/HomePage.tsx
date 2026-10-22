@@ -2,6 +2,7 @@ import { appUi, cn } from "../components/ui";
 import { useCallback, useEffect, useState } from "react";
 import { fetchUniversities } from "../api/universities";
 import { AsyncState } from "../components/AsyncState";
+import { StudyPlanCoverageNotice } from "../components/StudyPlanCoverageNotice";
 import type { University } from "../types/handbook";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 
@@ -32,6 +33,7 @@ export const HomePage = ({ onHome, onSelectUniversity }: HomePageProps) => {
         <p className={appUi.eyebrow}>University handbooks</p>
         <h1>Choose a university</h1>
         <p className={appUi.lead}>Explore official handbook requirements and understand how your degree is structured, one section at a time.</p>
+        <StudyPlanCoverageNotice />
       </section>
       <section aria-labelledby="universities-heading">
         <div className={appUi.degreeTools}>

@@ -11,9 +11,10 @@ interface Props {
   prerequisite?: PrerequisiteDisplayState;
   onChoose: (item: StudyPlanItem) => void;
   onOpenSubject: (code: string, issues: ValidationResult[]) => void;
-  onRestoreChoice: (id: string) => void; onSwap?: (id: string) => void;
-  onMove?: (id: string) => void;
+  onRestoreChoice: (id: string) => void;
   showReadOnlyDetails?: boolean;
+  /** Read-only only: takes the user to the button that switches the plan to editing, so they can fill this choice. */
+  onCustomise?: () => void;
 }
 
 /** Renders a bounded summary; full enrolment explanations live in subject details. */
@@ -29,7 +30,7 @@ function PrerequisiteSummary({ state }: { state: PrerequisiteDisplayState }) {
  * by fixed, empty and selected states; only compact actions and status change.
  */
 export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, readOnlyChoiceNote,
-  onChoose, onOpenSubject, onRestoreChoice, onSwap, onMove, showReadOnlyDetails }: Props) {
+  onChoose, onOpenSubject, onRestoreChoice, showReadOnlyDetails, onCustomise }: Props) {
   const placement = /\b(internship|placement|practicum|professional experience)\b/i.test(`${item.title} ${item.choiceOrigin?.title ?? ""}`);
   const fixedCore = item.choiceOrigin?.componentRequirementKind === "FIXED";
   const filled = Boolean(item.choiceOrigin && item.subject && !fixedCore);
@@ -38,7 +39,10 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, r
   const name = readableText(item.subject?.name ?? item.title);
   const code = item.subject?.code ?? item.rawCode;
   const points = item.subject?.creditPoints ?? item.creditPoints;
-  const source = `${item.choiceOrigin?.sourceLabel ?? item.choiceOrigin?.title ?? "Official study plan"} ${item.choiceOrigin?.allocatedGroupLabel ?? ""}`.trim();
+  // "Slot · group the subject counts toward", without repeating a name that's the same (e.g. "Electives · Electives").
+  const slotLabel = item.choiceOrigin?.sourceLabel ?? item.choiceOrigin?.title ?? "Official study plan";
+  const groupLabel = item.choiceOrigin?.allocatedGroupLabel?.trim();
+  const source = groupLabel && groupLabel.toLowerCase() !== slotLabel.trim().toLowerCase() ? `${slotLabel} · ${groupLabel}` : slotLabel;
   const showDetails = () => { if (code) onOpenSubject(code, issues); };
   const secondaryIssue = issues.some(issue => !["PREREQUISITE_TIMING", "COREQUISITE_TIMING"].includes(issue.code) && issue.severity !== "info");
   return <article data-planner-item-id={item.id} className={cn("plan-item", interactive ? "plan-item--choice" : "", filled ? "plan-item--filled" : "", ui.card, filled ? ui.selected : interactive ? ui.choice : ui.fixed)}>
@@ -57,11 +61,14 @@ export function RoadmapCard({ item, editable, scheduled, issues, prerequisite, r
       : item.choiceOrigin?.componentRequirementKind === "COMPONENT" ? "Choose a required Core or eligible Option" : "Choose an eligible subject"}</p>}
     {prerequisite && <PrerequisiteSummary state={prerequisite} />}
     {secondaryIssue && <p className="m-0 text-xs text-amber-900">Plan requirement needs review</p>}
-    {!editable && showReadOnlyDetails && item.subject && <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>}
+    {!editable && showReadOnlyDetails && item.subject && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
+      <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>
+    </div>}
+    {!editable && onCustomise && interactive && !item.subject && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
+      <button className={ui.action} type="button" onClick={onCustomise}>Customise to add a subject <span aria-hidden="true">↑</span></button>
+    </div>}
     {editable && <div className="mt-auto flex flex-wrap items-center gap-1 border-0 border-t border-solid border-slate-200 pt-2">
       {interactive && <button className={ui.action} type="button" onClick={() => onChoose(item)}>{filled ? "Change" : "Choose"}</button>}
-      {filled && !placement && onSwap && <button className={ui.action} type="button" aria-label="Swap position" onClick={() => onSwap(item.id)}>Swap</button>}
-      {item.subject && onMove && <button className={ui.action} type="button" aria-label="Move subject" onClick={() => onMove(item.id)}>Move</button>}
       {filled && !placement && <button className={cn(ui.action, "text-red-800")} type="button" aria-label="Remove subject & restore choice" onClick={() => onRestoreChoice(item.id)}>Remove</button>}
       {item.subject && <button className={ui.action} type="button" onClick={showDetails}>View requirements</button>}
     </div>}

@@ -3,6 +3,7 @@ import { appUi } from "../components/ui";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { useCourseRecommendations } from "../hooks/useCourseRecommendations";
 import { AsyncState } from "../components/AsyncState";
+import { StudyPlanCoverageNotice } from "../components/StudyPlanCoverageNotice";
 import type { QuizResult } from "../domain/quizRecommendation";
 import { majorSuggestionsFor } from "../domain/quizResult";
 import { filterCourses, universityCount, type CourseRecommendation } from "../domain/courseAggregation";
@@ -48,6 +49,7 @@ export const CourseRecommendationsPage = ({ result, onSelectCourse, onHome, onBa
       <section className={appUi.pageIntroCompact} aria-labelledby="courses-heading">
         <p className={appUi.eyebrow}>Choose a course</p>
         <h1>Courses</h1>
+        <StudyPlanCoverageNotice />
         {browsing && onStartQuiz && (
           <div className={appUi.quizRecommendationCard}>
             <p className={appUi.eyebrow}>Not sure what to study?</p>

@@ -104,6 +104,15 @@ export const parseSubjectSearchQuery = (
   return query;
 };
 
+/** How many results to skip, for paging through a list; 0 when not given. */
+export const parseSearchOffset = (value: unknown): number => {
+  if (value === undefined) return 0;
+  if (typeof value !== "string" || !/^\d+$/.test(value) || Number(value) > 100000) {
+    throw new ApiError(400, "offset must be an integer between 0 and 100000");
+  }
+  return Number(value);
+};
+
 export const parseSearchLimit = (value: unknown): number => {
   if (value === undefined) return 20;
 

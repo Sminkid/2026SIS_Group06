@@ -12,6 +12,7 @@ import type { ValidationResult } from "../types/validation";
 import { getPrerequisiteDisplayState, requirementIssueText } from "../domain/prerequisiteDisplay";
 import { RequirementWarning } from "./planner/RequirementWarning";
 import { plannerUi as ui } from "./planner/ui";
+import { readableText } from "../domain/readableText";
 import { AsyncState } from "./AsyncState";
 
 interface Props {
@@ -58,6 +59,10 @@ export const conditionReferences = (group: SubjectAccessConditionGroup): Conditi
   return [...references.values()];
 };
 
+// Section headings drop the global h3 padding so they line up with the text beneath them.
+const sectionHeading = "m-0 p-0 text-base font-bold";
+const emptyText = "m-0 text-sm text-slate-600";
+
 /** Shows each logical expression once, followed by unique resolved references. */
 export const ConditionGroups = ({
   groups,
@@ -66,19 +71,20 @@ export const ConditionGroups = ({
   groups: SubjectAccessConditionGroup[];
   emptyLabel: string;
 }) => groups.length === 0
-  ? <p className="m-0 text-sm text-slate-600">{emptyLabel}</p>
+  ? <p className={emptyText}>{emptyLabel}</p>
   : <div className="condition-groups grid gap-3">{groups.map((group) => {
       const references = conditionReferences(group);
       return <section className="overflow-hidden rounded border border-solid border-slate-200" key={group.id}>
         <div className="grid gap-2 border-0 border-b border-solid border-slate-200 bg-slate-50 p-3 text-sm [overflow-wrap:anywhere]">
-          <span>Logical rule</span>
+          <span className="text-xs font-semibold text-slate-600">Logical rule</span>
           <code>{group.rule ?? "No machine-readable rule supplied"}</code>
         </div>
         {references.length > 0 && <div className="p-3 text-sm leading-6">
           <strong>Referenced subjects and requirements</strong>
           <ul className="mb-0 mt-2 list-disc pl-5">
             {references.map((reference) => <li key={reference.key}>{reference.label}
-              {reference.details && <p className="mb-2 mt-1 whitespace-pre-wrap text-slate-600">{reference.details}</p>}
+              {/* Skip details that only repeat the code already in the label. */}
+              {reference.details && !reference.label.includes(reference.details.trim()) && <p className="mb-2 mt-1 whitespace-pre-wrap text-slate-600">{reference.details}</p>}
             </li>)}
           </ul>
         </div>}
@@ -169,8 +175,8 @@ export const SubjectDetailsDialog = ({
     <div className="flex max-h-[88dvh] flex-col">
       <header className={cn(ui.header, "flex items-start justify-between gap-3")}>
         <div><p className={appUi.eyebrow}>Subject details</p><h2 className={ui.title} id={titleId}>{detail?.name ?? subjectCode}</h2>
-          {detail && <p><strong>{detail.code}</strong>{detail.creditPoints !== null && ` · ${detail.creditPoints} CP`}</p>}</div>
-        <button className={cn(ui.action, "shrink-0 text-xl")} type="button" aria-label="Close subject details" onClick={onClose}>×</button>
+          {detail && <p className="m-0 mt-1 text-sm text-slate-600"><strong className="text-[#14213d]">{detail.code}</strong>{detail.creditPoints !== null && ` · ${detail.creditPoints} CP`}</p>}</div>
+        <button className={appUi.dialogClose} type="button" aria-label="Close subject details" onClick={onClose}>×</button>
       </header>
       <div className="min-h-0 space-y-5 overflow-y-auto p-4 sm:p-5">
         {status === "loading" && <AsyncState kind="loading" label="Loading subject details" />}
@@ -179,24 +185,27 @@ export const SubjectDetailsDialog = ({
         {status === "ready" && detail && <>
           {planIssues.filter(issue => !["PREREQUISITE_TIMING", "COREQUISITE_TIMING"].includes(issue.code) && issue.severity !== "info").map((issue, index) =>
             <p className={ui.warning} key={`${issue.code}-${index}`}>{requirementIssueText(issue.message)}</p>)}
-          <section className={ui.section}><h3 className="m-0 text-base font-bold">About this subject</h3>
-            <p>{detail.description ?? "No description is available in this handbook."}</p></section>
-          <section className={ui.section}><h3 className="m-0 text-base font-bold">Prerequisite and corequisite conditions</h3>
+          <section className={ui.section}><h3 className={sectionHeading}>About this subject</h3>
+            {detail.description
+              // Handbook descriptions arrive as HTML; show them as plain, comfortably spaced text.
+              ? <p className="m-0 text-[length:.95rem] leading-7 text-slate-700">{readableText(detail.description)}</p>
+              : <p className={emptyText}>No description is available in this handbook.</p>}</section>
+          <section className={ui.section}><h3 className={sectionHeading}>Prerequisite and corequisite conditions</h3>
             <RequirementWarning state={prerequisite} year={handbookYear} university={universityCode} sourceUrl={detail.sourceUrl} />
             {(prerequisite.kind === "unmet" || prerequisite.kind === "late") && <aside className={cn("requirement-unmet", ui.warning)}><strong>{prerequisite.label}</strong>
               {planIssues.filter(issue => issue.code.includes("REQUISITE")).map((issue, index) => <p className="mb-0 mt-2" key={`${issue.code}-${index}`}>{requirementIssueText(issue.message)}</p>)}
             </aside>}
             {prerequisite.kind === "satisfied" && <p className="m-0 text-sm text-emerald-800">Prerequisites satisfied</p>}
-            <p className="m-0 rounded bg-blue-50 p-3 text-sm leading-6 text-slate-700">Rules are shown exactly as supplied. Resolved handbook references are listed once below each rule; no AND/OR logic has been simplified.</p>
+            {(conditions?.requisiteGroups?.length ?? 0) > 0 && <p className="m-0 rounded bg-blue-50 p-3 text-sm leading-6 text-slate-700">Rules are shown exactly as supplied. Resolved handbook references are listed once below each rule; no AND/OR logic has been simplified.</p>}
             <ConditionGroups groups={conditions?.requisiteGroups ?? []} emptyLabel="No requisite groups are listed." />
           </section>
-          <section className={ui.section}><h3 className="m-0 text-base font-bold">Anti-requisites and exclusions</h3>
+          <section className={ui.section}><h3 className={sectionHeading}>Anti-requisites and exclusions</h3>
             <ConditionGroups groups={conditions?.antiRequisiteGroups ?? []} emptyLabel="No anti-requisites or exclusions are listed." />
           </section>
-          <section className={ui.section}><h3 className="m-0 text-base font-bold">Offering information</h3>
+          <section className={ui.section}><h3 className={sectionHeading}>Offering information</h3>
             {readableOfferings.length > 0
-              ? <div className="grid gap-3">{readableOfferings.map((offering) => <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] rounded border border-solid border-slate-200 bg-slate-50" key={offering.key}>{offering.fields.map((field) => <div className="p-3" key={field.label}><dt className="text-xs font-semibold text-slate-600">{field.label}</dt><dd className="m-0 min-w-0 p-3 text-sm leading-6 [overflow-wrap:anywhere]">{field.value}</dd></div>)}</dl>)}</div>
-              : <p>No offering information is available in this handbook.</p>}
+              ? <div className="grid gap-3">{readableOfferings.map((offering) => <dl className="m-0 grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))] rounded border border-solid border-slate-200 bg-slate-50" key={offering.key}>{offering.fields.map((field) => <div className="p-3" key={field.label}><dt className="text-xs font-semibold text-slate-600">{field.label}</dt><dd className="m-0 mt-1 min-w-0 text-sm leading-6 [overflow-wrap:anywhere]">{field.value}</dd></div>)}</dl>)}</div>
+              : <p className={emptyText}>No offering information is available in this handbook.</p>}
           </section>
         </>}
       </div>

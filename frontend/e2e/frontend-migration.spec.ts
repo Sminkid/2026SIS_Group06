@@ -125,7 +125,7 @@ test("UTS Nursing program selection and fixed roadmap work at desktop, tablet an
     await expect(page.getByText("Enrolled Nurse", { exact: true })).toBeVisible();
     await page.getByRole("combobox", { name: "Study plan variant" }).selectOption(nursing.plans[0].id);
     await expect(page.locator(".plan-item").first()).toBeVisible();
-    await page.getByRole("button", { name: "Customize plan" }).click();
+    await page.getByRole("button", { name: "Customise plan" }).click();
     await expect(page.getByRole("button", { name: "Reset to official plan" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
     await page.screenshot({ path: test.info().outputPath(`nursing-${width}.png`), fullPage: true });

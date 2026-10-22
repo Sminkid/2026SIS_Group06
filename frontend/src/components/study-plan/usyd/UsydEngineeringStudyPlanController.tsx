@@ -49,6 +49,7 @@ export const UsydEngineeringStudyPlanController = ({
   const [specialisation, setSpecialisation] = useState(typeof saved?.specialisation === "string" ? saved.specialisation : "");
   const [commencement, setCommencement] = useState<UsydCommencement | "">(["STANDARD", "MID_YEAR"].includes(saved?.commencement ?? "") ? saved!.commencement! : "");
   const [planId, setPlanId] = useState(typeof saved?.planId === "string" ? saved.planId : "");
+  const [personalMode, setPersonalMode] = useState(false);
   const pathWasEdited = useRef(Boolean(saved?.stream));
   const retry = useCallback(() => setReloadKey((key) => key + 1), []);
   const streamReference = useMemo(() => usydPreviewStream(requirements, stream), [requirements, stream]);
@@ -150,7 +151,9 @@ export const UsydEngineeringStudyPlanController = ({
       }}
       onPlanChange={value => { pathWasEdited.current = true; setPlanId(value); }}
       onOpenSubject={onOpenSubject}
+      personalMode={personalMode}
       personalPlan={status === "ready" && visiblePlan ? <UsydEngineeringPersonalPlan key={`${universityCode}:${handbookYear}:${degreeCode}:${visiblePlan.id}`}
+        onEditableChange={setPersonalMode}
         plan={visiblePlan} requirements={requirements} handbookYear={handbookYear} degreeCode={degreeCode} degreeCreditPoints={degreeCreditPoints}
         academicComponents={academicSelection.stream?.code === streamReference?.code ? academicComponents : []}
         academicStreamMismatch={academicComponents.length > 0 && academicSelection.stream?.code !== streamReference?.code ? academicSelection.stream?.name : undefined}

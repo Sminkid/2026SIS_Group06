@@ -16,7 +16,7 @@ import type { DegreeMatchTarget } from "./api/quiz";
 import type { QuizResult } from "./domain/quizRecommendation";
 import type { CourseRecommendation } from "./domain/courseAggregation";
 import type { University, DegreeSummary } from "./types/handbook";
-import logo from "./components/ui/icons/Logo.png";
+import logo from "./components/ui/icons/unixprep-logo.svg";
 
 type Screen =
     { name: "landing" } |
@@ -231,6 +231,7 @@ export const App = () => {
             onHome={goHome}
             onBack={() => setScreen({ name: "universities" })}
             onSelectDegree={(degree) => setScreen({ name: "handbookDegree", university: screen.university, degree })}
+            onStartQuiz={() => startNewQuiz()}
           />
         )}
 

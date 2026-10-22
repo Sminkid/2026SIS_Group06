@@ -127,6 +127,22 @@ test("handbook route: every breadcrumb goes back to its page", async ({ page }) 
   await expect(heading(page, LANDING)).toBeVisible();
 });
 
+test("degree and course lists remind users that only Engineering study plans are complete", async ({ page }) => {
+  await nav(page).getByRole("button", { name: "View All Courses", exact: true }).click();
+  await expect(heading(page, "Courses")).toBeVisible();
+  await expect(page.getByRole("note")).toContainText("Study plans for other degrees are still under development");
+});
+
+test("the degree list offers the interest quiz, like All Courses", async ({ page }) => {
+  await nav(page).getByRole("button", { name: "University Handbooks", exact: true }).click();
+  await page.locator(".university-card").filter({ hasText: "UTS" }).click();
+  await expect(heading(page, "Choose a degree")).toBeVisible();
+  await expect(page.getByText("Not sure what to study?", { exact: true })).toBeVisible();
+  await expect(page.getByRole("note")).toContainText("only the study plans for Engineering degrees are complete");
+  await page.getByRole("button", { name: "Take the interest quiz", exact: true }).click();
+  await expect(heading(page, "Interest quiz")).toBeVisible();
+});
+
 test("browsing route: All Courses → Comparison → Study Plan breadcrumbs go back to each page", async ({ page }) => {
   await openEngineeringComparison(page);
   await expectTrail(page, ["Home", "All Courses", "Comparison"]);
@@ -235,4 +251,25 @@ test("the skip link moves keyboard focus past the nav bar to the page content", 
   await page.keyboard.press("Tab");
   // The next stop is inside the page, not one of the nav links.
   expect(await page.evaluate(() => Boolean(document.activeElement?.closest("#main-content")))).toBeTruthy();
+});
+
+const majorSelect = (page: Page) => page.getByRole("combobox", { name: "Major", exact: true });
+
+test("leaving and refreshing a study plan keep the user's changes", async ({ page }) => {
+  await openEngineeringComparison(page);
+  await openStudyPlanFromComparison(page);
+  const major = await majorSelect(page).locator("option").nth(1).getAttribute("value");
+  await majorSelect(page).selectOption(major!);
+
+  // Leaving goes straight to the next page; there is no reset pop-up.
+  await nav(page).getByRole("button", { name: "View All Courses", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(heading(page, "Courses")).toBeVisible();
+  await page.goBack();
+  await expect(heading(page, ENGINEERING)).toBeVisible();
+  await expect(majorSelect(page)).toHaveValue(major!);
+
+  await page.reload();
+  await expect(heading(page, ENGINEERING)).toBeVisible();
+  await expect(majorSelect(page)).toHaveValue(major!);
 });

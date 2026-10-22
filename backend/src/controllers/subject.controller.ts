@@ -5,6 +5,7 @@ import {
   parseRequiredHandbookYear,
   parseRequirementGroupId,
   parseSearchLimit,
+  parseSearchOffset,
   parseSubjectCode,
   parseSubjectSearchQuery,
   parseUniversityCode,
@@ -19,9 +20,11 @@ export const subjectSearchController: RequestHandler = async (request, response)
   const requirementGroupId = request.query.requirementGroup === undefined
     ? undefined
     : parseRequirementGroupId(request.query.requirementGroup);
-  const query = parseSubjectSearchQuery(request.query.q, componentCode !== undefined || requirementGroupId !== undefined);
+  // Without q this browses the handbook's subjects in code order; with q it must be a valid search term.
+  const query = request.query.q === undefined ? "" : parseSubjectSearchQuery(request.query.q, componentCode !== undefined || requirementGroupId !== undefined);
   const limit = parseSearchLimit(request.query.limit);
-  response.status(200).json(await searchSubjects(universityCode, year, query, limit, componentCode, requirementGroupId));
+  const offset = parseSearchOffset(request.query.offset);
+  response.status(200).json(await searchSubjects(universityCode, year, query, limit, componentCode, requirementGroupId, offset));
 };
 
 export const subjectDetailController: RequestHandler = async (request, response) => {

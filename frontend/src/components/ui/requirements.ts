@@ -112,7 +112,7 @@ export const requirementsUi = {
   componentChoices: "grid [gap:.6rem] [margin:1rem_0_0] p-0 border-0 [&_legend]:mb-3 [&_legend]:text-[length:.85rem] [&_legend]:[font-weight:750]",
   componentChoicesTools: cn(
     "flex justify-between gap-4 items-end mb-1 text-[var(--muted)] text-[length:.75rem] [&_label]:grid",
-    "[&_label]:flex-1 [&_label]:max-w-112 [&_label]:[gap:.35rem] [&_label]:text-[var(--navy)] [&_label]:font-bold",
+    "[&_label]:flex-1 [&_label]:max-w-112 [&_label]:[gap:.35rem] [&_label]:text-[#0a0a0a] [&_label]:font-bold",
     "[&_input]:min-w-0 [&_input]:w-full [&_input]:[padding:.65rem_.75rem] [&_input]:border-[1px]",
     "[&_input]:border-solid [&_input]:border-[color:#bfc6d1] [&_input]:bg-[var(--surface)]",
     "[@media(max-width:720px)]:items-stretch [@media(max-width:720px)]:flex-col",
@@ -130,7 +130,7 @@ export const requirementsUi = {
     "bg-[var(--soft)] cursor-pointer",
   )),
   componentChoiceBody: cn(
-    "min-w-0 grid [gap:.35rem] [&_>_strong]:min-w-0 [&_>_strong]:text-[var(--navy)]",
+    "min-w-0 grid [gap:.35rem] [&_>_strong]:min-w-0 [&_>_strong]:text-[#0a0a0a]",
     "[&_>_strong]:text-[length:.9rem] [&_>_strong]:[line-height:1.4] [&_>_strong]:[overflow-wrap:anywhere]",
   ),
   componentChoiceMeta: "flex flex-wrap [gap:.55rem] items-center text-[var(--muted)] text-[length:.72rem]",
@@ -147,7 +147,38 @@ export const requirementsUi = {
   requirementItems: "grid gap-2 mt-4",
   nestedRequirements: "grid [gap:.65rem] mt-4",
   missingSubject: "missing-subject text-[#9f1239]",
-  requirementsSection: "requirements-section pt-8 [border-top:2px_solid_var(--navy)]",
+  requirementsSection: "requirements-section mt-8 pt-8 [border-top:2px_solid_var(--line)]",
   requirementsList: "grid [gap:.85rem]",
-  requirementSectionLabel: "[margin:1.25rem_0_.15rem] text-[var(--navy)] text-[length:1rem] [&:first-child]:mt-0",
+  // Eligible-subject browser (Free Electives, Table D): same rows, search and buttons as the rest of the degree page.
+  candidateBrowser: cn(
+    "grid gap-4 [margin:1rem_0_0] [padding-top:1.25rem] [border-top:1px_solid_var(--line)]",
+    "[&_h4]:m-0 [&_h4]:text-[#0a0a0a] [&_h4]:text-[length:1rem] [&_h4_+_p]:[margin:.3rem_0_0]",
+    "[&_h4_+_p]:text-[var(--muted)] [&_h4_+_p]:text-[length:.85rem]",
+  ),
+  candidateSources: "m-0 grid [gap:.5rem] p-0 list-none",
+  candidateSource: cn(
+    "flex flex-wrap justify-between gap-2 [padding:.7rem_1rem] border-[1px] border-solid border-[color:var(--line)]",
+    "bg-[var(--soft)] text-[length:.85rem] [&_strong]:text-[#0a0a0a]",
+  ),
+  candidateSearch: cn(
+    "grid gap-2 [&_>_label]:text-[#0a0a0a] [&_>_label]:text-[length:.78rem] [&_>_label]:[font-weight:750]",
+    "[&_>_div]:grid [&_>_div]:[grid-template-columns:minmax(0,1fr)_auto] [&_>_div]:gap-2",
+    "[&_input]:min-w-0 [&_input]:[padding:.75rem_.85rem] [&_input]:border-[1px] [&_input]:border-solid",
+    "[&_input]:border-[color:#bfc6d1] [&_input]:[border-radius:.5rem] [&_input]:bg-[var(--surface)]",
+    "[@media(max-width:560px)]:[&_>_div]:[grid-template-columns:1fr]",
+  ),
+  candidateResults: "grid gap-2 [&_>_p]:m-0 [&_>_p]:text-[var(--muted)] [&_>_p]:text-[length:.8rem]",
+  // A fixed-height scroll area, so a long list doesn't push the section's close control far up the page.
+  candidateList: cn(
+    "flex flex-col gap-2 max-h-[30rem] overflow-y-auto overscroll-contain [padding:.5rem] [&_>_*]:shrink-0",
+    "border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
+    "[@media(max-width:720px)]:max-h-[26rem]",
+  ),
+  candidateSourceTags: "flex flex-wrap gap-1 [margin-top:.3rem]",
+  candidateSourceTag: cn(
+    "[padding:.1rem_.45rem] border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
+    "text-[var(--muted)] text-[length:.7rem] font-semibold",
+  ),
+  candidateLoadMore: "flex flex-wrap gap-2",
+  requirementSectionLabel: "[margin:1.25rem_0_.15rem] text-[#0a0a0a] text-[length:1rem] [&:first-child]:mt-0",
 } as const;

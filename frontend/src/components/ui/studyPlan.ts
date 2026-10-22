@@ -6,6 +6,10 @@ const plannerToolbarBase = cn(
     "[&_p]:text-[length:.82rem] [&_p]:[line-height:1.5] [@media(max-width:720px)]:items-stretch",
     "[@media(max-width:720px)]:flex-col [@media(max-width:720px)]:gap-4",
   );
+const planModeBase = cn(
+    "inline-flex items-center gap-[.4rem] w-fit [margin:0_0_.6rem] [padding:.25rem_.6rem] border-[1px] border-solid",
+    "[border-radius:999px] text-[length:.72rem] font-extrabold [letter-spacing:.06em] uppercase",
+  );
 const readOnlyLabelBase = cn(
     "[padding:.35rem_.65rem] border-[1px] border-solid border-[color:var(--line)] text-[length:.7rem]",
     "font-extrabold [letter-spacing:.08em] uppercase",
@@ -13,14 +17,14 @@ const readOnlyLabelBase = cn(
 
 /** Static Tailwind recipes preserve the handbook's studyPlan appearance and responsive states. */
 export const studyPlanUi = {
-  studyPlansSection: "[margin-top:clamp(4rem,_8vw,_7rem)] pt-8 [border-top:2px_solid_var(--navy)]",
+  studyPlansSection: "[margin-top:clamp(4rem,_8vw,_7rem)] pt-8 [border-top:2px_solid_var(--line)]",
   readOnlyLabelCustom: cn(readOnlyLabelBase, "text-[#216e4e] bg-[#f2faf6] [border-color:#9bc8b4]"),
   readOnlyLabel: cn(readOnlyLabelBase, "text-[var(--muted)] bg-[var(--surface)]"),
   planSelector: cn(
     "plan-selector grid [&_select]:min-w-0 [&_select]:w-full [gap:.45rem] max-w-168 [margin:0_0_2rem]",
     "text-[var(--muted)] text-[length:.8rem] font-bold [&_select]:[padding:.8rem_2.5rem_.8rem_.85rem]",
     "[&_select]:border-[1px] [&_select]:border-solid [&_select]:border-[color:#bfc6d1]",
-    "[&_select]:text-[var(--navy)] [&_select]:bg-[var(--surface)]",
+    "[&_select]:text-[#0a0a0a] [&_select]:bg-[var(--surface)]",
   ),
   planIntro: cn(
     "plan-intro max-w-232 mb-8 [&_h3]:[margin:0_0_.75rem] [&_h3]:text-[length:1.05rem] [&_h3]:[line-height:1.5]",
@@ -32,8 +36,13 @@ export const studyPlanUi = {
     "[&_p]:[border-left:2px_solid_#aebbd0] [&_p]:bg-[var(--soft)] [&_p]:text-[length:.78rem]",
     "[&_p]:[overflow-wrap:anywhere]",
   ),
-  plannerToolbarActive: cn(plannerToolbarBase, "bg-[#f5fbf8] [border-color:#9bc8b4]"),
-  plannerToolbar: cn(plannerToolbarBase, "bg-[var(--surface)]"),
+  // Editable vs read-only: a green or grey bar on the left, matching the mode badge inside.
+  plannerToolbarActive: cn(plannerToolbarBase, "bg-[#f5fbf8] [border-color:#9bc8b4] [border-left:4px_solid_#36805e]"),
+  plannerToolbar: cn(plannerToolbarBase, "bg-[var(--surface)] [border-left:4px_solid_#aebbd0]"),
+  planModeEditing: cn(planModeBase, "text-[#216e4e] bg-[#e3f3eb] [border-color:#9bc8b4]"),
+  planModeReadOnly: cn(planModeBase, "text-[#4b5563] bg-[var(--soft)] [border-color:var(--line)]"),
+  // While editing, a green rule down the left of the roadmap marks it as the user's own copy.
+  planAreaEditable: "[border-left:3px_solid_#36805e] [padding-left:1rem] [@media(max-width:720px)]:[padding-left:.65rem]",
   plannerToolbarActions: "flex flex-wrap justify-end [gap:.65rem] shrink-0 [@media(max-width:720px)]:justify-start",
   roadmapBasis: cn(
     "grid gap-1 [margin:1rem_0] [padding:0.85rem_1rem] border-[1px] border-solid border-[color:var(--line)]",
@@ -48,7 +57,28 @@ export const studyPlanUi = {
     "[&_dd]:text-[var(--muted)] [&_dd]:text-[length:.75rem] [&_dd]:[line-height:1.45] [&_p]:m-0",
     "[&_p]:text-[var(--muted)] [&_p]:text-[length:.75rem] [&_p]:[line-height:1.45]",
   ),
-  planPeriodEmpty: "p-4 text-[var(--muted)] border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
+  // USYD summary boxes: square, bordered and on the page surface like the other study plan panels.
+  planPanel: cn(
+    "mb-5 p-5 border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)] text-[length:.85rem]",
+    "[&_h3]:m-0 [&_h3]:p-0 [&_h3]:text-[#0a0a0a] [&_h3]:text-[length:1rem] [&_h3]:font-bold",
+    "[&_p]:[margin:.6rem_0_0] [&_p]:[line-height:1.55]",
+    "[&_details]:mt-3 [&_summary]:w-fit [&_summary]:text-[var(--blue)] [&_summary]:text-[length:.8rem]",
+    "[&_summary]:font-bold [&_summary]:cursor-pointer",
+  ),
+  planPanelFocus: "[border-left:3px_solid_var(--blue)]",
+  planPanelHeader: "flex flex-wrap items-baseline justify-between gap-3",
+  planPanelEyebrow: cn(
+    "[margin:0_0_.4rem] text-[var(--muted)] text-[length:.72rem] font-extrabold [letter-spacing:.08em] uppercase",
+  ),
+  planPanelTotal: "text-[#0a0a0a] text-[length:1.05rem] font-extrabold",
+  planPanelMeta: "text-[var(--muted)] font-semibold",
+  planPanelNote: "text-[var(--muted)]",
+  planPanelWarning: "text-[#8a4b00]",
+  planPanelRow: "flex flex-wrap justify-between gap-2 [margin:.5rem_0_0] [&_>_span:last-child]:font-semibold",
+  planProgress: "block w-full h-2 mt-3 [accent-color:var(--navy)]",
+  planCheckbox: "flex items-center gap-2 [margin:.85rem_0_0] text-[#0a0a0a] [&_input]:w-4 [&_input]:h-4 [&_input]:[accent-color:var(--navy)]",
+  planPanelNotice: "[margin:0_0_1.25rem] text-[var(--muted)] text-[length:.85rem]",
+  planPeriodEmpty:"p-4 text-[var(--muted)] border-[1px] border-solid border-[color:var(--line)] bg-[var(--surface)]",
   unassignedSection: cn(
     "mt-14 p-5 border-[1px] border-dashed border-[color:#9aa9bf] bg-[#f5f7fa] [&_>_div:first-child]:mb-4",
     "[&_h3]:[margin:0_0_.4rem] [&_>_div:first-child_>_p:last-child]:m-0",

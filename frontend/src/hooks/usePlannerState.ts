@@ -991,6 +991,8 @@ export const usePlannerState = (
       const fill = (item: typeof target) => item.plannerItemId !== plannerItemId ? item : {
         ...item, itemType: "SUBJECT" as const,
         choiceOrigin: { ...item.choiceOrigin!,
+          slotScope: item.choiceOrigin?.slotScope ?? { formalComponentCode: item.choiceOrigin?.formalComponentCode,
+            formalComponentId: item.choiceOrigin?.formalComponentId, formalRequirementGroupId: item.choiceOrigin?.formalRequirementGroupId },
           formalComponentCode: replaceOwnership ? formalComponentCode : formalComponentCode ?? item.choiceOrigin?.formalComponentCode,
           formalComponentId: replaceOwnership ? formalComponentId : formalComponentId ?? item.choiceOrigin?.formalComponentId,
           formalRequirementGroupId: replaceOwnership ? formalRequirementGroupId : formalRequirementGroupId ?? item.choiceOrigin?.formalRequirementGroupId, allocatedGroupLabel,
@@ -1145,9 +1147,11 @@ export const usePlannerState = (
       const restore = (item: PlannerState["unassignedItems"][number]) => {
         if (item.plannerItemId !== plannerItemId || !item.choiceOrigin) return item;
         const origin = item.choiceOrigin;
+        // Put back the slot's own requirement, saved when the subject was chosen (older drafts don't have it).
+        const { slotScope, ...rest } = origin;
         return { ...item, itemType: "CHOICE" as const, subject: null, rawCode: origin.rawCode,
           title: origin.title, creditPoints: origin.creditPoints,
-          choiceOrigin: { ...origin, allocatedGroupLabel: undefined,
+          choiceOrigin: slotScope ? { ...rest, ...slotScope, allocatedGroupLabel: undefined } : { ...rest, allocatedGroupLabel: undefined,
             formalRequirementGroupId: origin.componentRequirementKind === "COMPONENT" ? undefined : origin.formalRequirementGroupId },
         };
       };

@@ -69,8 +69,9 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
         ? <AsyncState kind="empty" label="Stream selection is not available." />
         : null;
 
+  // Flush section with a step label, as in the USYD handbook layout, using the page's current line colour.
   return <section className={appUi.requirementsSection} aria-labelledby="requirements-heading">
-    <div className={appUi.sectionHeading}><div><p className={appUi.stepLabel}>Step 3 of 3</p><h2 id="requirements-heading">Course structure</h2></div>
+    <div className={appUi.sectionHeading}><div><h2 id="requirements-heading">Course structure</h2></div>
       <span className={appUi.resultCount}>3 sections</span></div>
     <p className={appUi.sectionNote}>Open each section to see its formal handbook requirements.</p>
     {selectionNotice && <p className={appUi.selectionNotice} role="status">A saved choice is no longer available for this handbook. Please choose it again.</p>}
@@ -86,9 +87,9 @@ export const UsydEngineeringStructure = ({ detail, universityCode, handbookYear,
           ? <UsydFreeElectivePicker candidateSources={group.candidateSources} onOpenSubject={onOpenSubject} />
           : undefined} />;
     })}</div>
-    {conditionalGroups.length > 0 && <section aria-labelledby="usyd-conditional-heading">
-      <h3 id="usyd-conditional-heading">Conditional</h3>
-      <p className={appUi.sectionNote}>These requirements apply only when their stated enrolment condition is met.</p>
+    {conditionalGroups.length > 0 && <section className="mt-6" aria-labelledby="usyd-conditional-heading">
+      <h3 className="[margin:0_0_.25rem] p-0 text-[#0a0a0a] text-[length:1.15rem]" id="usyd-conditional-heading">Conditional</h3>
+      <p className="[margin:0_0_1.5rem] text-[var(--muted)]">These requirements apply only when their stated enrolment condition is met.</p>
       <div className={appUi.requirementsList}>{conditionalGroups.map((group) => <UsydEngineeringRequirement group={group} key={group.id}
         universityCode={universityCode} handbookYear={handbookYear} selections={selections}
         onSelectComponent={onSelectComponent} onOpenSubject={onOpenSubject} obligation="CONDITIONAL" />)}</div>

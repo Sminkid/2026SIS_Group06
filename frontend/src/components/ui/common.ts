@@ -103,20 +103,14 @@ export const commonUi = {
     "w-full min-w-[700px] table-fixed text-center",
     "border-separate border-spacing-x-2 border-spacing-y-4",
     "[&_th]:p-0 [&_td]:p-0",
-    // A 1px cell height lets each cell's content box use h-full and stretch to the row's tallest cell.
-    "[&_th]:h-px [&_td]:h-px",
   ),
-  uniInfo: cn(
-    "flex flex-row justify-center items-center gap-2",
-    "h-full min-w-[200px] p-3 text-base align-middle",
-    "bg-[var(--surface)] shadow-sm",
-  ),
-
-  uniInfoAlt: cn(
-    "flex flex-row justify-center items-center gap-2",
-    "h-full min-w-[200px] p-3 text-base align-middle",
-    "bg-[var(--amber)] shadow-sm",
-  ),
+  // Row cells carry the background, so every cell in a row is the same height in all browsers.
+  // (A box inside the cell with height: 100% doesn't stretch in Firefox, so taller content spilled out.)
+  uniInfoCell: "min-w-[200px] p-3! align-middle bg-[var(--surface)] shadow-sm",
+  uniInfoCellAlt: "min-w-[200px] p-3! align-middle bg-[var(--amber)] shadow-sm",
+  // Centres the cell's content; the colour comes from the cell.
+  uniInfo: "flex flex-row flex-wrap justify-center items-center gap-2 text-base",
+  uniInfoAlt: "flex flex-row flex-wrap justify-center items-center gap-2 text-base",
   buttonContainer: "flex flex-row justify-between",
   description: "m-0 text-xs text-[var(--muted)]",
 } as const;

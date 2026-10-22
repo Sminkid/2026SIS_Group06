@@ -300,13 +300,13 @@ export const UniversityComparisonPage = ({ course, onSelectUniversity, onHome, o
               <tbody>
                 {rows.map((row, rowIndex) => (
                   <tr key={row.id} id={row.id}>
-                    <th>
+                    <th className={rowIndex % 2 === 0 ? appUi.uniInfoCell : appUi.uniInfoCellAlt}>
                       <div className={rowIndex % 2 === 0 ? appUi.uniInfo : appUi.uniInfoAlt}>
                          {row.label}
                       </div>
                     </th>
                     {offerings.map((offering, index) => (
-                      <td key={offering.university.id}>
+                      <td key={offering.university.id} className={rowIndex % 2 === 0 ? appUi.uniInfoCell : appUi.uniInfoCellAlt}>
                         <div className={rowIndex % 2 === 0 ? appUi.uniInfo : appUi.uniInfoAlt}>
                           {row.render(offering, index)}
                         </div>

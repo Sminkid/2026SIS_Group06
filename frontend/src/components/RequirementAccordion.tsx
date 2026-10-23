@@ -187,8 +187,10 @@ const SelectedComponentRequirements = ({ componentId, context }: { componentId: 
 export const RequirementAccordion = ({ group, depth = 0, universityCode, handbookYear, selections, onSelectComponent,
   onOpenSubject, obligation, showChoiceSearch = false, choiceSelection, supplementalContent }: Props) => {
   const componentChoices = group.items.filter((item) => item.itemType === "COMPONENT");
-  const isComponentChoiceGroup = group.logic === "ONE_OF" && componentChoices.length > 0
-    && componentChoices.length === group.items.length;
+  const describesSingleComponentChoice =
+    /\bone of the (?:specialisations|specializations|majors)\b/i.test(group.description ?? "");
+  const isComponentChoiceGroup = (group.logic === "ONE_OF" || describesSingleComponentChoice) &&
+    componentChoices.length > 0 && componentChoices.length === group.items.length;
   const isSingleComponentChoice = isComponentChoiceGroup && componentChoices.length > 1;
   const soleComponentChoice = isComponentChoiceGroup && componentChoices.length === 1
     ? componentChoices[0]

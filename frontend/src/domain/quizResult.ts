@@ -1,4 +1,5 @@
 import { readableText } from "./readableText";
+import { classifyDegree } from "./degreeClassification";
 import { degreeKey, type QuizCategorySummary, type QuizResult } from "./quizRecommendation";
 import type { CourseRecommendation } from "./courseAggregation";
 import type {
@@ -56,8 +57,16 @@ const summaryFor = (categories: QuizCategorySummary[]): string => {
   return top.length > 0 ? `Your strongest interest areas are ${joinNames(top)}.` : "We couldn't work out your top interest areas.";
 };
 
+// Course keywords are matched by name alone, but some degrees are only recognisable with their
+// code - e.g. UNSW's "Mechanical Engineering" (MECHAH) is a Bachelor of Engineering (Honours)
+// specialisation - so those are swapped for the course they belong to.
+const courseName = (degree: DegreeRecommendation): string => {
+  const withCode = classifyDegree(degree.name, degree.code);
+  return withCode.key === classifyDegree(degree.name).key ? degree.name.trim() : withCode.displayName;
+};
+
 const uniqueDegreeNames = (degrees: DegreeRecommendation[]): string[] => [
-  ...new Set(degrees.map((degree) => degree.name.trim()).filter((name) => name !== "")),
+  ...new Set(degrees.map(courseName).filter((name) => name !== "")),
 ];
 
 /** Orders degrees by their best-fit major's match score where known, else their screening score. */
